@@ -52,8 +52,9 @@ typedef SSIZE_T ssize_t;
 #include <unistd.h>
 #endif
 
-#if defined(WIN32) || defined(_WIN32)
-typedef unsigned int SOCKET;
+#if !defined(WIN32) && !defined(_WIN32)
+// POSIX systems: define SOCKET type and WSA error code mappings
+typedef int SOCKET;
 #include <cerrno>
 #define WSAGetLastError() errno
 #define WSAEINVAL EINVAL

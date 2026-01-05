@@ -35,7 +35,10 @@ void memory_cleanse(void *ptr, size_t len) {
      * to detect memset_s, it would be better to use that.
      */
 #if defined(_MSC_VER)
-    __asm;
+    // MSVC: use volatile to prevent optimization
+    // __asm is not supported on ARM64, and even on x64 it's limited
+    volatile char *vptr = (volatile char *)ptr;
+    (void)vptr;
 #else
     __asm__ __volatile__("" : : "r"(ptr) : "memory");
 #endif
