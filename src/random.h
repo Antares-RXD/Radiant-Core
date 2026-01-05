@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <compat.h>
 #include <crypto/chacha20.h>
 #include <crypto/common.h>
 #include <uint256.h>

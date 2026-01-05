@@ -21,6 +21,52 @@
 #include <vector>
 #include <uint256.h>
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#include <limits>
+#include <type_traits>
+
+// MSVC polyfills for GCC/Clang builtins
+template <typename T>
+inline bool __builtin_add_overflow(T a, T b, T* res) {
+    static_assert(std::is_integral<T>::value, "Integral type required");
+    if ((b > 0 && a > std::numeric_limits<T>::max() - b) ||
+        (b < 0 && a < std::numeric_limits<T>::min() - b)) {
+        return true;
+    }
+    *res = a + b;
+    return false;
+}
+
+template <typename T>
+inline bool __builtin_sub_overflow(T a, T b, T* res) {
+    static_assert(std::is_integral<T>::value, "Integral type required");
+    if ((b < 0 && a > std::numeric_limits<T>::max() + b) ||
+        (b > 0 && a < std::numeric_limits<T>::min() + b)) {
+        return true;
+    }
+    *res = a - b;
+    return false;
+}
+
+template <typename T>
+inline bool __builtin_mul_overflow(T a, T b, T* res) {
+    static_assert(std::is_integral<T>::value, "Integral type required");
+    if (a == 0 || b == 0) {
+        *res = 0;
+        return false;
+    }
+    if (a > 0 && b > 0 && a > std::numeric_limits<T>::max() / b) return true;
+    if (a > 0 && b < 0 && b < std::numeric_limits<T>::min() / a) return true;
+    if (a < 0 && b > 0 && a < std::numeric_limits<T>::min() / b) return true;
+    if (a < 0 && b < 0) {
+        if (a == std::numeric_limits<T>::min() || b == std::numeric_limits<T>::min()) return true;
+        if (-a > std::numeric_limits<T>::max() / -b) return true;
+    }
+    *res = a * b;
+    return false;
+}
+#endif
+
 // Maximum number of bytes pushable to the stack legacy 
 static constexpr unsigned int MAX_SCRIPT_ELEMENT_SIZE_LEGACY = 520;
 

@@ -10,12 +10,15 @@
 #include <config/bitcoin-config.h>
 #endif
 
-#ifdef WIN32
+#if defined(WIN32) || defined(_WIN32)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN 1
 #endif
 #ifndef NOMINMAX
 #define NOMINMAX
+#endif
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0601 // Windows 7
 #endif
 #ifdef FD_SETSIZE
 #undef FD_SETSIZE // prevent redefinition compiler warning
@@ -27,6 +30,12 @@
 #include <mswsock.h>
 #include <windows.h>
 #include <ws2tcpip.h>
+
+#ifdef _MSC_VER
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
 #else
 #include <arpa/inet.h>
 #include <climits>
@@ -43,7 +52,7 @@
 #include <unistd.h>
 #endif
 
-#ifndef WIN32
+#if defined(WIN32) || defined(_WIN32)
 typedef unsigned int SOCKET;
 #include <cerrno>
 #define WSAGetLastError() errno
@@ -59,7 +68,7 @@ typedef unsigned int SOCKET;
 #define SOCKET_ERROR -1
 #endif
 
-#ifdef WIN32
+#if defined(WIN32) || defined(_WIN32)
 #ifndef S_IRUSR
 #define S_IRUSR 0400
 #define S_IWUSR 0200
@@ -72,7 +81,7 @@ typedef unsigned int SOCKET;
 size_t strnlen(const char *start, size_t max_len);
 #endif // HAVE_DECL_STRNLEN
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(_WIN32)
 typedef void *sockopt_arg_type;
 #else
 typedef char *sockopt_arg_type;
@@ -86,7 +95,7 @@ typedef char *sockopt_arg_type;
 #endif
 
 bool static inline IsSelectableSocket(const SOCKET& s) {
-#if defined(USE_POLL) || defined(WIN32)
+#if defined(USE_POLL) || defined(WIN32) || defined(_WIN32)
     return true;
 #else
     return (s < FD_SETSIZE);
