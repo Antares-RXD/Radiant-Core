@@ -107,7 +107,30 @@ if(MSVC)
   # Suppress informational warnings about inlining that clutter the logs
   # C4710: function not inlined
   # C4711: function selected for automatic inline expansion
-  add_compile_options(/wd4710 /wd4711)
+  # C4820: 'n' bytes padding added after data member
+  # C4625: copy constructor was implicitly defined as deleted
+  # C4626: assignment operator was implicitly defined as deleted
+  # C5026: move constructor was implicitly defined as deleted
+  # C5027: move assignment operator was implicitly defined as deleted
+  # C5045: Compiler will insert Spectre mitigation for memory load
+  # C4668: symbol is not defined as a preprocessor macro
+  # C4365: signed/unsigned mismatch
+  # C4242: conversion from 'type1' to 'type2', possible loss of data
+  # C4244: conversion from 'type1' to 'type2', possible loss of data
+  # C4267: conversion from 'size_t' to 'type', possible loss of data
+  # C4800: implicit conversion to bool
+  # C4061: enumerator in switch of enum is not explicitly handled
+  # C4201: nonstandard extension used: nameless struct/union
+  # C4100: unreferenced formal parameter
+  # C4127: conditional expression is constant
+  # C4514: unreferenced inline function has been removed
+  add_compile_options(
+    /wd4710 /wd4711 /wd4820 /wd4625 /wd4626 /wd5026 /wd5027 
+    /wd5045 /wd4668 /wd4365 /wd4242 /wd4244 /wd4267 /wd4800 
+    /wd4061 /wd4201 /wd4100 /wd4127 /wd4514
+  )
+  # Silence C++17 deprecation warnings for codecvt
+  add_compile_definitions(_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
