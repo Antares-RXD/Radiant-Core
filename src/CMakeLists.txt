@@ -103,6 +103,13 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   add_compile_definitions(_WIN32_WINNT=0x0701)
 endif()
 
+if(MSVC)
+  # Suppress informational warnings about inlining that clutter the logs
+  # C4710: function not inlined
+  # C4711: function selected for automatic inline expansion
+  add_compile_options(/wd4710 /wd4711)
+endif()
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   add_compile_definitions(MAC_OSX OBJC_OLD_DISPATCH_PROTOTYPES=0)
   add_linker_flags(-Wl,-dead_strip_dylibs)
