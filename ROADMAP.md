@@ -34,7 +34,30 @@ TEST IN MAC and LIUNX****
 
 # Phase 2: Performance & Modernization (1-3 Months)
 
-## 1. Asynchronous RPC & Network
+## 1. Code Quality & Technical Debt
+- [ ] **Fix Windows Build Issues**: Resolve remaining platform-specific compilation and linking problems.
+  - Address MSVC compatibility warnings and errors
+  - Ensure consistent behavior across MinGW and MSVC toolchains
+  - Validate cross-compilation from Linux to Windows
+- [ ] **Replace Deprecated C Functions**: Migrate from unsafe legacy functions to modern secure alternatives.
+  - Replace `sprintf` → `snprintf`, `strcpy` → `strncpy`/`strlcpy`
+  - Audit uses of `strtok`, `gets`, and other thread-unsafe functions
+  - Adopt C++17/20 string handling where appropriate
+- [ ] **Reduce assert() Reliance**: Replace assertions with proper error handling on critical paths.
+  - Audit `assert()` usage in consensus, wallet, and RPC code
+  - Replace with recoverable error returns or exceptions where appropriate
+  - Keep assertions only for true invariants and debug builds
+- [ ] **Address Accumulated TODOs**: Systematically resolve technical debt markers in codebase.
+  - Inventory all TODO/FIXME/HACK comments
+  - Prioritize by severity and impact
+  - Create tracking issues for non-trivial items
+- [ ] **Add Static Analysis Tooling**: Expand automated code quality checks.
+  - Integrate clang-tidy with comprehensive rule set
+  - Add cppcheck to CI pipeline
+  - Evaluate PVS-Studio or Coverity for deeper analysis
+  - Configure MSVC /analyze for Windows builds
+
+## 2. Asynchronous RPC & Network
 - [ ] **Async JSON-RPC**: Refactor the JSON-RPC server to be fully asynchronous (using `libevent` or C++20 coroutines).
 - [ ] **Block Propagation**: Implement **Graphene** or **Xthinner** to reduce bandwidth usage.
 - [ ] **Neutrino Support**: Enhance **BIP157/158** support for private light client syncing.
