@@ -1,0 +1,47 @@
+# Radiant Testnet Docker Configuration
+# Uses -testnet flag for the public Radiant testnet network
+# P2P Port: 18333, RPC Port: 17332
+
+FROM ubuntu:22.04
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    libboost-all-dev \
+    libevent-dev \
+    libssl-dev \
+    libdb++-dev \
+    libminiupnpc-dev \
+    libzmq3-dev \
+    wget \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create radiant user for security
+RUN useradd -m -s /bin/bash radiant
+
+# Set working directory
+WORKDIR /home/radiant
+
+# Copy Radiant Core binaries and configuration
+COPY build/src/radiantd /usr/local/bin/
+COPY build/src/radiant-cli /usr/local/bin/
+COPY build/src/radiant-wallet /usr/local/bin/
+COPY radiant-testnet.conf /home/radiant/
+
+# Create data and wallet directories
+RUN mkdir -p /home/radiant/data-testnet /home/radiant/wallets-testnet
+
+# Change ownership to radiant user
+RUN chown -R radiant:radiant /home/radiant
+
+# Switch to radiant user
+USER radiant
+
+# Expose Radiant Testnet ports
+# P2P Port: 18333, RPC Port: 17332
+EXPOSE 18333 17332
+
+# Start Radiant Testnet node with wallet support
+CMD ["radiantd", "-conf=/home/radiant/radiant-testnet.conf"]
