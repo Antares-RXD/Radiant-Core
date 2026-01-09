@@ -627,7 +627,10 @@ target_link_libraries(server
   memenv
 )
 
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+  # libevent needs iphlpapi for if_nametoindex on Windows
+  target_link_libraries(server iphlpapi)
+else()
   find_package(Event ${EVENT_MIN_VERSION} REQUIRED COMPONENTS pthreads)
   target_link_libraries(server Event::pthreads)
 endif()
@@ -717,6 +720,11 @@ if(BUILD_RADIANT_CLI)
 
   target_link_libraries(radiant-cli common rpcclient Event::event)
 
+  # On Windows, libevent needs iphlpapi for if_nametoindex
+  if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    target_link_libraries(radiant-cli iphlpapi)
+  endif()
+
   add_to_symbols_check(radiant-cli)
   add_to_security_check(radiant-cli)
 
@@ -750,6 +758,8 @@ if(BUILD_RADIANT_DAEMON)
   target_link_libraries(radiantd server)
   if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     target_sources(radiantd PRIVATE radiantd-res.rc)
+    # libevent needs iphlpapi for if_nametoindex
+    target_link_libraries(radiantd iphlpapi)
   endif()
 
   add_to_symbols_check(radiantd)

@@ -1,7 +1,7 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2022-2026 The Radiant developers
 // Copyright (c) 2017-2021 The Bitcoin developers
+// Copyright (c) 2022-2026 The Radiant developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -215,118 +215,12 @@ public:
 };
 
 /**
- * Testnet (v3)
+ * Testnet
  */
 class CTestNetParams : public CChainParams {
 public:
     CTestNetParams() {
         strNetworkID = CBaseChainParams::TESTNET;
-        consensus.nSubsidyHalvingInterval = 210000;
-        consensus.BIP16Height = 0;
-        consensus.BIP34Height = 17;
-        consensus.BIP65Height = 100;
-        consensus.BIP66Height = 101;
-        consensus.CSVHeight = 102;
-        consensus.ERHeight = 10600; 
-        consensus.PushTXStateHeight = 182600;
-        consensus.radiantCore2UpgradeHeight = 400000;
-        consensus.powLimit = uint256S(
-            "00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        // one week
-        consensus.nPowTargetTimespan = 7 * 24 * 60 * 60;
-        consensus.nPowTargetSpacing = 5 * 60;
-        consensus.fPowAllowMinDifficultyBlocks = true;
-        consensus.fPowNoRetargeting = false;
-
-        // The half life for the ASERT DAA. For every (nASERTHalfLife) seconds behind schedule the blockchain gets,
-        // difficulty is cut in half. Doubled if blocks are ahead of schedule.
-        // 1 hour
-        consensus.nASERTHalfLife = 60 * 60;
-
-        // Sat Jul 09 2022 22:00:00 GMT+0000 ASERT DAA enabled
-        consensus.asertActivationTime = 1657404000;
-
-        // The best chain should have at least this much work.
-        consensus.nMinimumChainWork =
-            ChainParamsConstants::TESTNET_MINIMUM_CHAIN_WORK;
-
-        // By default assume that the signatures in ancestors of this block are
-        // valid.
-        consensus.defaultAssumeValid =
-            ChainParamsConstants::MAINNET_DEFAULT_ASSUME_VALID;
-
-        // August 1, 2017 hard fork
-        consensus.uahfHeight = 200;
-
-        // Default limit for block size (in bytes)
-        consensus.nDefaultExcessiveBlockSize = DEFAULT_EXCESSIVE_BLOCK_SIZE;
-
-        // Chain-specific default for mining block size (in bytes) (configurable with -blockmaxsize)
-        consensus.nDefaultGeneratedBlockSize = 8 * ONE_MEGABYTE;
-
-        assert(consensus.nDefaultGeneratedBlockSize <= consensus.nDefaultExcessiveBlockSize);
-
-        diskMagic[0] = 0x0b;
-        diskMagic[1] = 0x11;
-        diskMagic[2] = 0x09;
-        diskMagic[3] = 0x07;
-        netMagic[0] = 0xf4;
-        netMagic[1] = 0xe5;
-        netMagic[2] = 0xf3;
-        netMagic[3] = 0xf4;
-        nDefaultPort = 17333;
-        nPruneAfterHeight = 1000;
-        m_assumed_blockchain_size = 60;
-        m_assumed_chain_state_size = 2;
-
-        genesis = CreateGenesisBlockTestnet(1657071137, 67046444, 0x1d00ffff, 1,
-                                     50000 * COIN);
-        consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock ==
-               uint256S("000000002008a2f4a76b850a838ae084994c200dc2fd354f73102298fe063a91"));
-        assert(genesis.hashMerkleRoot ==
-               uint256S("364459380841db3f0ea491e8099bf98a6b7ffc5693d8ee6e46b3f8183e0257dc"));
-
-        vFixedSeeds.clear();
-        vSeeds.clear();
-        // nodes with support for servicebits filtering should be at the top
-        vSeeds.emplace_back("node-testnet.radiantblockchain.org");
-        vSeeds.emplace_back("node-testnet.radiantone.org");
-        vSeeds.emplace_back("node-testnet.radiantlayerone.com");
-        vSeeds.emplace_back("node-testnet.radiantchain.org");
-        vSeeds.emplace_back("node-testnet.radiantnode.org");
-
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<uint8_t>(1, 111);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<uint8_t>(1, 196);
-        base58Prefixes[SECRET_KEY] = std::vector<uint8_t>(1, 239);
-        base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
-        base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
-        vFixedSeeds.assign(std::begin(pnSeed6_testnet3), std::end(pnSeed6_testnet3));
-
-        fDefaultConsistencyChecks = false;
-        fRequireStandard = false;
-        m_is_test_chain = true;
-
-        checkpointData = {
-            /* .mapCheckpoints = */ {
-                {0, genesis.GetHash()},
-
-            }};
-
-        // Data as of block
-        // 0000000000002ad25634e653f5834f0c710fab41891dd696bf504262745e5cd5
-        // (height 1459224)
-        chainTxData = ChainTxData{1628025202, 63826727, 0.004631731783637};
-    }
-};
-
-/**
- * Testnet (v4)
- */
-class CTestNet4Params : public CChainParams {
-public:
-    CTestNet4Params() {
-        strNetworkID = CBaseChainParams::TESTNET4;
         consensus.nSubsidyHalvingInterval = 210000;
         consensus.BIP16Height = 1;
         // Note: Because BIP34Height is less than 17, clients will face an unusual corner case with BIP34 encoding.
@@ -358,16 +252,16 @@ public:
         consensus.asertActivationTime = 1657404000;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = ChainParamsConstants::TESTNET4_MINIMUM_CHAIN_WORK;
+        consensus.nMinimumChainWork = ChainParamsConstants::TESTNET_MINIMUM_CHAIN_WORK;
 
         // By default assume that the signatures in ancestors of this block are
         // valid.
-        consensus.defaultAssumeValid = ChainParamsConstants::TESTNET4_DEFAULT_ASSUME_VALID;
+        consensus.defaultAssumeValid = ChainParamsConstants::TESTNET_DEFAULT_ASSUME_VALID;
 
         // August 1, 2017 hard fork
         consensus.uahfHeight = 6;
 
-        // Default limit for block size (in bytes) (testnet4 is smaller at 2MB)
+        // Default limit for block size (in bytes) (testnet is smaller at 2MB)
         consensus.nDefaultExcessiveBlockSize = 2 * ONE_MEGABYTE;
 
         // Chain-specific default for mining block size (in bytes) (configurable with -blockmaxsize)
@@ -399,15 +293,15 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
-        vSeeds.emplace_back("node-testnet4.radiantblockchain.org");
-        vSeeds.emplace_back("node-testnet4.radiantone.org");
+        vSeeds.emplace_back("testnet.radiantblockchain.org");
+        vSeeds.emplace_back("testnet.radiantcore.org");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<uint8_t>(1, 111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<uint8_t>(1, 196);
         base58Prefixes[SECRET_KEY] = std::vector<uint8_t>(1, 239);
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
-        vFixedSeeds.assign(std::begin(pnSeed6_testnet4), std::end(pnSeed6_testnet4));
+        vFixedSeeds.assign(std::begin(pnSeed6_testnet), std::end(pnSeed6_testnet));
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
@@ -630,10 +524,6 @@ std::unique_ptr<CChainParams> CreateChainParams(const std::string &chain) {
 
     if (chain == CBaseChainParams::TESTNET) {
         return std::make_unique<CTestNetParams>();
-    }
-
-    if (chain == CBaseChainParams::TESTNET4) {
-        return std::make_unique<CTestNet4Params>();
     }
 
     if (chain == CBaseChainParams::REGTEST) {

@@ -384,12 +384,10 @@ void SetupServerArgs() {
 
     const auto defaultBaseParams = CreateBaseChainParams(CBaseChainParams::MAIN);
     const auto testnetBaseParams = CreateBaseChainParams(CBaseChainParams::TESTNET);
-    const auto testnet4BaseParams = CreateBaseChainParams(CBaseChainParams::TESTNET4);
     const auto regtestBaseParams = CreateBaseChainParams(CBaseChainParams::REGTEST);
     const auto scalenetBaseParams = CreateBaseChainParams(CBaseChainParams::SCALENET);
     const auto defaultChainParams = CreateChainParams(CBaseChainParams::MAIN);
     const auto testnetChainParams = CreateChainParams(CBaseChainParams::TESTNET);
-    const auto testnet4ChainParams = CreateChainParams(CBaseChainParams::TESTNET4);
     const auto regtestChainParams = CreateChainParams(CBaseChainParams::REGTEST);
     const auto scalenetChainParams = CreateChainParams(CBaseChainParams::SCALENET);
 
@@ -473,10 +471,9 @@ void SetupServerArgs() {
                  ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     gArgs.AddArg("-excessiveblocksize=<n>",
                  strprintf("Do not accept blocks larger than this limit, in "
-                           "bytes (default: %u, testnet: %u, testnet4: %u, scalenet: %u, regtest: %u)",
+                           "bytes (default: %u, testnet: %u, scalenet: %u, regtest: %u)",
                            defaultChainParams->GetConsensus().nDefaultExcessiveBlockSize,
                            testnetChainParams->GetConsensus().nDefaultExcessiveBlockSize,
-                           testnet4ChainParams->GetConsensus().nDefaultExcessiveBlockSize,
                            scalenetChainParams->GetConsensus().nDefaultExcessiveBlockSize,
                            regtestChainParams->GetConsensus().nDefaultExcessiveBlockSize),
                  ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
@@ -515,10 +512,9 @@ void SetupServerArgs() {
                  "Imports blocks from external blk000??.dat file on startup",
                  ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     gArgs.AddArg("-maxmempool=<n>", strprintf("Keep the transaction memory pool below <n> "
-                 "megabytes (default: %u, testnet: %u, testnet4: %u, scalenet: %u)",
+                 "megabytes (default: %u, testnet: %u, scalenet: %u)",
                  DEFAULT_MAX_MEMPOOL_SIZE_PER_MB * defaultChainParams->GetConsensus().nDefaultExcessiveBlockSize / ONE_MEGABYTE,
                  DEFAULT_MAX_MEMPOOL_SIZE_PER_MB * testnetChainParams->GetConsensus().nDefaultExcessiveBlockSize / ONE_MEGABYTE,
-                 DEFAULT_MAX_MEMPOOL_SIZE_PER_MB * testnet4ChainParams->GetConsensus().nDefaultExcessiveBlockSize / ONE_MEGABYTE,
                  DEFAULT_MAX_MEMPOOL_SIZE_PER_MB * scalenetChainParams->GetConsensus().nDefaultExcessiveBlockSize / ONE_MEGABYTE),
                  ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     gArgs.AddArg("-maxorphantx=<n>",
@@ -638,9 +634,9 @@ void SetupServerArgs() {
                  strprintf("Bind to given address and always listen on it (default: 0.0.0.0). Use [host]:port notation "
                            "for IPv6. Append =onion to tag any incoming connections to that address and port as "
                            "incoming Tor connections (default: 127.0.0.1:%u=onion, testnet: 127.0.0.1:%u=onion, "
-                           "testnet4: 127.0.0.1:%u=onion, scalenet: 127.0.0.1:%u=onion, regtest: 127.0.0.1:%u=onion)",
+                           "scalenet: 127.0.0.1:%u=onion, regtest: 127.0.0.1:%u=onion)",
                            defaultBaseParams->OnionServiceTargetPort(), testnetBaseParams->OnionServiceTargetPort(),
-                           testnet4BaseParams->OnionServiceTargetPort(), scalenetBaseParams->OnionServiceTargetPort(),
+                           scalenetBaseParams->OnionServiceTargetPort(),
                            regtestBaseParams->OnionServiceTargetPort()),
                  ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY, OptionsCategory::CONNECTION);
     gArgs.AddArg(
@@ -717,10 +713,9 @@ void SetupServerArgs() {
                  ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
     gArgs.AddArg("-port=<port>",
                  strprintf("Listen for connections on <port> (default: %u, "
-                           "testnet: %u, testnet4: %u, scalenet: %u, regtest: %u)",
+                           "testnet: %u, scalenet: %u, regtest: %u)",
                            defaultChainParams->GetDefaultPort(),
                            testnetChainParams->GetDefaultPort(),
-                           testnet4ChainParams->GetDefaultPort(),
                            scalenetChainParams->GetDefaultPort(),
                            regtestChainParams->GetDefaultPort()),
                  ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY, OptionsCategory::CONNECTION);
@@ -1040,11 +1035,10 @@ void SetupServerArgs() {
                  ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::NODE_RELAY);
 
     gArgs.AddArg("-blockmaxsize=<n>",
-                 strprintf("Set maximum block size in bytes (default: %u, testnet: %u, testnet4: %u, scalenet: %u, "
+                 strprintf("Set maximum block size in bytes (default: %u, testnet: %u, scalenet: %u, "
                            "regtest: %u)",
                            defaultChainParams->GetConsensus().nDefaultGeneratedBlockSize,
                            testnetChainParams->GetConsensus().nDefaultGeneratedBlockSize,
-                           testnet4ChainParams->GetConsensus().nDefaultGeneratedBlockSize,
                            scalenetChainParams->GetConsensus().nDefaultGeneratedBlockSize,
                            regtestChainParams->GetConsensus().nDefaultGeneratedBlockSize),
                  ArgsManager::ALLOW_ANY, OptionsCategory::BLOCK_CREATION);
@@ -1121,10 +1115,9 @@ void SetupServerArgs() {
         ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     gArgs.AddArg("-rpcport=<port>",
                  strprintf("Listen for JSON-RPC connections on <port> "
-                           "(default: %u, testnet: %u, testnet4: %u, scalenet: %u, regtest: %u)",
+                           "(default: %u, testnet: %u, scalenet: %u, regtest: %u)",
                            defaultBaseParams->RPCPort(),
                            testnetBaseParams->RPCPort(),
-                           testnet4BaseParams->RPCPort(),
                            scalenetBaseParams->RPCPort(),
                            regtestBaseParams->RPCPort()),
                  ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY, OptionsCategory::RPC);

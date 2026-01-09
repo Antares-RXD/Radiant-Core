@@ -50,7 +50,7 @@ if(Event_INCLUDE_DIR)
 		INTERFACE_LINK_LIBRARIES "$<$<PLATFORM_ID:Windows>:ws2_32;shell32;advapi32>"
 	)
 
-	set(_Event_WINDOWS_LIBRARIES "$<$<PLATFORM_ID:Windows>:ws2_32;shell32;advapi32>")
+	set(_Event_WINDOWS_LIBRARIES "$<$<PLATFORM_ID:Windows>:ws2_32;shell32;advapi32;iphlpapi>")
 	set_property(TARGET Event::event
 		PROPERTY INTERFACE_LINK_LIBRARIES ${_Event_WINDOWS_LIBRARIES}
 	)

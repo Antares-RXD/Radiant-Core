@@ -37,12 +37,12 @@ set(CONFIG_FOR_INSTALL_TREE 0)
 set(LIBEVENT_VERSION 2.1.12)
 
 # IMPORTED targets from LibeventTargets.cmake
-set(LIBEVENT_STATIC_LIBRARIES "core;extra;openssl")
-set(LIBEVENT_SHARED_LIBRARIES "core;extra;openssl")
+set(LIBEVENT_STATIC_LIBRARIES "core;extra")
+set(LIBEVENT_SHARED_LIBRARIES "")
 
 # Default to the same type as libevent was built:
 if(NOT DEFINED LIBEVENT_STATIC_LINK)
-    set(LIBEVENT_STATIC_LINK NOT ON)
+    set(LIBEVENT_STATIC_LINK NOT OFF)
 endif()
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES_SAVE "${CMAKE_FIND_LIBRARY_SUFFIXES}")

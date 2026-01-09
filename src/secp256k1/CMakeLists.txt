@@ -68,7 +68,7 @@ add_library(secp256k1 src/secp256k1.c)
 target_include_directories(secp256k1 PUBLIC include)
 
 # Suppress Windows-specific warnings for cleaner build output (must be after target creation)
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+if(MSVC)
 	target_compile_options(secp256k1 PRIVATE
 		/wd4710 # function not inlined
 		/wd4711 # function selected for automatic inline expansion

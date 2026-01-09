@@ -53,5 +53,4 @@ static const int MAX_URI_LENGTH = 255;
 #define QAPP_ORG_DOMAIN "radiantblockchain.org"
 #define QAPP_APP_NAME_DEFAULT "BitcoinCashNode-Qt"
 #define QAPP_APP_NAME_TESTNET "BitcoinCashNode-Qt-testnet"
-#define QAPP_APP_NAME_TESTNET4 "BitcoinCashNode-Qt-testnet4"
 #define QAPP_APP_NAME_SCALENET "BitcoinCashNode-Qt-scalenet"

@@ -1,0 +1,10 @@
+C:/Users/donma/OneDrive/Desktop/Radiant-Core/libevent-build/CMakeFiles/event_core_static.dir
+C:/Users/donma/OneDrive/Desktop/Radiant-Core/libevent-build/CMakeFiles/event_extra_static.dir
+C:/Users/donma/OneDrive/Desktop/Radiant-Core/libevent-build/CMakeFiles/event_static.dir
+C:/Users/donma/OneDrive/Desktop/Radiant-Core/libevent-build/CMakeFiles/uninstall.dir
+C:/Users/donma/OneDrive/Desktop/Radiant-Core/libevent-build/CMakeFiles/edit_cache.dir
+C:/Users/donma/OneDrive/Desktop/Radiant-Core/libevent-build/CMakeFiles/rebuild_cache.dir
+C:/Users/donma/OneDrive/Desktop/Radiant-Core/libevent-build/CMakeFiles/list_install_components.dir
+C:/Users/donma/OneDrive/Desktop/Radiant-Core/libevent-build/CMakeFiles/install.dir
+C:/Users/donma/OneDrive/Desktop/Radiant-Core/libevent-build/CMakeFiles/install/local.dir
+C:/Users/donma/OneDrive/Desktop/Radiant-Core/libevent-build/CMakeFiles/install/strip.dir

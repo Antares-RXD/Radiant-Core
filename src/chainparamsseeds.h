@@ -71,7 +71,7 @@ static const SeedSpec6 pnSeed6_testnet3[] = {
     { "kcsjlkpfaad3tr43.onion:18333" }
 };
 
-static const SeedSpec6 pnSeed6_testnet4[] = {
+static const SeedSpec6 pnSeed6_testnet[] = {
     { "64.227.26.170:28333" },
     { "66.29.147.100:28333" },
     { "66.172.112.151:28333" },

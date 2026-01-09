@@ -6,12 +6,19 @@ This document tracks planned future work for Radiant Core. For completed feature
 
 # Phase 1: Infrastructure (Immediate)
 
-## 1. DNS Seeder Infrastructure
+## 1. Windows Build Fix (Completed)
+- [x] **Fix libevent-stubs linking bug**: Release build was linked against stub library breaking CLI RPC.
+  - Rebuilt real libevent from bundled `libevent-2.1.12-stable` source (495KB vs 10KB stub)
+  - Fixed MSVC flags passed to GCC in `src/secp256k1/CMakeLists.txt`
+  - Added iphlpapi linker dependency for Windows in `src/CMakeLists.txt`
+  - Added Event_VERSION passthrough to native build in `cmake/modules/NativeExecutable.cmake`
+TEST IN MAC and LIUNX****
+## 2. DNS Seeder Infrastructure
 - [ ] **Deploy Seeder**: Set up a `radiant-seeder` instance on a high-availability VPS.
 - [ ] **Update Code**: Add the new seeder's domain to `src/chainparams.cpp` (Mainnet & Testnet).
 - [ ] **Verify Crawling**: Ensure the seeder is correctly crawling the network and serving valid peers.
 
-## 2. PSRT Swap Protocol Enhancements
+## 3. PSRT Swap Protocol Enhancements
 - [ ] **Client-Side Order Expiration**: Implement order filtering based on age using existing `blockHeight` field.
   - Add optional `max_age` parameter to swap RPCs (`getopenorders`, `getopenordersbywant`)
   - Implement expiration logic in Photonic Wallet and other clients

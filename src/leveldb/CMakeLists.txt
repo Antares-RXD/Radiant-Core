@@ -163,8 +163,8 @@ endfunction()
 
 configure_leveldb_lib(leveldb)
 
-# Suppress Windows-specific warnings for cleaner build output (must be after target creation)
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+# Suppress MSVC-specific warnings for cleaner build output (must be after target creation)
+if(MSVC)
 	target_compile_options(leveldb PRIVATE
 		/wd4267 # conversion from 'size_t' to smaller type
 		/wd4244 # conversion from larger type to smaller type
@@ -172,7 +172,9 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 		/wd4005 # macro redefinition
 		/wd4312 # pointer size conversion
 	)
-	# Suppress OS_WINDOWS macro redefinition warning from shlwapi.h
+endif()
+# Suppress OS_WINDOWS macro redefinition warning from shlwapi.h
+if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	target_compile_definitions(leveldb PRIVATE OS_WINDOWS=1)
 endif()
 

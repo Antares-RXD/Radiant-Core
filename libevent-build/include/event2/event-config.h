@@ -170,7 +170,7 @@
 /* #undef EVENT__HAVE_KQUEUE */
 
 /* Define if the system has zlib */
-#define EVENT__HAVE_LIBZ 1
+/* #undef EVENT__HAVE_LIBZ */
 
 /* Define to 1 if you have the `mach_absolute_time' function. */
 /* #undef EVENT__HAVE_MACH_ABSOLUTE_TIME */
@@ -209,7 +209,7 @@
 #define EVENT__HAVE_AFUNIX_H 1
 
 /* Define if the system has openssl */
-#define EVENT__HAVE_OPENSSL 1
+/* #undef EVENT__HAVE_OPENSSL */
 
 /* Define to 1 if you have the `pipe' function. */
 /* #undef EVENT__HAVE_PIPE */

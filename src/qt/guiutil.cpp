@@ -600,9 +600,6 @@ static fs::path StartupShortcutPath() {
     if (chain == CBaseChainParams::TESTNET) {
         return GetSpecialFolderPath(CSIDL_STARTUP) / "Radiant Node (testnet).lnk";
     }
-    if (chain == CBaseChainParams::TESTNET4) {
-        return GetSpecialFolderPath(CSIDL_STARTUP) / "Radiant Node (testnet4).lnk";
-    }
     if (chain == CBaseChainParams::SCALENET) {
         return GetSpecialFolderPath(CSIDL_STARTUP) / "Radiant Node (scalenet).lnk";
     }

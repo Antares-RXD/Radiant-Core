@@ -14,16 +14,14 @@
 # EXTERNAL cache entries
 ########################
 
-//Build the testing tree.
-BUILD_TESTING:BOOL=ON
-
 //Path to a program.
 CMAKE_ADDR2LINE:FILEPATH=C:/Strawberry/c/bin/addr2line.exe
 
 //Path to a program.
 CMAKE_AR:FILEPATH=C:/Strawberry/c/bin/ar.exe
 
-//Set build type to Debug o Release (default Release)
+//Choose the type of build, options are: None Debug Release RelWithDebInfo
+// MinSizeRel ...
 CMAKE_BUILD_TYPE:STRING=Release
 
 //Enable/Disable color output during build.
@@ -123,12 +121,6 @@ CMAKE_OBJCOPY:FILEPATH=C:/Strawberry/c/bin/objcopy.exe
 //Path to a program.
 CMAKE_OBJDUMP:FILEPATH=C:/Strawberry/c/bin/objdump.exe
 
-//No help, variable specified on the command line.
-CMAKE_POLICY_VERSION_MINIMUM:UNINITIALIZED=3
-
-//No help, variable specified on the command line.
-CMAKE_PREFIX_PATH:UNINITIALIZED=C:\Strawberry\c
-
 //Value Computed by CMake
 CMAKE_PROJECT_COMPAT_VERSION:STATIC=
 
@@ -227,29 +219,13 @@ CMAKE_TAPI:FILEPATH=CMAKE_TAPI-NOTFOUND
 // Studio IDE projects all commands are done without /nologo.
 CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
 
-//Path to the coverage program that CTest uses for performing coverage
-// inspection
-COVERAGE_COMMAND:FILEPATH=C:/Strawberry/c/bin/gcov.exe
-
-//Extra command line flags to pass to the coverage tool
-COVERAGE_EXTRA_FLAGS:STRING=-l
-
-//How many times to retry timed-out CTest submissions.
-CTEST_SUBMIT_RETRY_COUNT:STRING=3
-
-//How long to wait between timed-out CTest submissions.
-CTEST_SUBMIT_RETRY_DELAY:STRING=5
-
-//Maximum time allowed before CTest will kill the test.
-DART_TESTING_TIMEOUT:STRING=1500
-
 //Enable running gcov to get a test coverage report (only works
 // with GCC/CLang). Make sure to enable -DCMAKE_BUILD_TYPE=Debug
 // as well.
 EVENT__COVERAGE:BOOL=OFF
 
 //Defines if libevent should build without the benchmark executables
-EVENT__DISABLE_BENCHMARK:BOOL=OFF
+EVENT__DISABLE_BENCHMARK:BOOL=ON
 
 //Do not use clock_gettime even if it is available
 EVENT__DISABLE_CLOCK_GETTIME:BOOL=OFF
@@ -260,20 +236,23 @@ EVENT__DISABLE_DEBUG_MODE:BOOL=OFF
 //Disable verbose warnings with GCC
 EVENT__DISABLE_GCC_WARNINGS:BOOL=OFF
 
+//No help, variable specified on the command line.
+EVENT__DISABLE_MBEDTLS:UNINITIALIZED=ON
+
 //Define if libevent should not allow replacing the mm functions
 EVENT__DISABLE_MM_REPLACEMENT:BOOL=OFF
 
 //Define if libevent should build without support for OpenSSL encryption
-EVENT__DISABLE_OPENSSL:BOOL=OFF
+EVENT__DISABLE_OPENSSL:BOOL=ON
 
 //Disable the regress tests
-EVENT__DISABLE_REGRESS:BOOL=OFF
+EVENT__DISABLE_REGRESS:BOOL=ON
 
 //Disable sample files
-EVENT__DISABLE_SAMPLES:BOOL=OFF
+EVENT__DISABLE_SAMPLES:BOOL=ON
 
 //If tests should be compiled or not
-EVENT__DISABLE_TESTS:BOOL=OFF
+EVENT__DISABLE_TESTS:BOOL=ON
 
 //Define if libevent should not be compiled with thread support
 EVENT__DISABLE_THREAD_SUPPORT:BOOL=OFF
@@ -302,70 +281,13 @@ EVENT__FORCE_KQUEUE_CHECK:BOOL=OFF
 
 //Set library type to SHARED/STATIC/BOTH (default SHARED for MSVC,
 // otherwise BOTH)
-EVENT__LIBRARY_TYPE:STRING=DEFAULT
+EVENT__LIBRARY_TYPE:STRING=STATIC
 
 //Git command line client
 GIT_EXECUTABLE:FILEPATH=C:/Program Files/Git/cmd/git.exe
 
 //Libevent include directories
 LIBEVENT_INCLUDE_DIRS:PATH=C:/Users/donma/OneDrive/Desktop/Radiant-Core/libevent-2.1.12-stable/include;C:/Users/donma/OneDrive/Desktop/Radiant-Core/libevent-build/include
-
-//Path to a library.
-LIB_EAY:FILEPATH=C:/Strawberry/c/lib/libcrypto.a
-
-//Command to build the project
-MAKECOMMAND:STRING=C:/Program\ Files/CMake/bin/cmake.exe --build . --config "${CTEST_CONFIGURATION_TYPE}"
-
-//Path to the memory checking command, used for memory error detection.
-MEMORYCHECK_COMMAND:FILEPATH=MEMORYCHECK_COMMAND-NOTFOUND
-
-//File that contains suppressions for the memory checker
-MEMORYCHECK_SUPPRESSIONS_FILE:FILEPATH=
-
-//Path to a file.
-OPENSSL_INCLUDE_DIR:PATH=C:/Strawberry/c/include
-
-//Path to a program.
-PYTHON_EXECUTABLE:FILEPATH=C:/Users/donma/AppData/Local/Programs/Python/Python312/python.exe
-
-//Name of the computer/site where compile is being run
-SITE:STRING=Desktop-HI9TV
-
-//Path to a library.
-SSL_EAY:FILEPATH=C:/Strawberry/c/lib/libssl.a
-
-//Path to a file.
-ZLIB_INCLUDE_DIR:PATH=C:/Strawberry/c/include
-
-//Path to a library.
-ZLIB_LIBRARY_DEBUG:FILEPATH=ZLIB_LIBRARY_DEBUG-NOTFOUND
-
-//Path to a library.
-ZLIB_LIBRARY_RELEASE:FILEPATH=C:/Strawberry/c/lib/libz.a
-
-//Dependencies for the target
-event_core_shared_LIB_DEPENDS:STATIC=general;ws2_32;general;shell32;general;advapi32;general;iphlpapi;
-
-//Dependencies for the target
-event_core_static_LIB_DEPENDS:STATIC=general;ws2_32;general;shell32;general;advapi32;general;iphlpapi;
-
-//Dependencies for the target
-event_extra_shared_LIB_DEPENDS:STATIC=general;ws2_32;general;shell32;general;advapi32;general;event_core_shared;
-
-//Dependencies for the target
-event_extra_static_LIB_DEPENDS:STATIC=general;ws2_32;general;shell32;general;advapi32;general;event_core_static;
-
-//Dependencies for the target
-event_openssl_shared_LIB_DEPENDS:STATIC=general;ws2_32;general;shell32;general;advapi32;general;event_core_shared;general;C:/Strawberry/c/lib/libssl.a;general;C:/Strawberry/c/lib/libcrypto.a;
-
-//Dependencies for the target
-event_openssl_static_LIB_DEPENDS:STATIC=general;ws2_32;general;shell32;general;advapi32;general;event_core_static;general;C:/Strawberry/c/lib/libssl.a;general;C:/Strawberry/c/lib/libcrypto.a;
-
-//Dependencies for the target
-event_shared_LIB_DEPENDS:STATIC=general;ws2_32;general;shell32;general;advapi32;general;event_core_shared;general;iphlpapi;
-
-//Dependencies for the target
-event_static_LIB_DEPENDS:STATIC=general;ws2_32;general;shell32;general;advapi32;general;event_core_shared;general;iphlpapi;
 
 //Value Computed by CMake
 libevent_BINARY_DIR:STATIC=C:/Users/donma/OneDrive/Desktop/Radiant-Core/libevent-build
@@ -399,8 +321,6 @@ CMAKE_COLOR_MAKEFILE-ADVANCED:INTERNAL=1
 CMAKE_COMMAND:INTERNAL=C:/Program Files/CMake/bin/cmake.exe
 //Path to cpack program executable.
 CMAKE_CPACK_COMMAND:INTERNAL=C:/Program Files/CMake/bin/cpack.exe
-//ADVANCED property for variable: CMAKE_CTEST_COMMAND
-CMAKE_CTEST_COMMAND-ADVANCED:INTERNAL=1
 //Path to ctest program executable.
 CMAKE_CTEST_COMMAND:INTERNAL=C:/Program Files/CMake/bin/ctest.exe
 //ADVANCED property for variable: CMAKE_C_COMPILER
@@ -525,16 +445,6 @@ CMAKE_STRIP-ADVANCED:INTERNAL=1
 CMAKE_TAPI-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: COVERAGE_COMMAND
-COVERAGE_COMMAND-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: COVERAGE_EXTRA_FLAGS
-COVERAGE_EXTRA_FLAGS-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: CTEST_SUBMIT_RETRY_COUNT
-CTEST_SUBMIT_RETRY_COUNT-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: CTEST_SUBMIT_RETRY_DELAY
-CTEST_SUBMIT_RETRY_DELAY-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: DART_TESTING_TIMEOUT
-DART_TESTING_TIMEOUT-ADVANCED:INTERNAL=1
 //Have include fcntl.h;inttypes.h;memory.h;signal.h;stdarg.h;stddef.h;stdint.h;stdlib.h;string.h;errno.h;unistd.h;time.h;sys/types.h;sys/stat.h;sys/time.h;sys/param.h;io.h;winsock2.h;ws2tcpip.h;afunix.h
 EVENT__HAVE_AFUNIX_H:INTERNAL=1
 //Have symbol clock_gettime
@@ -709,12 +619,6 @@ EVENT__SIZEOF_UNSIGNED_INT:INTERNAL=4
 EVENT__SIZEOF_VOID_P:INTERNAL=8
 //Details about finding Git
 FIND_PACKAGE_MESSAGE_DETAILS_Git:INTERNAL=[C:/Program Files/Git/cmd/git.exe][v2.47.0.windows.2()]
-//Details about finding OpenSSL
-FIND_PACKAGE_MESSAGE_DETAILS_OpenSSL:INTERNAL=[C:/Strawberry/c/lib/libcrypto.a][C:/Strawberry/c/include][ ][v3.3.0()]
-//Details about finding PythonInterp
-FIND_PACKAGE_MESSAGE_DETAILS_PythonInterp:INTERNAL=[C:/Users/donma/AppData/Local/Programs/Python/Python312/python.exe][v3.12.2(3)]
-//Details about finding ZLIB
-FIND_PACKAGE_MESSAGE_DETAILS_ZLIB:INTERNAL=[C:/Strawberry/c/lib/libz.a][C:/Strawberry/c/include][ ][v1.3.1()]
 //ADVANCED property for variable: GIT_EXECUTABLE
 GIT_EXECUTABLE-ADVANCED:INTERNAL=1
 //Result of TRY_COMPILE
@@ -781,28 +685,6 @@ HAVE_STDDEF_H:INTERNAL=1
 HAVE_STDINT_H:INTERNAL=1
 //Have include sys/types.h
 HAVE_SYS_TYPES_H:INTERNAL=1
-//ADVANCED property for variable: LIB_EAY
-LIB_EAY-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: MAKECOMMAND
-MAKECOMMAND-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: MEMORYCHECK_COMMAND
-MEMORYCHECK_COMMAND-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: MEMORYCHECK_SUPPRESSIONS_FILE
-MEMORYCHECK_SUPPRESSIONS_FILE-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: OPENSSL_INCLUDE_DIR
-OPENSSL_INCLUDE_DIR-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: PYTHON_EXECUTABLE
-PYTHON_EXECUTABLE-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: SITE
-SITE-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: SSL_EAY
-SSL_EAY-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: ZLIB_INCLUDE_DIR
-ZLIB_INCLUDE_DIR-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: ZLIB_LIBRARY_DEBUG
-ZLIB_LIBRARY_DEBUG-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: ZLIB_LIBRARY_RELEASE
-ZLIB_LIBRARY_RELEASE-ADVANCED:INTERNAL=1
 //Have symbol _GNU_SOURCE
 _GNU_SOURCE:INTERNAL=
 //Test check_c_compiler_flag__Waddress
