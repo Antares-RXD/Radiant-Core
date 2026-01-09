@@ -4,8 +4,13 @@
 
 #include "leveldb/c.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
+#include <vector>
+#include <string>
+#include <cassert>
+#include <algorithm>
+#include <iostream>
 #ifndef WIN32
 #include <unistd.h>
 #endif
