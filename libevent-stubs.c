@@ -1,3 +1,25 @@
+/**
+ * LIBEVENT STUBS - WARNING
+ * 
+ * This file provides stub implementations of libevent functions.
+ * These stubs DO NOT provide real functionality:
+ * - HTTP event loop returns immediately (RPC will not work)
+ * - Network connections will fail
+ * - radiant-cli will crash with assertion errors
+ * 
+ * This is a TEMPORARY WORKAROUND for builds without libevent.
+ * For production use, install real libevent via:
+ * - vcpkg: .\vcpkg install libevent:x64-windows
+ * - MSYS2: pacman -S mingw-w64-x86_64-libevent
+ * - WSL2:  sudo apt install libevent-dev
+ */
+
+#ifdef _MSC_VER
+#pragma message("WARNING: Using libevent stubs - RPC functionality will NOT work!")
+#else
+#warning "Using libevent stubs - RPC functionality will NOT work!"
+#endif
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
