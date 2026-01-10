@@ -163,3 +163,12 @@ Testing/
 
 # Release artifacts
 release-*/
+
+# Blockchain data
+data-*/
+regtest-data/
+testnet-data/
+wallets-testnet/
+
+# Runtime files
+*.pid
