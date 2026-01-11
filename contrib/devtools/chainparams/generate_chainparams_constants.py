@@ -11,7 +11,6 @@ as an argument:
 
     chainparams_main.txt
     chainparams_test.txt
-    chainparams_testnet4.txt
     chainparams_scalenet.txt
 
 These files must consist of lines in the format
@@ -62,9 +61,6 @@ namespace ChainParamsConstants {{
     const BlockHash TESTNET_DEFAULT_ASSUME_VALID = BlockHash::fromHex("{}");
     const uint256 TESTNET_MINIMUM_CHAIN_WORK = uint256S("{}");
 
-    const BlockHash TESTNET4_DEFAULT_ASSUME_VALID = BlockHash::fromHex("{}");
-    const uint256 TESTNET4_MINIMUM_CHAIN_WORK = uint256S("{}");
-
     // Scalenet re-organizes above height 10,000 - use block 9,999 hash here.
     const BlockHash SCALENET_DEFAULT_ASSUME_VALID = BlockHash::fromHex("{}");
     const uint256 SCALENET_MINIMUM_CHAIN_WORK = uint256S("{}");
@@ -76,7 +72,6 @@ namespace ChainParamsConstants {{
         "generated",
         *process_constants(indir, 'chainparams_main.txt'),
         *process_constants(indir, 'chainparams_test.txt'),
-        *process_constants(indir, 'chainparams_testnet4.txt'),
         *process_constants(indir, 'chainparams_scalenet.txt'))
     )
 

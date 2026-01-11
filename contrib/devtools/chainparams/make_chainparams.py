@@ -16,7 +16,6 @@ from authproxy import AuthServiceProxy  # noqa: E402
 class Chain(Enum):
     MainNet = "MAINNET"
     TestNet = "TESTNET"
-    TestNet4 = "TESTNET4"
     ScaleNet = "SCALENET"
 
 
@@ -27,8 +26,6 @@ def get_chainparams(rpc_caller, block):
         chain = Chain.MainNet
     elif chaininfo['chain'] == 'test':
         chain = Chain.TestNet
-    elif chaininfo['chain'] == 'test4':
-        chain = Chain.TestNet4
     elif chaininfo['chain'] == 'scale':
         chain = Chain.ScaleNet
         # Comment-out the below to actually update chain params for scalenet
@@ -83,7 +80,7 @@ if __name__ == "__main__":
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--address', '-a', default="127.0.0.1:8332",
                         help="Node address for making RPC calls.\n"
-                             "The chain (MainNet, TestNet, TestNet4, ScaleNet) will be automatically detected.\n"
+                             "The chain (MainNet, TestNet, ScaleNet) will be automatically detected.\n"
                              "Default: '127.0.0.1:8332'")
     parser.add_argument('--block', '-b',
                         help="The block hash or height to use for fetching chainparams.\n"

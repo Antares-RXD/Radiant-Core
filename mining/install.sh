@@ -100,7 +100,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
   "rpc": {
     "user": "testnet",
     "pass": "testnetpass123",
-    "port": 17332,
+    "port": 27332,
     "timeout": 30
   },
   "gpu": {

@@ -11,13 +11,12 @@ to addrman with).
 The seeds compiled into the release are created from the `dnsseed.dump` output file of a
 [Radiant Node Seeder](/src/seeder) that has been running for at least 30 days. The scripts
 below assume that the `dnsseed.dump` file from the mainnet seeder has been copied to
-`seeds_main.txt` and the `dnsseed.dump` file from the testnet3 seeder has been copied to
-`seeds_testnet3.txt`, etc.
+`seeds_main.txt` and the `dnsseed.dump` file from the testnet seeder has been copied to
+`seeds_testnet.txt`, etc.
 
 ```
 python3 makeseeds.py < seeds_main.txt > nodes_main.txt
-python3 makeseeds.py < seeds_testnet3.txt > nodes_testnet3.txt
-python3 makeseeds.py < seeds_testnet4.txt > nodes_testnet4.txt
+python3 makeseeds.py < seeds_testnet.txt > nodes_testnet.txt
 python3 makeseeds.py < seeds_scalenet.txt > nodes_scalenet.txt
 python3 generate-seeds.py . > ../../src/chainparamsseeds.h
 ```

@@ -1,0 +1,59 @@
+# Radiant OrbStack Configuration (Node + Miner)
+FROM ubuntu:22.04
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    libboost-all-dev \
+    libevent-dev \
+    libssl-dev \
+    libdb++-dev \
+    libminiupnpc-dev \
+    libzmq3-dev \
+    wget \
+    curl \
+    python3 \
+    python3-pip \
+    ocl-icd-opencl-dev \
+    opencl-headers \
+    clinfo \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip3 install pyopencl numpy
+
+# Create radiant user
+RUN useradd -m -s /bin/bash radiant
+WORKDIR /home/radiant
+
+# Setup directory structure to match miner script expectations
+# Script looks for: {PROJECT_DIR}/build/src/radiant-cli
+RUN mkdir -p build/src mining data-testnet wallets-testnet
+
+# Copy built binaries from host
+COPY build/src/radiantd build/src/
+COPY build/src/radiant-cli build/src/
+COPY build/src/radiant-wallet build/src/
+
+# Copy configuration
+COPY radiant-testnet.conf .
+
+# Copy miner script
+COPY mining/radiant_gpu_miner.py mining/
+
+# Copy startup script
+COPY start_orbstack.sh .
+
+# Fix permissions
+RUN chown -R radiant:radiant /home/radiant
+RUN chmod +x start_orbstack.sh
+
+# Switch to radiant user
+USER radiant
+
+# Expose ports
+EXPOSE 27333 27332
+
+# Run the startup script
+CMD ["./start_orbstack.sh"]

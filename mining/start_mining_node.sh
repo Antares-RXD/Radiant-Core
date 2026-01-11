@@ -19,7 +19,7 @@ NETWORK="testnet"
 PROFILE="mining"
 RPC_USER="testnet"
 RPC_PASS="testnetpass123"
-RPC_PORT="17332"
+RPC_PORT="27332"
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Parse arguments

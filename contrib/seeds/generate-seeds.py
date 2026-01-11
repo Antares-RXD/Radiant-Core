@@ -9,8 +9,7 @@ This script expects four text files in the directory that is passed as an
 argument:
 
     nodes_main.txt
-    nodes_testnet3.txt
-    nodes_testnet4.txt
+    nodes_testnet.txt
     nodes_scalenet.txt
 
 These files must consist of lines in the format
@@ -27,10 +26,7 @@ The output will be four data structures with the peers in binary format:
    static SeedSpec6 pnSeed6_main[]={
    ...
    }
-   static SeedSpec6 pnSeed6_testnet3[]={
-   ...
-   }
-   static SeedSpec6 pnSeed6_testnet4[]={
+   static SeedSpec6 pnSeed6_testnet[]={
    ...
    }
    static SeedSpec6 pnSeed6_scalenet[]={
@@ -145,11 +141,8 @@ def main():
     with open(os.path.join(indir, 'nodes_main.txt'), 'r', encoding="utf8") as f:
         process_nodes(g, f, 'pnSeed6_main', 8333)
     g.write('\n')
-    with open(os.path.join(indir, 'nodes_testnet3.txt'), 'r', encoding="utf8") as f:
-        process_nodes(g, f, 'pnSeed6_testnet3', 18333)
-    g.write('\n')
-    with open(os.path.join(indir, 'nodes_testnet4.txt'), 'r', encoding="utf8") as f:
-        process_nodes(g, f, 'pnSeed6_testnet4', 28333)
+    with open(os.path.join(indir, 'nodes_testnet.txt'), 'r', encoding="utf8") as f:
+        process_nodes(g, f, 'pnSeed6_testnet', 27333)
     g.write('\n')
     with open(os.path.join(indir, 'nodes_scalenet.txt'), 'r', encoding="utf8") as f:
         process_nodes(g, f, 'pnSeed6_scalenet', 38333)

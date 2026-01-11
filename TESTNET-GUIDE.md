@@ -48,11 +48,10 @@ Radiant Core supports multiple test networks:
 | Network    | Flag        | P2P Port | RPC Port | Use Case |
 |------------|-------------|----------|----------|----------|
 | **Regtest**| `-regtest`  | 18444    | 17443    | Local dev, instant blocks, isolated testing |
-| Testnet3   | `-testnet`  | 18333    | 17332    | Historical testnet (large, slow to sync) |
-| Testnet4   | `-testnet4` | 28333    | 27332    | Lightweight public testnet |
+| Testnet    | `-testnet`  | 27333    | 27332    | Public testnet (current stable) |
 | Scalenet   | `-scalenet` | 38333    | 37332    | High-throughput stress testing |
 
-**Recommended for testing changes: Use `regtest` mode first, then `testnet4` for broader testing.**
+**Recommended for testing changes: Use `regtest` mode first, then `testnet` for broader testing.**
 
 ---
 
@@ -199,19 +198,19 @@ radiant-cli.exe -rpcport=17444 -rpcuser=node2 -rpcpassword=node2pass getpeerinfo
 
 ---
 
-## Option 3: Public Testnet (testnet4)
+## Option 3: Public Testnet
 
 For testing with the wider community on a shared testnet:
 
-### Configuration (`radiant-testnet4.conf`)
+### Configuration (`radiant-testnet.conf`)
 
 ```ini
-testnet4=1
+testnet=1
 server=1
 daemon=0
 txindex=1
-rpcuser=testnet4user
-rpcpassword=testnet4pass
+rpcuser=testnetuser
+rpcpassword=testnetpass
 rpcallowip=127.0.0.1
 rpcport=27332
 debug=1
@@ -220,13 +219,13 @@ debug=1
 ### Start Node
 
 ```bash
-radiantd.exe -conf=radiant-testnet4.conf
+radiantd.exe -conf=radiant-testnet.conf
 ```
 
 ### Get Testnet Coins
 
 - Use a testnet faucet (if available)
-- CPU mine on testnet4 (low difficulty, designed to be CPU-mineable)
+- CPU mine on testnet (low difficulty, designed to be CPU-mineable)
 
 ---
 
@@ -372,7 +371,7 @@ The ASERT half-life tuning change activates at block 400000 on all networks:
 |-----------|---------------------------|----------------|
 | Mainnet   | 400,000                   | Production     |
 | Testnet3  | 400,000                   | May be past it |
-| Testnet4  | 400,000                   | Likely < 400k  |
+| Testnet  | 400,000                   | Likely < 400k  |
 | Scalenet  | 400,000                   | Variable       |
 | Regtest   | **200**                   | Easy to test   |
 
@@ -386,15 +385,15 @@ radiant-cli -regtest generatetoaddress 201 "ADDRESS"
 # Now past the upgrade height - test ASERT behavior
 ```
 
-#### Option B: Fresh Testnet4 (Recommended for Community Proof)
+#### Option B: Fresh Testnet (Recommended for Community Proof)
 
-Testnet4 is designed to be lightweight and restartable. Since block 400000 is the target:
+Testnet is designed to be lightweight and restartable. Since block 400000 is the target:
 
-1. **Check current testnet4 height** (if running)
-2. **If testnet4 < 400,000 blocks:** Continue mining to reach 400k
-3. **If testnet4 > 400,000 blocks:** Either use existing chain or reset
+1. **Check current testnet height** (if running)
+2. **If testnet < 400,000 blocks:** Continue mining to reach 400k
+3. **If testnet > 400,000 blocks:** Either use existing chain or reset
 
-**To reset testnet4 (if needed):**
+**To reset testnet (if needed):**
 - Invalidate a block and checkpoint a new one
 - Or start fresh genesis (requires code change + coordination)
 
@@ -403,7 +402,7 @@ Testnet4 is designed to be lightweight and restartable. Since block 400000 is th
 For faster testing, modify `chainparams.cpp` to set a lower upgrade height:
 
 ```cpp
-// In CTestNet4Params constructor:
+// In CTestNetParams constructor:
 consensus.radiantCore2UpgradeHeight = 100;  // Instead of 400000
 ```
 
@@ -411,7 +410,7 @@ Then rebuild and run a private testnet.
 
 ### Checking Testnet Status
 
-**Testnet4 DNS Seeds (from chainparams.cpp):**
+**Testnet DNS Seeds (from chainparams.cpp):**
 - `node-testnet.radiantblockchain.org`
 - `node-testnet.radiantone.org`
 - `node-testnet.radiantlayerone.com`
@@ -421,7 +420,7 @@ Then rebuild and run a private testnet.
 **To check if testnet is running:**
 ```bash
 # Try connecting
-radiantd -testnet4 -printtoconsole
+radiantd -testnet -printtoconsole
 
 # Or check DNS seeds
 nslookup node-testnet.radiantblockchain.org
@@ -431,9 +430,9 @@ nslookup node-testnet.radiantblockchain.org
 
 **For public testnet: Depends on difficulty.**
 
-- Testnet4 has `fPowAllowMinDifficultyBlocks = true` and 1-hour ASERT half-life
+- Testnet has `fPowAllowMinDifficultyBlocks = true` and 1-hour ASERT half-life
 - After 20 minutes without blocks, difficulty drops to minimum
-- **CPU mining should work** on testnet4 after difficulty drops
+- **CPU mining should work** on testnet after difficulty drops
 
 **For regtest: No pool needed** - use `generatetoaddress` RPC.
 
@@ -442,7 +441,7 @@ nslookup node-testnet.radiantblockchain.org
 1. **Fix the libevent build bug first** (critical)
 2. **Test on regtest** - verify ASERT changes work at height 200+
 3. **Run functional tests** - `test/functional/` has existing tests
-4. **Deploy to testnet4** - mine/sync to block 400k
+4. **Deploy to testnet** - mine/sync to block 400k
 5. **Document results** for community
 
 ---
@@ -451,8 +450,8 @@ nslookup node-testnet.radiantblockchain.org
 
 - [ ] **FIX:** Rebuild with real libevent library
 - [ ] **TEST:** Run regtest to height 201+ to verify ASERT upgrade
-- [ ] **CHECK:** Query testnet4 DNS seeds to see if network is active
-- [ ] **MINE:** If testnet4 is below 400k, mine to reach upgrade height
+- [ ] **CHECK:** Query testnet DNS seeds to see if network is active
+- [ ] **MINE:** If testnet is below 400k, mine to reach upgrade height
 - [ ] **VERIFY:** Confirm ASERT behavior change at block 400000
 
 ---

@@ -1,15 +1,12 @@
-# Portable Windows Build Instructions for Radiant Core
+# Building Radiant Core on Windows
 
-> **Recommended**: For the smoothest development experience on Windows, we recommend using **WSL2** (Windows Subsystem for Linux). See [Option 0: WSL2](#option-0-wsl2-recommended) below.
+> **Important**: Native Windows builds are not supported. We recommend using **WSL2** (Windows Subsystem for Linux) for the best experience on Windows.
 
 ## Prerequisites
-- Windows 10/11
-- Visual Studio 2019/2022 with C++ development tools OR MinGW-w64
-- CMake 3.22+
-- Python 3.6+
-- Git
+- Windows 10/11 (Build 19041 or higher)
+- WSL2 enabled
 
-## Option 0: WSL2 (Recommended)
+## WSL2 Build Instructions (Recommended)
 
 WSL2 provides a native Linux environment on Windows, avoiding Windows-specific dependency issues. This is the recommended approach for development and testing.
 
@@ -51,103 +48,42 @@ make -j$(nproc)
 **Advantages of WSL2:**
 - Native Linux build process (no Windows-specific issues)
 - Full libevent support (RPC works correctly)
+- Full wallet support (BerkeleyDB works correctly)
 - Access daemon from Windows via `localhost`
 - Easier dependency management via apt
+- Consistent behavior with Linux production environments
 
-## Option 1: Using Visual Studio (Native Windows)
+## Accessing the Node from Windows
 
-### Step 1: Install Dependencies
-1. Install Visual Studio 2019/2022 with C++ development tools
-2. Install vcpkg: `git clone https://github.com/Microsoft/vcpkg.git`
-3. Install vcpkg packages:
-   ```
-   cd vcpkg
-   .\bootstrap-vcpkg.bat
-   .\vcpkg install openssl:x64-windows
-   .\vcpkg install boost:x64-windows
-   .\vcpkg install libevent:x64-windows
-   ```
+Once the node is running in WSL2, you can access it from Windows:
 
-### Step 2: Build
-```cmd
-mkdir build
-cd build
-cmake .. -G "Visual Studio 16 2019" -A x64 -DCMAKE_TOOLCHAIN_FILE=C:\path\to\vcpkg\scripts\buildsystems\vcpkg.cmake -DBUILD_RADIANT_WALLET=OFF -DBUILD_RADIANT_ZMQ=OFF -DENABLE_UPNP=OFF
-cmake --build . --config Release
+```powershell
+# From Windows PowerShell, connect to the node running in WSL2
+wsl ./src/radiant-cli -regtest getblockchaininfo
+
+# Or access via localhost (RPC port 7332)
+curl --user user:password --data-binary '{"jsonrpc":"1.0","method":"getblockchaininfo","params":[]}' http://127.0.0.1:7332/
 ```
 
-## Option 2: Using MinGW-w64 via MSYS2
+## Why Not Native Windows Builds?
 
-> **Important**: You must install libevent via MSYS2 pacman. Do not use the bundled libevent-stubs as they do not provide full functionality (RPC will not work).
+Native Windows builds have been deprecated due to persistent issues:
 
-### Step 1: Install Dependencies
-1. Install MSYS2: https://www.msys2.org/
-2. Open **MSYS2 MinGW64** shell (not MSYS2 MSYS)
-3. Install dependencies:
-   ```bash
-   pacman -Syu
-   pacman -S mingw-w64-x86_64-gcc
-   pacman -S mingw-w64-x86_64-cmake
-   pacman -S mingw-w64-x86_64-openssl
-   pacman -S mingw-w64-x86_64-boost
-   pacman -S mingw-w64-x86_64-libevent  # Critical for RPC functionality
-   pacman -S mingw-w64-x86_64-python
-   ```
+- **libevent compatibility**: The RPC server requires full libevent functionality that is difficult to achieve on native Windows
+- **BerkeleyDB 4.8.30**: Incompatible with VS2022's modern C++ headers (macro conflicts)
+- **Toolchain complexity**: Mixing MinGW/MSVC toolchains causes ABI and static initialization issues
+- **CI reliability**: GitHub Actions Windows builds consistently fail
 
-### Step 2: Build (Portable)
-```cmd
-# Make sure to use the MSYS2 MinGW shell
-mkdir build
-cd build
-cmake .. -G "MinGW Makefiles" -DBUILD_RADIANT_WALLET=OFF -DBUILD_RADIANT_ZMQ=OFF -DENABLE_UPNP=OFF
-mingw32-make -j$(nproc)
+WSL2 provides a fully supported Linux environment that avoids all these issues while still allowing Windows users to run and develop Radiant Core.
+
+## Docker Alternative
+
+If you prefer not to use WSL2, you can also use Docker Desktop for Windows:
+
+```powershell
+# Build and run via Docker
+docker build -t radiant-core .
+docker run -d --name radiant-node -p 7332:7332 -p 7333:7333 radiant-core
 ```
 
-## Creating a Portable Distribution
-
-### Step 1: Copy Required DLLs
-After building, copy these DLLs to the output directory:
-- libssl-3-x64.dll
-- libcrypto-3-x64.dll
-- libevent-2-1.dll
-- libgcc_s_seh-1.dll
-- libstdc++-6.dll
-- libwinpthread-1.dll
-
-### Step 2: Create Installer
-Use NSIS or WiX to create an installer that includes:
-- All executables (radiantd.exe, radiant-cli.exe, radiant-tx.exe)
-- Required DLLs
-- Configuration files
-- Documentation
-
-## Automated Build Script
-
-For automated building, use the provided scripts:
-- `build-portable-windows.bat` - Automated Windows build
-- `create-installer.nsi` - NSIS installer script
-
-## Known Issues
-
-### libevent-stubs and RPC Functionality
-
-The repository contains a `libevent-stubs.c` file that provides stub implementations of libevent functions. **These stubs do not provide full functionality:**
-
-- The HTTP event loop exits immediately, breaking RPC server functionality
-- `radiant-cli` will fail with assertion errors when trying to connect
-- Mining via RPC (`generatetoaddress`) will not work
-
-**Solution**: Always use real libevent from vcpkg or MSYS2 packages. The stubs were a temporary workaround and should not be used for production builds.
-
-### Static Initialization Issues
-
-When mixing different MinGW toolchains or library versions, you may encounter crashes during startup (e.g., in `GetRand()`). This is typically caused by:
-
-- ABI incompatibilities between different GCC versions
-- Static initialization order problems
-- Mixing libraries built with different compilers
-
-**Solution**: Use a consistent toolchain. Either:
-1. Build everything in MSYS2 MinGW64 environment
-2. Use vcpkg with Visual Studio
-3. Use WSL2 (recommended)
+See the main [README.md](README.md) for Docker instructions.

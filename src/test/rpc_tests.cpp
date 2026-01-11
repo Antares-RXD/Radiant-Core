@@ -581,7 +581,7 @@ BOOST_AUTO_TEST_CASE(rpc_submitblock_parallel) {
     }
     for (auto & thr : threads)
         thr.join();
-    // ensure all results match what we expect; these are real blocks from testnet3 and testnet4, so they will have
+    // ensure all results match what we expect; these are real blocks from testnet and scalenet, so they will have
     // gone through basic checks and thus our submitblock_StateCatcher should have been invoked.
     for (const auto &res : results) {
         for (const auto &unival : res) {

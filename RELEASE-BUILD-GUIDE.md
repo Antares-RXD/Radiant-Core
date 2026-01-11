@@ -19,10 +19,8 @@ This guide provides comprehensive instructions for building Radiant Core release
 ./build-macos-release.sh
 ```
 
-### Windows (Native Build)
-```cmd
-build-portable-windows-v2.bat
-```
+### Windows (via WSL2)
+See [BUILD-WINDOWS-PORTABLE.md](BUILD-WINDOWS-PORTABLE.md) for WSL2 instructions.
 
 ### Multi-Platform Build
 ```bash
@@ -89,28 +87,11 @@ docker run -d --name radiant-node \
 - Package: `release-macos/radiant-core-macos-universal.tar.gz`
 - Optional DMG: `Radiant-Core-{version}.dmg`
 
-### Windows x64
+### Windows (via WSL2)
 
-**Option 1: Native Build (Recommended)**
-```cmd
-build-portable-windows-v2.bat
-```
+**Native Windows builds are not supported.** Use WSL2 for the best experience.
 
-**Requirements:**
-- Windows 10/11
-- Visual Studio 2019/2022 OR MinGW-w64
-- CMake 3.22+
-
-**Option 2: Cross-Compilation (Linux)**
-```bash
-./build-windows-cross-release.sh
-```
-
-**Requirements:**
-- Linux with MinGW-w64 cross-compiler
-- Same dependencies as Linux build
-
-**Output:** `release-windows/radiant-core-windows-x64.zip`
+See [BUILD-WINDOWS-PORTABLE.md](BUILD-WINDOWS-PORTABLE.md) for detailed WSL2 setup instructions.
 
 ## Release Artifacts
 
@@ -122,7 +103,6 @@ Each platform produces:
 | Docker | `radiant-core-docker.tar.gz` | Docker image, binaries, Dockerfile |
 | macOS | `radiant-core-macos-universal.tar.gz` | Universal binaries, README |
 | macOS | `Radiant-Core-{version}.dmg` | DMG installer (optional) |
-| Windows | `radiant-core-windows-x64.zip` | EXE files, DLLs, README |
 
 ## Automated Multi-Platform Build
 
@@ -154,7 +134,6 @@ sha256sum radiant-core-linux-x86_64.tar.gz
 
 ### Code Signing
 For production releases, consider:
-- Windows: Authenticode code signing
 - macOS: Apple Developer ID signing
 - Linux: GPG signature verification
 
@@ -204,14 +183,6 @@ sudo apt-get install build-essential cmake ninja-build
 export CMAKE_PREFIX_PATH="/opt/homebrew/opt/qt@5:$CMAKE_PREFIX_PATH"
 ```
 
-**Windows: CMake generator error**
-```cmd
-# Use correct generator name
-cmake .. -G "Visual Studio 16 2019" -A x64
-# or
-cmake .. -G "MinGW Makefiles"
-```
-
 **Docker: Permission denied**
 ```bash
 sudo usermod -aG docker $USER
@@ -223,7 +194,6 @@ All scripts create detailed build logs. Check these for specific error messages:
 - Linux: `linux-release/build.log`
 - Docker: Docker build output
 - macOS: `macos-release/build.log`
-- Windows: `build/` directory logs
 
 ## Support
 

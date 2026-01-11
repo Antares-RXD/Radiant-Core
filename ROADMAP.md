@@ -6,19 +6,12 @@ This document tracks planned future work for Radiant Core. For completed feature
 
 # Phase 1: Infrastructure (Immediate)
 
-## 1. Windows Build Fix (Completed)
-- [x] **Fix libevent-stubs linking bug**: Release build was linked against stub library breaking CLI RPC.
-  - Rebuilt real libevent from bundled `libevent-2.1.12-stable` source (495KB vs 10KB stub)
-  - Fixed MSVC flags passed to GCC in `src/secp256k1/CMakeLists.txt`
-  - Added iphlpapi linker dependency for Windows in `src/CMakeLists.txt`
-  - Added Event_VERSION passthrough to native build in `cmake/modules/NativeExecutable.cmake`
-TEST IN MAC and LIUNX****
-## 2. DNS Seeder Infrastructure
+## 1. DNS Seeder Infrastructure
 - [ ] **Deploy Seeder**: Set up a `radiant-seeder` instance on a high-availability VPS.
 - [ ] **Update Code**: Add the new seeder's domain to `src/chainparams.cpp` (Mainnet & Testnet).
 - [ ] **Verify Crawling**: Ensure the seeder is correctly crawling the network and serving valid peers.
 
-## 3. PSRT Swap Protocol Enhancements
+## 2. PSRT Swap Protocol Enhancements
 - [ ] **Client-Side Order Expiration**: Implement order filtering based on age using existing `blockHeight` field.
   - Add optional `max_age` parameter to swap RPCs (`getopenorders`, `getopenordersbywant`)
   - Implement expiration logic in Photonic Wallet and other clients
@@ -35,15 +28,6 @@ TEST IN MAC and LIUNX****
 # Phase 2: Performance & Modernization (1-3 Months)
 
 ## 1. Code Quality & Technical Debt
-- [x] **Fix Windows Build Issues**: Resolve remaining platform-specific compilation and linking problems.
-  - [x] Identified libevent-stubs bug causing RPC failures (HTTP event loop exits immediately)
-  - [x] Fixed CMake to properly detect and prioritize real libevent (vcpkg > MSYS2 > bundled)
-  - [x] Added WSL2 as recommended development path in BUILD-WINDOWS-PORTABLE.md
-  - [x] Added compile-time warnings when libevent stubs are used
-  - [x] Marked Windows CI build as `continue-on-error` (experimental) until fully fixed
-  - [ ] Address MSVC compatibility warnings and errors
-  - [ ] Ensure consistent behavior across MinGW and MSVC toolchains
-  - [ ] Validate cross-compilation from Linux to Windows
 - [ ] **Replace Deprecated C Functions**: Migrate from unsafe legacy functions to modern secure alternatives.
   - Replace `sprintf` → `snprintf`, `strcpy` → `strncpy`/`strlcpy`
   - Audit uses of `strtok`, `gets`, and other thread-unsafe functions
@@ -60,7 +44,6 @@ TEST IN MAC and LIUNX****
   - Integrate clang-tidy with comprehensive rule set
   - Add cppcheck to CI pipeline
   - Evaluate PVS-Studio or Coverity for deeper analysis
-  - Configure MSVC /analyze for Windows builds
 
 ## 2. Asynchronous RPC & Network
 - [ ] **Async JSON-RPC**: Refactor the JSON-RPC server to be fully asynchronous (using `libevent` or C++20 coroutines).

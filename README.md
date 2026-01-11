@@ -37,17 +37,13 @@ Download official releases from [GitHub Releases](https://github.com/Radiant-Cor
 
 | Platform | Download | Size | Checksum (SHA256) |
 |----------|----------|------|------------------|
-| **Windows x64** | [radiant-core-windows-x64.zip] | 25 MB | `2964124758955D4FF4F8E395E3FF9C5807C3999494B658D727E6355D67DE84E3` |
 | **Linux x86_64** | [radiant-core-linux-x86_64.tar.gz] | 23 MB | *(Available on release page)* |
 | **macOS Universal** | [radiant-core-macos-universal.tar.gz] | 28 MB | *(Available on release page)* |
 | **Docker Image** | `radiant-core:latest` | 150 MB | *(Verified by Docker Hub)* |
+| **Windows** | Use WSL2 with Linux build | - | See [BUILD-WINDOWS-PORTABLE.md](BUILD-WINDOWS-PORTABLE.md) |
 
 **🔐 Security Verification:**
 ```bash
-# Verify Windows release
-sha256sum radiant-core-windows-x64.zip
-# Should match: 2964124758955D4FF4F8E395E3FF9C5807C3999494B658D727E6355D67DE84E3
-
 # Verify Linux release
 sha256sum radiant-core-linux-x86_64.tar.gz
 
@@ -59,18 +55,14 @@ shasum -a 256 radiant-core-macos-universal.tar.gz
 
 Choose your platform below for automated build scripts:
 
-#### **Windows Build** (Portable, One-Click)
-```cmd
-# Automatic build with dependency detection
-build-portable-windows-v2.bat
+#### **Windows (via WSL2)** - Recommended
+```powershell
+# Install WSL2 (run as Administrator)
+wsl --install -d Ubuntu-22.04
 
-# Create portable distribution
-create-portable-dist.bat
-
-# Create installer
-build-complete.bat
+# Then follow Linux build instructions inside WSL2
 ```
-**Requirements:** Windows 10/11, Visual Studio 2019/2022 OR MinGW-w64, CMake 3.22+
+**Requirements:** Windows 10/11 with WSL2. See [BUILD-WINDOWS-PORTABLE.md](BUILD-WINDOWS-PORTABLE.md) for details.
 
 #### **Linux Build** (Ubuntu/Debian/CentOS/Fedora)
 ```bash
@@ -114,7 +106,6 @@ docker run -d --name radiant-node \
 # - Linux tar.gz
 # - Docker image
 # - macOS universal binary + DMG
-# - Windows ZIP
 # - All with SHA256 checksums
 ```
 
@@ -126,8 +117,8 @@ docker run -d --name radiant-node \
 - ✅ **Security verification** (SHA256 checksums)
 - ✅ **Universal binaries** (macOS Intel + Apple Silicon)
 - ✅ **Docker multi-stage builds**
-- ✅ **Portable Windows builds**
-- ✅ **Professional installers** (Windows NSIS, macOS DMG)
+- ✅ **WSL2 support for Windows users**
+- ✅ **Professional installers** (macOS DMG)
 
 ### 🐳 Docker Quick Start
 
@@ -202,17 +193,12 @@ cmake -GNinja .. -DBUILD_RADIANT_QT=OFF
 ninja
 ```
 
-**Windows (Manual):**
-```cmd
-# Using Visual Studio
-mkdir build && cd build
-cmake .. -G "Visual Studio 16 2019" -A x64 -DBUILD_RADIANT_QT=OFF
-cmake --build . --config Release
+**Windows (WSL2):**
+```powershell
+# Install WSL2 with Ubuntu
+wsl --install -d Ubuntu-22.04
 
-# Using MinGW
-mkdir build && cd build  
-cmake .. -G "MinGW Makefiles" -DBUILD_RADIANT_QT=OFF
-mingw32-make
+# Inside WSL2, follow Linux/Ubuntu build instructions above
 ```
 
 ### 📖 Detailed Documentation
@@ -243,9 +229,8 @@ sha256sum -c radiant-core-windows-x64.zip.sha256
 ### Code Signing
 
 Production releases are signed:
-- **Windows**: Authenticode code signing certificates
 - **macOS**: Apple Developer ID signatures  
-- **Linux**: GPG signatures maintainers
+- **Linux**: GPG signatures from maintainers
 
 ### Reproducible Builds
 
@@ -278,10 +263,9 @@ The CI builds and tests Linux binaries natively, and cross-compiles for other pl
 | Linux x86_64 | ✅ | ✅ | Native build inside container, full test suite |
 | Linux AArch64 | ✅ | ✅ | Cross-compiled, tested via QEMU |
 | Linux ARM | ✅ | ❌ | Cross-compiled, build only |
-| Windows x64 | ✅ | ❌ | Cross-compiled via MinGW |
 | macOS | ❌ | ❌ | Not cross-compiled; use native build below |
 
-**Note**: The CI produces working binaries for Linux and Windows. macOS binaries must be built natively on a Mac (see below).
+**Note**: The CI produces working binaries for Linux. macOS binaries must be built natively on a Mac. For Windows, use WSL2 with the Linux build.
 
 Native Build: Ubuntu/Debian
 ---------------------
@@ -328,10 +312,12 @@ cmake -GNinja .. -DBUILD_RADIANT_QT=ON
 ninja
 ```
 
-Native Build: Windows
+Native Build: Windows (via WSL2)
 ---------------------
 
-See [Windows Build](doc/build-windows.md) for MSYS2/MinGW instructions, or use the Docker cross-compilation method above.
+**Native Windows builds are not supported.** We recommend using WSL2 (Windows Subsystem for Linux) for the best experience on Windows.
+
+See [BUILD-WINDOWS-PORTABLE.md](BUILD-WINDOWS-PORTABLE.md) for WSL2 setup instructions.
 
 Running Radiant Node
 ---------------------
@@ -521,7 +507,7 @@ The GitLab CI pipeline includes:
 - **Static Analysis**: Linting, code quality checks
 - **Multi-compiler Builds**: GCC, Clang (Debug & Release)
 - **Sanitizer Builds**: AddressSanitizer (ASan) + UndefinedBehaviorSanitizer (UBSan)
-- **Cross-compilation**: Windows (MinGW), ARM, AArch64
+- **Cross-compilation**: ARM, AArch64
 - **Fuzz Testing**: Radiant-specific opcode fuzzing (`fuzz-radiant_opcodes`)
 - **Full Test Suite**: Unit tests, functional tests, benchmarks
 

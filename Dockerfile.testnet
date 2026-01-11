@@ -1,6 +1,6 @@
 # Radiant Testnet Docker Configuration
 # Uses -testnet flag for the public Radiant testnet network
-# P2P Port: 18333, RPC Port: 17332
+# P2P Port: 27333, RPC Port: 27332
 
 FROM ubuntu:22.04
 
@@ -40,8 +40,8 @@ RUN chown -R radiant:radiant /home/radiant
 USER radiant
 
 # Expose Radiant Testnet ports
-# P2P Port: 18333, RPC Port: 17332
-EXPOSE 18333 17332
+# P2P Port: 27333, RPC Port: 27332
+EXPOSE 27333 27332
 
 # Start Radiant Testnet node with wallet support
 CMD ["radiantd", "-conf=/home/radiant/radiant-testnet.conf"]

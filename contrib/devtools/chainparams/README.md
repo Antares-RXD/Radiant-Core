@@ -15,18 +15,11 @@ bitcoind
 python3 make_chainparams.py > chainparams_main.txt
 ```
 
-## Testnet3
+## Testnet
 
 ```
 bitcoind --testnet
-python3 make_chainparams.py -a 127.0.0.1:18332 > chainparams_test.txt
-```
-
-## Testnet4
-
-```
-bitcoind --testnet4
-python3 make_chainparams.py -a 127.0.0.1:28332 > chainparams_testnet4.txt
+python3 make_chainparams.py -a 127.0.0.1:27332 > chainparams_test.txt
 ```
 
 ## Scalenet

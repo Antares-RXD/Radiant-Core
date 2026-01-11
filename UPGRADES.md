@@ -45,7 +45,7 @@ This document tracks the modernization and upgrade efforts for the Radiant Node 
   - Mainnet and ScaleNet use ASERT for difficulty adjustment.
   - Prior to block height **400,000**, both networks use a **2-day** ASERT half-life.
   - Starting at block height **400,000**, both networks switch to a **12-hour** ASERT half-life.
-  - Testnet and Testnet4 remain at a **1-hour** half-life.
+  - Testnet remains at a **1-hour** half-life.
 - **Transaction Size Limit**:
   - Set `MAX_TX_SIZE` to **12 MB** in `src/consensus/consensus.h`.
   - Removed legacy `MAX_TX_SIZE_ENERGY` constant (not needed for this upgrade).
@@ -112,8 +112,25 @@ This document tracks the modernization and upgrade efforts for the Radiant Node 
 - **Network Support**: Works with both testnet and mainnet through environment variables
 - **BIP34 Compliance**: Fixed coinbase height encoding using proper OP codes for heights 1-16
 - **Correct Genesis Hash**: Updated to use testnet genesis: `000000000d8ada264d16f87a590b2af320cd3c7e3f9be5482163e830fd00aca2`
+- **ASIC Support**:
+  - Added `mining/setup_asic_mining.sh` for automated ASIC configuration.
+  - Documented support for native SHA-512/256d miners (DragonBall A11, Iceriver RX0).
+  - Verified compatibility with SHA-256 miners (Antminer, WhatsMiner) via Stratum Proxy.
 
-### 10. Configuration Tuning
+### 10. Testnet & QA Infrastructure
+- **Testnet Support**:
+  - Added full support for **Testnet** (accessed via `-testnet`) as the new stable public test network (replacing historical Testnet3).
+  - Configured dedicated ports (P2P: `27333`, RPC: `27332`) and DNS seeds.
+  - Aligned with mainnet consensus except for `radiantCore2UpgradeHeight` testing.
+- **Regtest Improvements**:
+  - Enhanced `regtest` mode for instant deterministic block generation via `generatetoaddress`.
+  - Removed requirement for mining pools in local development/CI.
+  - Set `radiantCore2UpgradeHeight = 200` for rapid validation of ASERT/consensus upgrades.
+- **Documentation**:
+  - Added `TESTNET-GUIDE.md`: Comprehensive guide covering local regtest, private multi-node nets, and public testnet participation.
+  - Documented critical troubleshooting for Windows builds and libevent linkage.
+
+### 11. Configuration Tuning
 - **Default Configuration Review**: Audited `src/init.cpp` and `src/config.cpp` for outdated default values.
 - **Database Cache Optimization**: Increased default `dbcache` size (dynamic based on available RAM or higher static value).
 - **RPC Performance**: Increased default `rpcworkqueue` and `rpcthreads` to handle modern indexer loads.
@@ -124,7 +141,7 @@ This document tracks the modernization and upgrade efforts for the Radiant Node 
   - **High-fee warning threshold**: `HIGH_TX_FEE_PER_KB` set to **1 RXD/kB** (`1 * COIN`) so defaults do not trigger "very high" fee warnings.
   - **Note**: Dust / ultra-small output policy was intentionally left unchanged.
 
-### 10. Security & Observability
+### 12. Security & Observability
 - **Fuzz Testing**: Added `fuzz-radiant_opcodes` target for Radiant-specific consensus (unique references, introspection opcodes, `SCRIPT_PUSH_TX_STATE`).
 - **Prometheus Metrics**: Integrated native **Prometheus** metrics export (`/metrics` endpoint) for block height, peer count, mempool size, and version info.
 

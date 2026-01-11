@@ -65,7 +65,7 @@ Radiant supports three node profiles optimized for different use cases:
 # RPC Settings (auto-configured for node profile)
 export RPC_USER="testnet"
 export RPC_PASS="testnetpass123"
-export RPC_PORT="17332"  # Testnet port
+export RPC_PORT="27332"  # Testnet port
 
 # Mining Settings
 export PROJECT_DIR="/path/to/radiant-core"
@@ -80,21 +80,21 @@ export BATCH_SIZE="4194304"  # GPU batch size
       "description": "Full history node with transaction index",
       "prune": 0,
       "txindex": 1,
-      "rpc": {"port": 8332, "testnet_port": 18332},
+      "rpc": {"port": 8332, "testnet_port": 27332},
       "mining": {"recommended": false, "reason": "Full node with txindex"}
     },
     "agent": {
       "description": "Minimal node for UTXO-focused operations", 
       "prune": 550,
       "txindex": 0,
-      "rpc": {"port": 8332, "testnet_port": 18332},
+      "rpc": {"port": 8332, "testnet_port": 27332},
       "mining": {"recommended": false, "reason": "Heavy pruning affects mining"}
     },
     "mining": {
       "description": "Optimized for mining operations",
       "prune": 4000,
       "txindex": 0,
-      "rpc": {"port": 8332, "testnet_port": 18332},
+      "rpc": {"port": 8332, "testnet_port": 27332},
       "mining": {"recommended": true, "reason": "Balanced storage with recent blocks"}
     }
   },
@@ -103,7 +103,7 @@ export BATCH_SIZE="4194304"  # GPU batch size
   "rpc": {
     "user": "testnet",
     "pass": "testnetpass123", 
-    "port": 17332,
+    "port": 27332,
     "timeout": 30
   },
   "gpu": {
@@ -302,7 +302,7 @@ netstat -an | grep 3333
 #### Connection Issues
 ```bash
 # Check if node is accepting connections
-netstat -an | grep 18333
+netstat -an | grep 27333
 
 # Verify RPC is enabled
 ./build/src/radiant-cli -testnet getinfo
@@ -328,7 +328,7 @@ netstat -an | grep 18333
 
 ### Security Considerations
 
-1. **Firewall**: Only open necessary ports (18333/8332)
+1. **Firewall**: Only open necessary ports (27333/8332)
 2. **RPC Access**: Use strong RPC passwords
 3. **Network**: Consider VPN for remote ASIC connections
 4. **Monitoring**: Monitor for unauthorized connections
