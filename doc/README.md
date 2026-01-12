@@ -88,7 +88,7 @@ Unpack the files into a directory and run:
 
 ### Windows
 
-Unpack the files into a directory, and then run `bitcoin-qt.exe`.
+Native Windows builds are deprecated. Please use WSL2 (Windows Subsystem for Linux) to run Radiant Core on Windows. See [BUILD-WINDOWS-PORTABLE.md](../BUILD-WINDOWS-PORTABLE.md) for detailed instructions.
 
 ### macOS
 

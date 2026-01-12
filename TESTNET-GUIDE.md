@@ -4,35 +4,6 @@ This guide covers how to create and run a testnet for testing Radiant Core node 
 
 ---
 
-## CRITICAL: Build Bug Discovered
-
-**Date:** January 8, 2026
-
-**Issue:** The current release build (`release/radiant-cli.exe`) is linked against `libevent-stubs.c` instead of real libevent. This causes an assertion failure:
-```
-Assertion failed: output_headers, file bitcoin-cli.cpp, line 403
-```
-
-**Root Cause:** `libevent-stubs.c` (line 105) returns NULL for `evhttp_request_get_output_headers()`.
-
-**Impact:** CLI cannot communicate with the node via RPC. All RPC commands fail.
-
-**Fix Required:** Rebuild with proper libevent linkage:
-```bash
-# Option 1: MSYS2 MinGW (see BUILD-WINDOWS-PORTABLE.md)
-pacman -S mingw-w64-x86_64-libevent
-
-# Option 2: vcpkg
-.\vcpkg install libevent:x64-windows
-```
-
-**Workaround:** Until fixed, use curl for RPC calls:
-```bash
-curl --user test:test123 --data-binary '{"jsonrpc":"1.0","method":"getblockchaininfo","params":[]}' http://127.0.0.1:17443/
-```
-
----
-
 ## Quick Answer: Do You Need a Pool?
 
 **No, you do NOT need a mining pool for testing.** 
@@ -95,11 +66,11 @@ printtoconsole=1
 ### Step 2: Start the Node
 
 ```bash
-# Windows (from build directory)
-radiantd.exe -conf=radiant-regtest.conf
+# Windows (via WSL2, from build directory)
+./radiantd -conf=radiant-regtest.conf
 
 # Or with flags directly
-radiantd.exe -regtest -server -rpcuser=regtest -rpcpassword=regtest123
+./radiantd -regtest -server -rpcuser=regtest -rpcpassword=regtest123
 ```
 
 ### Step 3: Generate Blocks (No Mining Pool Needed!)
@@ -108,14 +79,14 @@ In regtest mode, use the `generatetoaddress` RPC command to instantly create blo
 
 ```bash
 # First, create a wallet and get an address
-radiant-cli.exe -regtest -rpcuser=regtest -rpcpassword=regtest123 createwallet "testwallet"
-radiant-cli.exe -regtest -rpcuser=regtest -rpcpassword=regtest123 getnewaddress
+./radiant-cli -regtest -rpcuser=regtest -rpcpassword=regtest123 createwallet "testwallet"
+./radiant-cli -regtest -rpcuser=regtest -rpcpassword=regtest123 getnewaddress
 
 # Generate 101 blocks to your address (101 needed for coinbase maturity)
-radiant-cli.exe -regtest -rpcuser=regtest -rpcpassword=regtest123 generatetoaddress 101 "YOUR_ADDRESS_HERE"
+./radiant-cli -regtest -rpcuser=regtest -rpcpassword=regtest123 generatetoaddress 101 "YOUR_ADDRESS_HERE"
 
 # Check your balance
-radiant-cli.exe -regtest -rpcuser=regtest -rpcpassword=regtest123 getbalance
+./radiant-cli -regtest -rpcuser=regtest -rpcpassword=regtest123 getbalance
 ```
 
 ### Step 4: Useful Regtest RPC Commands
@@ -183,17 +154,17 @@ debug=1
 
 ```bash
 # Terminal 1
-radiantd.exe -conf=node1.conf
+./radiantd -conf=node1.conf
 
 # Terminal 2
-radiantd.exe -conf=node2.conf
+./radiantd -conf=node2.conf
 ```
 
 ### Verify Connection
 
 ```bash
-radiant-cli.exe -rpcport=17443 -rpcuser=node1 -rpcpassword=node1pass getpeerinfo
-radiant-cli.exe -rpcport=17444 -rpcuser=node2 -rpcpassword=node2pass getpeerinfo
+./radiant-cli -rpcport=17443 -rpcuser=node1 -rpcpassword=node1pass getpeerinfo
+./radiant-cli -rpcport=17444 -rpcuser=node2 -rpcpassword=node2pass getpeerinfo
 ```
 
 ---
@@ -219,7 +190,7 @@ debug=1
 ### Start Node
 
 ```bash
-radiantd.exe -conf=radiant-testnet.conf
+./radiantd -conf=radiant-testnet.conf
 ```
 
 ### Get Testnet Coins
@@ -327,24 +298,24 @@ rmdir /s /q data-regtest
 
 ```bash
 # === START REGTEST NODE ===
-radiantd.exe -regtest -server -rpcuser=test -rpcpassword=test123 -printtoconsole
+./radiantd -regtest -server -rpcuser=test -rpcpassword=test123 -printtoconsole
 
 # === IN ANOTHER TERMINAL ===
 # Create wallet
-radiant-cli.exe -regtest -rpcuser=test -rpcpassword=test123 createwallet "testwallet"
+./radiant-cli -regtest -rpcuser=test -rpcpassword=test123 createwallet "testwallet"
 
 # Get new address
-radiant-cli.exe -regtest -rpcuser=test -rpcpassword=test123 getnewaddress
+./radiant-cli -regtest -rpcuser=test -rpcpassword=test123 getnewaddress
 # Example output: mkESjLZW66TmHhiFX8MCaBjrhZ543PPh9a
 
 # Generate 101 blocks (replace with your address)
-radiant-cli.exe -regtest -rpcuser=test -rpcpassword=test123 generatetoaddress 101 "mkESjLZW66TmHhiFX8MCaBjrhZ543PPh9a"
+./radiant-cli -regtest -rpcuser=test -rpcpassword=test123 generatetoaddress 101 "mkESjLZW66TmHhiFX8MCaBjrhZ543PPh9a"
 
 # Check balance (should have ~50000 RAD per mature block)
-radiant-cli.exe -regtest -rpcuser=test -rpcpassword=test123 getbalance
+./radiant-cli -regtest -rpcuser=test -rpcpassword=test123 getbalance
 
 # Get blockchain info
-radiant-cli.exe -regtest -rpcuser=test -rpcpassword=test123 getblockchaininfo
+./radiant-cli -regtest -rpcuser=test -rpcpassword=test123 getblockchaininfo
 ```
 
 ---

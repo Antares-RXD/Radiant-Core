@@ -2,21 +2,27 @@
 # Uses -testnet flag for the public Radiant testnet network
 # P2P Port: 27333, RPC Port: 27332
 
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
-# Install dependencies
+LABEL maintainer="info@radiantfoundation.org"
+LABEL description="Radiant Core Node - Testnet Configuration"
+
+# Install runtime dependencies
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    libboost-all-dev \
-    libevent-dev \
-    libssl-dev \
-    libdb++-dev \
-    libminiupnpc-dev \
-    libzmq3-dev \
-    wget \
+    libboost-chrono1.83.0 \
+    libboost-filesystem1.83.0 \
+    libboost-thread1.83.0 \
+    libboost-atomic1.83.0 \
+    libevent-2.1-7 \
+    libssl3 \
+    libdb5.3++ \
+    libminiupnpc17 \
+    libzmq5 \
+    ca-certificates \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Create radiant user for security
 RUN useradd -m -s /bin/bash radiant

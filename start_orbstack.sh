@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# Start radiantd in daemon mode so we can run the miner in foreground
+# Start radiantd in background
 echo "Starting Radiant Node (Testnet)..."
 ./build/src/radiantd -conf=/home/radiant/radiant-testnet.conf -daemon
 
@@ -13,7 +13,17 @@ sleep 15
 echo "Checking node status..."
 ./build/src/radiant-cli -conf=/home/radiant/radiant-testnet.conf -rpcuser=testnet -rpcpassword=testnetpass123 getblockchaininfo || echo "Node not ready yet..."
 
-# Start Miner
+# Setup wallet for mining
+echo "Setting up mining wallet..."
+./build/src/radiant-cli -conf=/home/radiant/radiant-testnet.conf -rpcuser=testnet -rpcpassword=testnetpass123 createwallet "miner" 2>/dev/null || echo "Wallet may already exist"
+./build/src/radiant-cli -conf=/home/radiant/radiant-testnet.conf -rpcuser=testnet -rpcpassword=testnetpass123 loadwallet "miner" 2>/dev/null || echo "Wallet already loaded"
+
+# Test wallet
+echo "Testing wallet..."
+MINING_ADDRESS=$(./build/src/radiant-cli -conf=/home/radiant/radiant-testnet.conf -rpcuser=testnet -rpcpassword=testnetpass123 -rpcwallet=miner getnewaddress)
+echo "Mining address: $MINING_ADDRESS"
+
+# Start Miner in background
 echo "Starting Miner..."
 export PROJECT_DIR=/home/radiant
 export RPC_USER=testnet

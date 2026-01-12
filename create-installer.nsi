@@ -60,11 +60,9 @@ Section "Core Files" SecCore
     ; Create data directory
     CreateDirectory "$APPDATA\Radiant"
     
-    ; Create start menu shortcuts
-    CreateDirectory "$SMPROGRAMS\${APPNAME}"
-    CreateShortCut "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk" "$INSTDIR\radiantd.exe" "" "$INSTDIR\radiantd.exe" 0
-    CreateShortCut "$SMPROGRAMS\${APPNAME}\Radiant CLI.lnk" "$INSTDIR\radiant-cli.exe" "" "$INSTDIR\radiant-cli.exe" 0
-    CreateShortCut "$SMPROGRAMS\${APPNAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+    ; Windows installer is deprecated - use WSL2 instead
+; This file is kept for reference only
+; Windows users should follow BUILD-WINDOWS-PORTABLE.md for WSL2 setup
     
     ; Write uninstaller
     WriteUninstaller "$INSTDIR\Uninstall.exe"
