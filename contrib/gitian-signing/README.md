@@ -129,4 +129,4 @@ Multiple maintainers can independently build and compare checksums to verify no 
 
 Report security issues to: security@radiantfoundation.org
 
-See [DISCLOSURE_POLICY.md](/DISCLOSURE_POLICY.md) for responsible disclosure guidelines.
+See [disclosure-policy.md](/doc/disclosure-policy.md) for responsible disclosure guidelines.

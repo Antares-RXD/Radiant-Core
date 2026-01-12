@@ -19,7 +19,7 @@ This document describes how to create official Radiant Core releases.
 - [ ] All tests pass (`./contrib/run-ci-local.sh`)
 - [ ] Release notes updated (`doc/release-notes/release-notes-X.Y.Z.md`)
 - [ ] Version bumped in `CMakeLists.txt`
-- [ ] UPGRADES.md updated with new features
+- [ ] doc/upgrades.md updated with new features
 - [ ] No uncommitted changes in working directory
 
 ### 2. Build Release Artifacts

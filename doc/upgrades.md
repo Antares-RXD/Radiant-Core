@@ -127,7 +127,7 @@ This document tracks the modernization and upgrade efforts for the Radiant Node 
   - Removed requirement for mining pools in local development/CI.
   - Set `radiantCore2UpgradeHeight = 200` for rapid validation of ASERT/consensus upgrades.
 - **Documentation**:
-  - Added `TESTNET-GUIDE.md`: Comprehensive guide covering local regtest, private multi-node nets, and public testnet participation.
+  - Added `doc/testnet-guide.md`: Comprehensive guide covering local regtest, private multi-node nets, and public testnet participation.
   - Documented critical troubleshooting for Windows builds and libevent linkage.
 
 ### 11. Configuration Tuning
@@ -146,4 +146,4 @@ This document tracks the modernization and upgrade efforts for the Radiant Node 
 - **Prometheus Metrics**: Integrated native **Prometheus** metrics export (`/metrics` endpoint) for block height, peer count, mempool size, and version info.
 
 ## 🔮 Future Development
-For the active development roadmap and upcoming features, please refer to [ROADMAP.md](ROADMAP.md).
+For the active development roadmap and upcoming features, please refer to [roadmap.md](roadmap.md).

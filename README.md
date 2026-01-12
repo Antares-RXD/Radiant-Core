@@ -40,7 +40,7 @@ Download official releases from [GitHub Releases](https://github.com/Radiant-Cor
 | **Linux x86_64** | [radiant-core-linux-x86_64.tar.gz] | 23 MB | *(Available on release page)* |
 | **macOS Universal** | [radiant-core-macos-universal.tar.gz] | 28 MB | *(Available on release page)* |
 | **Docker Image** | `radiant-core:latest` | 150 MB | *(Verified by Docker Hub)* |
-| **Windows** | Use WSL2 with Linux build | - | See [BUILD-WINDOWS-PORTABLE.md](BUILD-WINDOWS-PORTABLE.md) |
+| **Windows** | Use WSL2 with Linux build | - | See [build-windows-portable.md](doc/build-windows-portable.md) |
 
 **🔐 Security Verification:**
 ```bash
@@ -62,7 +62,7 @@ wsl --install -d Ubuntu-22.04
 
 # Then follow Linux build instructions inside WSL2
 ```
-**Requirements:** Windows 10/11 with WSL2. See [BUILD-WINDOWS-PORTABLE.md](BUILD-WINDOWS-PORTABLE.md) for details.
+**Requirements:** Windows 10/11 with WSL2. See [build-windows-portable.md](doc/build-windows-portable.md) for details.
 
 #### **Linux Build** (Ubuntu/Debian/CentOS/Fedora)
 ```bash
@@ -203,9 +203,9 @@ wsl --install -d Ubuntu-22.04
 
 ### 📖 Detailed Documentation
 
-- **[RELEASE-BUILD-GUIDE.md](RELEASE-BUILD-GUIDE.md)** - Comprehensive build instructions
-- **[BUILD-WINDOWS-PORTABLE.md](BUILD-WINDOWS-PORTABLE.md)** - Windows-specific guide  
-- **[RELEASE-SYSTEM-COMPLETE.md](RELEASE-SYSTEM-COMPLETE.md)** - Complete system overview
+- **[release-build-guide.md](doc/release-build-guide.md)** - Comprehensive build instructions
+- **[build-windows-portable.md](doc/build-windows-portable.md)** - Windows-specific guide  
+- **[release-system-complete.md](doc/release-system-complete.md)** - Complete system overview
 - **[doc/build-unix.md](doc/build-unix.md)** - Unix build details
 - **[doc/build-windows.md](doc/build-windows.md)** - Windows build details
 
@@ -317,7 +317,7 @@ Native Build: Windows (via WSL2)
 
 **Native Windows builds are not supported.** We recommend using WSL2 (Windows Subsystem for Linux) for the best experience on Windows.
 
-See [BUILD-WINDOWS-PORTABLE.md](BUILD-WINDOWS-PORTABLE.md) for WSL2 setup instructions.
+See [build-windows-portable.md](doc/build-windows-portable.md) for WSL2 setup instructions.
 
 Running Radiant Node
 ---------------------
@@ -534,12 +534,12 @@ Development
 
 Radiant Core Node development takes place at [https://github.com/radiantblockchain/radiant-node](https://github.com/radiantblockchain/radiant-node)
 
-See [ROADMAP.md](ROADMAP.md) for planned features and [UPGRADES.md](UPGRADES.md) for completed enhancements.
+See [roadmap.md](doc/roadmap.md) for planned features and [upgrades.md](doc/upgrades.md) for completed enhancements.
 
 Disclosure Policy
 -----------------
 
-We have a [Disclosure Policy](DISCLOSURE_POLICY.md) for responsible disclosure
+We have a [Disclosure Policy](doc/disclosure-policy.md) for responsible disclosure
 of security issues.
 
 Further Info

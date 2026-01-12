@@ -172,3 +172,27 @@ wallets-testnet/
 
 # Runtime files
 *.pid
+
+# Dependencies (should be fetched by build system, not tracked)
+boost-*/
+libevent-2.*/
+libevent-build/
+libevent-install/
+
+# Local stubs and workarounds
+libevent-stubs.c
+
+# Local build scripts
+create_build_h.py
+
+# Output files
+stdout.txt
+stderr.txt
+
+# Local testing scripts (move to radiant-local-testing/)
+monitor.sh
+run_testnet_miner.sh
+start_orbstack.sh
+
+# VS Code workspace (already partially covered)
+radiant-core.code-workspace

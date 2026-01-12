@@ -191,4 +191,4 @@ Benefits:
 
 ## Windows Support
 
-Windows users should use WSL2 or Docker Desktop with WSL2 backend. Native Windows builds are deprecated. See [BUILD-WINDOWS-PORTABLE.md](BUILD-WINDOWS-PORTABLE.md) for detailed WSL2 setup instructions.
+Windows users should use WSL2 or Docker Desktop with WSL2 backend. Native Windows builds are deprecated. See [build-windows-portable.md](build-windows-portable.md) for detailed WSL2 setup instructions.

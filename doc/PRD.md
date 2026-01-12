@@ -9,8 +9,8 @@ This PRD defines the product requirements for Radiant Core ("Radiant Node"), the
 - `doc/whitepaper/radiant.md`
 - `doc/whitepaper/radiant-system-design.md`
 - `doc/README.md`
-- `UPGRADES.md`
-- `ROADMAP.md`
+- `doc/upgrades.md`
+- `doc/roadmap.md`
 
 Where documents conflict, this PRD is the decision point for product scope and acceptance criteria.
 
@@ -108,12 +108,12 @@ Note: exact opcode names/semantics are specified in the protocol documentation; 
 ### FR4: Networking & Message Handling
 
 - **FR4.1** The node MUST maintain P2P connectivity sufficient for initial sync and steady-state operation.
-- **FR4.2** The node MUST support the protocol message size limit required by Radiant operations (see `UPGRADES.md`: 8 MB protocol message support).
+- **FR4.2** The node MUST support the protocol message size limit required by Radiant operations (see `doc/upgrades.md`: 8 MB protocol message support).
 - **FR4.3** Messages propagating block content MUST NOT be subject to the generic protocol message length limit.
 
 ### FR5: Validation Policy (Mempool)
 
-- **FR5.1** Oversized transactions MUST be explicitly rejected with a detailed and stable reason string (see `UPGRADES.md`: `bad-txns-oversize`).
+- **FR5.1** Oversized transactions MUST be explicitly rejected with a detailed and stable reason string (see `doc/upgrades.md`: `bad-txns-oversize`).
 - **FR5.2** Reject codes SHOULD use `REJECT_OVERSIZED` for oversized transaction policy failures.
 - **FR5.2** Policy behavior MUST be test-covered.
 
@@ -122,7 +122,7 @@ Note: Current implementation rejects oversized transactions with `REJECT_INVALID
 ### FR6: RPC Interfaces
 
 - **FR6.1** RPC MUST provide node operation endpoints needed by operators and indexers (status, chain queries, mempool queries, shutdown).
-- **FR6.2** RPC SHOULD support high-concurrency indexer loads by providing sensible defaults/tuning for work queues/threads (see `ROADMAP.md` completed tuning items).
+- **FR6.2** RPC SHOULD support high-concurrency indexer loads by providing sensible defaults/tuning for work queues/threads (see `doc/roadmap.md` completed tuning items).
 
 ### FR7: Wallet Functionality (Optional Build)
 
@@ -131,15 +131,15 @@ Note: Current implementation rejects oversized transactions with `REJECT_INVALID
 
 ### FR8: CI/CD and Reproducibility
 
-- **FR8.1** CI builds MUST be reproducible using the standardized Docker-based CI environment described in `UPGRADES.md`.
+- **FR8.1** CI builds MUST be reproducible using the standardized Docker-based CI environment described in `doc/upgrades.md`.
 - **FR8.2** The repository MUST provide a local CI runner workflow (`contrib/run-ci-local.sh`) that matches CI behavior.
 
 ## Non-Functional Requirements
 
 ### NFR1: Security
 
-- **NFR1.1** Security-critical dependencies MUST be maintained at supported versions (see `UPGRADES.md`: OpenSSL 3.x upgrade).
-- **NFR1.2** Remove/avoid legacy protocols and features that increase attack surface without strong product justification (see `UPGRADES.md`: BIP70 removal).
+- **NFR1.1** Security-critical dependencies MUST be maintained at supported versions (see `doc/upgrades.md`: OpenSSL 3.x upgrade).
+- **NFR1.2** Remove/avoid legacy protocols and features that increase attack surface without strong product justification (see `doc/upgrades.md`: BIP70 removal).
 
 As of the upgrade log baseline, the product security/maintenance posture includes:
 
@@ -159,13 +159,13 @@ As of the upgrade log baseline, the product security/maintenance posture include
 
 ### NFR4: Maintainability
 
-- **NFR4.1** The codebase MUST remain buildable on supported toolchains (see `UPGRADES.md`: C++20 migration).
+- **NFR4.1** The codebase MUST remain buildable on supported toolchains (see `doc/upgrades.md`: C++20 migration).
 - **NFR4.2** Test coverage MUST exist for Radiant-specific consensus/policy behavior.
 
 ### NFR5: Multi-Environment Support
 
 - **NFR5.1** The node MUST support dev/test/prod-like environments via network selection and configuration (e.g., mainnet/testnet/regtest, where applicable).
-- **NFR5.2** Testing hooks or policies MUST NOT weaken production security; any test-only mining/policy changes must be restricted to test/regtest contexts (see `ROADMAP.md`: regtest mining for functional tests).
+- **NFR5.2** Testing hooks or policies MUST NOT weaken production security; any test-only mining/policy changes must be restricted to test/regtest contexts (see `doc/roadmap.md`: regtest mining for functional tests).
 
 ## Acceptance Criteria
 
@@ -190,9 +190,9 @@ As of the upgrade log baseline, the product security/maintenance posture include
   Drives detailed protocol mechanics (reference opcodes, TxId v3 concept, signature hash preimage fields).
 - **Node setup (`doc/README.md`)**
   Drives build/run and release verification requirements.
-- **Upgrade log (`UPGRADES.md`)**
+- **Upgrade log (`doc/upgrades.md`)**
   Drives concrete modernization/security requirements (OpenSSL upgrade, BIP70 removal, message sizing, reject codes, profiles).
-- **Roadmap (`ROADMAP.md`)**
+- **Roadmap (`doc/roadmap.md`)**
   Identifies future work that is NOT acceptance-criteria required unless promoted into this PRD.
 
 ## Appendix: Network Parameters (Informational)

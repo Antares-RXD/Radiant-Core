@@ -202,7 +202,7 @@ Regtest activates at block 200 for rapid testing:
 ## Full Changelog
 
 This document.
-For a complete list of Roadmap of future changes, see [UPGRADES.md](../../UPGRADES.md).
+For a complete list of Roadmap of future changes, see [upgrades.md](../upgrades.md).
 
 ---
 

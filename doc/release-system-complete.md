@@ -11,8 +11,8 @@
 - **`build-all-releases.sh`** - Multi-platform orchestration script
 
 #### **2. Documentation**
-- **`RELEASE-BUILD-GUIDE.md`** - Comprehensive build instructions
-- **`BUILD-WINDOWS-PORTABLE.md`** - Windows-specific guide
+- **`doc/release-build-guide.md`** - Comprehensive build instructions
+- **`doc/build-windows-portable.md`** - Windows-specific guide
 
 ### 📦 **Release Artifacts Created:**
 
@@ -37,7 +37,7 @@
 ./build-all-releases.sh
 
 # Windows users: Use WSL2 with Linux build
-# See BUILD-WINDOWS-PORTABLE.md
+# See doc/build-windows-portable.md
 ```
 
 #### **Docker Usage**
@@ -120,8 +120,8 @@ All build scripts include:
 ### 🔗 **References:**
 
 - **Main Repository**: https://github.com/Radiant-Core/Radiant-Core
-- **Documentation**: `RELEASE-BUILD-GUIDE.md`
-- **Windows Guide**: `BUILD-WINDOWS-PORTABLE.md`
+- **Documentation**: `doc/release-build-guide.md`
+- **Windows Guide**: `doc/build-windows-portable.md`
 - **Website**: https://radiantblockchain.org
 
 ---

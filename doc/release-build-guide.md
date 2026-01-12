@@ -20,7 +20,7 @@ This guide provides comprehensive instructions for building Radiant Core release
 ```
 
 ### Windows (via WSL2)
-See [BUILD-WINDOWS-PORTABLE.md](BUILD-WINDOWS-PORTABLE.md) for WSL2 instructions.
+See [build-windows-portable.md](build-windows-portable.md) for WSL2 instructions.
 
 ### Multi-Platform Build
 ```bash
@@ -91,7 +91,7 @@ docker run -d --name radiant-node \
 
 **Native Windows builds are not supported.** Use WSL2 for the best experience.
 
-See [BUILD-WINDOWS-PORTABLE.md](BUILD-WINDOWS-PORTABLE.md) for detailed WSL2 setup instructions.
+See [build-windows-portable.md](build-windows-portable.md) for detailed WSL2 setup instructions.
 
 ## Release Artifacts
 

@@ -88,7 +88,7 @@ Unpack the files into a directory and run:
 
 ### Windows
 
-Native Windows builds are deprecated. Please use WSL2 (Windows Subsystem for Linux) to run Radiant Core on Windows. See [BUILD-WINDOWS-PORTABLE.md](../BUILD-WINDOWS-PORTABLE.md) for detailed instructions.
+Native Windows builds are deprecated. Please use WSL2 (Windows Subsystem for Linux) to run Radiant Core on Windows. See [build-windows-portable.md](build-windows-portable.md) for detailed instructions.
 
 ### macOS
 

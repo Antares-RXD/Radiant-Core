@@ -117,7 +117,7 @@ Here are some handy links for development practices aligned with Radiant Core:
 - [RXD GitHub development working rules and guidelines](doc/rxd-github-usage-rules-and-guidelines.md)
 - [Developer Notes](doc/developer-notes.md)
 - [Product Requirements Document](doc/PRD.md)
-- [Roadmap](ROADMAP.md)
+- [Roadmap](doc/roadmap.md)
 - [Linting Guidelines](doc/linting.md)
 - [Functional Tests](doc/functional-tests.md)
 - [Coverage Reports](doc/coverage.md)
@@ -318,4 +318,4 @@ author must contain its license header with the original author(s) and source.
 
 ## Disclosure Policy
 
-See [DISCLOSURE_POLICY](DISCLOSURE_POLICY.md).
+See [DISCLOSURE_POLICY](doc/disclosure-policy.md).
