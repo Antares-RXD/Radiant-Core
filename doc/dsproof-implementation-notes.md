@@ -1,21 +1,19 @@
-Double Spend Proofs - RADN Implementation Notes
+Double Spend Proofs - Radiant Core Implementation Notes
 ===============================================
 
 This document serves a two-fold purpose:
 
-1. To give information to users of the RADN software about expected behavior
-   of the DSProof feature which is not fully addressed in the current
-   specification.
+1. To give information to users of the Radiant Core software about expected behavior of the DSProof feature which is not fully addressed in the current specification.
 
 2. To provide additional notes about interpretation of the
    specification in instances where more clarity is deemed useful -
    for anyone trying to understand or implement the specification.
 
-DSProof implementation behavior in RADN
+DSProof implementation behavior in Radiant Core
 ---------------------------------------
 
 We are providing here
-some additional notes on the RADN implementation of this feature.
+some additional notes on the Radiant Core implementation of this feature.
 
 1. The DSProof functionality is enabled by default, this means
    DS proofs are created and relayed. Both creation and relay  can
@@ -73,11 +71,8 @@ some additional notes on the RADN implementation of this feature.
 Notes on the DSProof specification
 ----------------------------------
 
-1. A copy of the specification can be found at
-   <https://upgradespecs.radiantblockchain.org/dsproof/>.
+1. The sizes of the `FirstSpender` and `DoubleSpender` fields are variable.
 
-2. The sizes of the `FirstSpender` and `DoubleSpender` fields are variable.
-
-3. The value of the  first `list-size` field in the spender record
+2. The value of the  first `list-size` field in the spender record
    (the `Number-of-pushdata's`) is currently fixed to 1, and thus its
    encoding only occupies a single byte.

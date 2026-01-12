@@ -1,11 +1,11 @@
-Radiant Node RADN-relevant DNS seed information
+Radiant Core Node RXD - relevant DNS seed information
 ====================================================
 
-Radiant Node uses special seeds under the control of Radiant (RAD)
+Radiant Core Node uses special seeds under the control of Radiant (RXD)
 network supporting operators to increase the chance of a node
-to find suitable peers on the RADN network.
+to find suitable peers on the RXD network.
 
-The seeds used by Cash Node should distribute peers fairly but in a
+The seeds used by Core Node should distribute peers fairly but in a
 manner which increases the likelihood that Radiant Nodes are able
 to connect to RADN compatible peers.
 
@@ -15,9 +15,9 @@ General expectations for DNS Seed operators
 Bitcoin attempts to minimize the level of trust in DNS seeds,
 but DNS seeds still pose a small amount of risk for the network.
 As such, DNS seeds must be run by entities which have some minimum
-level of trust within the Bitcoin community.
+level of trust within the Radiant community.
 
-Other implementations of Bitcoin software may also use the same
+Other implementations of Radiant software may also use the same
 seeds and may be more exposed. In light of this exposure, this
 document establishes some basic expectations for operating dnsseeds.
 
@@ -26,7 +26,7 @@ document establishes some basic expectations for operating dnsseeds.
   and not sell or transfer control of the DNS seed. Any hosting services
   contracted by the operator are equally expected to uphold these expectations.
 1. The DNS seed results must consist exclusively of fairly selected and
-  functioning Bitcoin nodes from the public network to the best of the
+  functioning Radiant nodes from the public network to the best of the
   operator's understanding and capability.
 2. For the avoidance of doubt, the results may be randomized but must not
   single-out any group of hosts to receive different results unless due to an
@@ -46,11 +46,9 @@ document establishes some basic expectations for operating dnsseeds.
   related to the DNS seed operation.
 
 If these expectations cannot be satisfied the operator should
-discontinue providing services and contact the active Bitcoin
+discontinue providing services and contact the active Radiant
 development teams as well as posting on
-[bitcoin-dev](https://lists.linuxfoundation.org/mailman/listinfo/bitcoin-dev).
-and
-[bitcoin-ml](https://lists.linuxfoundation.org/mailman/listinfo/bitcoin-ml).
+Discord.
 
 Behavior outside of these expectations may be reasonable in some
 situations but should be discussed in public in advance.
@@ -58,5 +56,5 @@ situations but should be discussed in public in advance.
 See also
 ----------
 
-- [bitcoin-seeder](../src/seeder/README.md) is a reference implementation of a
+- [Radiant-seeder](radiant-core/doc/seeder/README.md) is a reference implementation of a
   DNS seeder.
