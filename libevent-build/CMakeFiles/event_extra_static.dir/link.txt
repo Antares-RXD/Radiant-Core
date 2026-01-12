@@ -1,2 +1,0 @@
-C:\Strawberry\c\bin\ar.exe qc lib\libevent_extra.a CMakeFiles/event_extra_static.dir/event_tagging.c.obj CMakeFiles/event_extra_static.dir/http.c.obj CMakeFiles/event_extra_static.dir/evdns.c.obj CMakeFiles/event_extra_static.dir/evrpc.c.obj
-C:\Strawberry\c\bin\ranlib.exe lib\libevent_extra.a
