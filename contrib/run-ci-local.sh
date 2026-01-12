@@ -6,7 +6,7 @@ export LC_ALL=C
 set -e
 
 echo ">>> Building CI Docker image..."
-docker build -f Dockerfile.ci -t radiant-node-ci .
+docker build -f docker/Dockerfile.ci -t radiant-node-ci .
 
 echo ">>> Starting Build in Container..."
 # Mount the current directory to /source in the container

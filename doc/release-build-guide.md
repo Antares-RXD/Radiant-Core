@@ -6,17 +6,17 @@ This guide provides comprehensive instructions for building Radiant Core release
 
 ### Linux (Native Build)
 ```bash
-./build-linux-release.sh
+./scripts/build-linux-release.sh
 ```
 
 ### Docker (Any Platform)
 ```bash
-./build-docker-release.sh
+./scripts/build-docker-release.sh
 ```
 
 ### macOS (Native Build)
 ```bash
-./build-macos-release.sh
+./scripts/build-macos-release.sh
 ```
 
 ### Windows (via WSL2)
@@ -24,7 +24,7 @@ See [build-windows-portable.md](build-windows-portable.md) for WSL2 instructions
 
 ### Multi-Platform Build
 ```bash
-./build-all-releases.sh
+./scripts/build-all-releases.sh
 ```
 
 ## Platform-Specific Instructions
@@ -152,21 +152,21 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Build Linux
-        run: ./build-linux-release.sh
+        run: ./scripts/build-linux-release.sh
       
   build-docker:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Build Docker
-        run: ./build-docker-release.sh
+        run: ./scripts/build-docker-release.sh
       
   build-macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
       - name: Build macOS
-        run: ./build-macos-release.sh
+        run: ./scripts/build-macos-release.sh
 ```
 
 ## Troubleshooting

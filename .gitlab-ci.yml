@@ -47,7 +47,7 @@ cache: &global_cache_settings
         - ccache/
         - .cache/pip
 
-# Build the CI Docker image if Dockerfile.ci changes
+# Build the CI Docker image if docker/Dockerfile.ci changes
 build-ci-image:
     stage: prepare
     image: docker:24
@@ -56,12 +56,12 @@ build-ci-image:
     before_script:
         - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     script:
-        - docker build -f Dockerfile.ci -t $CI_REGISTRY_IMAGE/buildenv:latest .
+        - docker build -f docker/Dockerfile.ci -t $CI_REGISTRY_IMAGE/buildenv:latest .
         - docker push $CI_REGISTRY_IMAGE/buildenv:latest
     rules:
         - if: $CI_COMMIT_BRANCH == "master"
           changes:
-            - Dockerfile.ci
+            - docker/Dockerfile.ci
         - if: $CI_PIPELINE_SOURCE == "manual"
 
 ## Static checking stages:

@@ -29,19 +29,19 @@ read -p "Select build target (1-5): " CHOICE
 case $CHOICE in
     1)
         echo "Building Linux release..."
-        bash ../build-linux-release.sh
+        bash ./build-linux-release.sh
         ;;
     2)
         echo "Building Docker release..."
-        bash ../build-docker-release.sh
+        bash ./build-docker-release.sh
         ;;
     3)
         echo "Building macOS release..."
-        bash ../build-macos-release.sh
+        bash ./build-macos-release.sh
         ;;
     4)
         echo "Building Windows release (cross-compile)..."
-        bash ../build-windows-cross-release.sh
+        bash ./build-windows-cross-release.sh
         ;;
     5)
         echo "Building all platforms..."
@@ -51,7 +51,7 @@ case $CHOICE in
         echo "Building Linux x86_64..."
         echo "========================================"
         if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            bash ../build-linux-release.sh
+            bash ./build-linux-release.sh
         else
             echo "Skipping Linux build (not on Linux)"
         fi
@@ -60,14 +60,14 @@ case $CHOICE in
         echo "========================================"
         echo "Building Docker release..."
         echo "========================================"
-        bash ../build-docker-release.sh
+        bash ./build-docker-release.sh
         
         echo ""
         echo "========================================"
         echo "Building macOS release..."
         echo "========================================"
         if [[ "$OSTYPE" == "darwin"* ]]; then
-            bash ../build-macos-release.sh
+            bash ./build-macos-release.sh
         else
             echo "Skipping macOS build (not on macOS)"
         fi
@@ -77,7 +77,7 @@ case $CHOICE in
         echo "Building Windows release..."
         echo "========================================"
         if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            bash ../build-windows-cross-release.sh
+            bash ./build-windows-cross-release.sh
         else
             echo "Skipping Windows cross-compile (not on Linux)"
         fi

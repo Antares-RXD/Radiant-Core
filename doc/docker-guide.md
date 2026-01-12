@@ -6,7 +6,7 @@ This document explains the different Dockerfiles available for Radiant Core and 
 
 ### Production Dockerfiles
 
-#### `Dockerfile.release` (Recommended for Production)
+#### `docker/Dockerfile.release` (Recommended for Production)
 **Multi-stage build optimized for production deployments**
 
 - **Base**: Ubuntu 24.04 (multi-stage: builder + runtime)
@@ -17,9 +17,9 @@ This document explains the different Dockerfiles available for Radiant Core and 
   - Health checks included
   - Production-ready configuration
 - **Use Case**: Production deployments, Docker Hub releases
-- **Build**: `docker build -f Dockerfile.release -t radiant-core:latest .`
+- **Build**: `docker build -f docker/Dockerfile.release -t radiant-core:latest .`
 
-#### `Dockerfile` (Legacy Production)
+#### `docker/Dockerfile.base` (Legacy Production)
 **Full production image with Node.js and mining support**
 
 - **Base**: Ubuntu 24.04
@@ -28,11 +28,11 @@ This document explains the different Dockerfiles available for Radiant Core and 
   - GPU mining support (OpenCL)
   - Builds from GitHub source
 - **Use Case**: Legacy production, mining operations
-- **Note**: Consider using `Dockerfile.release` for standard deployments
+- **Note**: Consider using `docker/Dockerfile.release` for standard deployments
 
 ### Development Dockerfiles
 
-#### `Dockerfile.core` (Local Development)
+#### `docker/Dockerfile.core` (Local Development)
 **Build from local source tree**
 
 - **Base**: Ubuntu 24.04
@@ -41,9 +41,9 @@ This document explains the different Dockerfiles available for Radiant Core and 
   - Development-friendly configuration
   - Debug logging enabled
 - **Use Case**: Local development and testing
-- **Build**: `docker build -f Dockerfile.core -t radiant-core-local .`
+- **Build**: `docker build -f docker/Dockerfile.core -t radiant-core-local .`
 
-#### `Dockerfile.ci` (Continuous Integration)
+#### `docker/Dockerfile.ci` (Continuous Integration)
 **Complete CI/CD build environment**
 
 - **Base**: Ubuntu 24.04
@@ -53,11 +53,11 @@ This document explains the different Dockerfiles available for Radiant Core and 
   - Documentation tools (Doxygen)
   - Python testing dependencies
 - **Use Case**: CI/CD pipelines, automated testing
-- **Build**: `docker build -f Dockerfile.ci -t radiant-core-ci .`
+- **Build**: `docker build -f docker/Dockerfile.ci -t radiant-core-ci .`
 
 ### Specialized Dockerfiles
 
-#### `Dockerfile.testnet` (Testnet Node)
+#### `docker/Dockerfile.testnet` (Testnet Node)
 **Pre-configured for Radiant testnet**
 
 - **Base**: Ubuntu 24.04
@@ -66,9 +66,9 @@ This document explains the different Dockerfiles available for Radiant Core and 
   - Testnet ports exposed (27332, 27333)
   - Runtime-only (no build tools)
 - **Use Case**: Testnet deployments
-- **Build**: `docker build -f Dockerfile.testnet -t radiant-core-testnet .`
+- **Build**: `docker build -f docker/Dockerfile.testnet -t radiant-core-testnet .`
 
-#### `Dockerfile.seeder` (DNS Seeder)
+#### `docker/Dockerfile.seeder` (DNS Seeder)
 **DNS seed node for network discovery**
 
 - **Base**: Ubuntu 24.04
@@ -77,9 +77,9 @@ This document explains the different Dockerfiles available for Radiant Core and 
   - Exposes DNS port (53/udp)
   - Minimal footprint
 - **Use Case**: Network infrastructure, DNS seeding
-- **Build**: `docker build -f Dockerfile.seeder -t radiant-seeder .`
+- **Build**: `docker build -f docker/Dockerfile.seeder -t radiant-seeder .`
 
-#### `Dockerfile.orbstack` (macOS Development)
+#### `docker/Dockerfile.orbstack` (macOS Development)
 **OrbStack-specific configuration for macOS users**
 
 - **Base**: Ubuntu 24.04
@@ -88,14 +88,14 @@ This document explains the different Dockerfiles available for Radiant Core and 
   - Testnet configuration
   - Optimized for OrbStack on macOS
 - **Use Case**: macOS development with OrbStack
-- **Build**: `docker build -f Dockerfile.orbstack -t radiant-orbstack .`
+- **Build**: `docker build -f docker/Dockerfile.orbstack -t radiant-orbstack .`
 
 ## Usage Examples
 
 ### Production Deployment
 ```bash
 # Build and run production image
-docker build -f Dockerfile.release -t radiant-core:latest .
+docker build -f docker/Dockerfile.release -t radiant-core:latest .
 docker run -d --name radiant-node \
   -p 7332:7332 -p 7333:7333 \
   -v radiant-data:/home/radiant/.radiant \
@@ -105,14 +105,14 @@ docker run -d --name radiant-node \
 ### Local Development
 ```bash
 # Build from local source
-docker build -f Dockerfile.core -t radiant-core-local .
+docker build -f docker/Dockerfile.core -t radiant-core-local .
 docker run --rm -it -p 7332:7332 -p 7333:7333 radiant-core-local
 ```
 
 ### Testnet Deployment
 ```bash
 # Build and run testnet node
-docker build -f Dockerfile.testnet -t radiant-testnet .
+docker build -f docker/Dockerfile.testnet -t radiant-testnet .
 docker run -d --name radiant-testnet \
   -p 27332:27332 -p 27333:27333 \
   -v testnet-data:/home/radiant/.radiant \
@@ -122,7 +122,7 @@ docker run -d --name radiant-testnet \
 ### CI/CD Build
 ```bash
 # Build CI environment
-docker build -f Dockerfile.ci -t radiant-core-ci .
+docker build -f docker/Dockerfile.ci -t radiant-core-ci .
 docker run --rm -v $PWD:/source radiant-core-ci \
   bash -c "cd /source && mkdir build && cd build && cmake .. && ninja"
 ```
@@ -147,14 +147,14 @@ docker run --rm -v $PWD:/source radiant-core-ci \
 ## Security Considerations
 
 1. **Non-root User**: All production Dockerfiles run as non-root `radiant` user
-2. **Minimal Runtime**: `Dockerfile.release` uses multi-stage build for minimal attack surface
+2. **Minimal Runtime**: `docker/Dockerfile.release` uses multi-stage build for minimal attack surface
 3. **RPC Security**: Avoid exposing RPC ports publicly without authentication
 4. **Health Checks**: Production images include health checks for monitoring
 
 ## Migration Guide
 
 ### From Legacy Dockerfile to Release Dockerfile
-If you're currently using the main `Dockerfile`, consider migrating to `Dockerfile.release`:
+If you're currently using the main `docker/Dockerfile.base`, consider migrating to `docker/Dockerfile.release`:
 
 ```bash
 # Old way
@@ -162,7 +162,7 @@ docker build -t radiant-core .
 docker run radiant-core radiantd -server
 
 # New way
-docker build -f Dockerfile.release -t radiant-core:latest .
+docker build -f docker/Dockerfile.release -t radiant-core:latest .
 docker run radiant-core:latest
 ```
 
@@ -176,7 +176,7 @@ Benefits:
 
 ### Build Issues
 - Ensure Docker has sufficient memory (4GB+ recommended)
-- Use `Dockerfile.core` for local development if network issues occur
+- Use `docker/Dockerfile.core` for local development if network issues occur
 - Check for sufficient disk space (multi-stage builds require more space)
 
 ### Runtime Issues
@@ -185,7 +185,7 @@ Benefits:
 - Use `docker logs` to debug startup issues
 
 ### Performance Optimization
-- Use `Dockerfile.release` for production (smaller size, faster startup)
+- Use `docker/Dockerfile.release` for production (smaller size, faster startup)
 - Enable build cache with `CCACHE_DIR` volume in CI
 - Consider resource limits for mining operations
 

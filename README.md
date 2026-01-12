@@ -67,17 +67,17 @@ wsl --install -d Ubuntu-22.04
 #### **Linux Build** (Ubuntu/Debian/CentOS/Fedora)
 ```bash
 # Automated build with dependency installation
-./build-linux-release.sh
+./scripts/build-linux-release.sh
 
 # Multi-platform build (if on Linux)
-./build-all-releases.sh
+./scripts/build-all-releases.sh
 ```
 **Requirements:** Linux x86_64, GCC 10+ or Clang 11+, CMake 3.16+
 
 #### **macOS Build** (Universal Binary)
 ```bash
 # Universal Binary (Intel + Apple Silicon)
-./build-macos-release.sh
+./scripts/build-macos-release.sh
 
 # Create DMG installer
 ./create-dmg.sh
@@ -87,7 +87,7 @@ wsl --install -d Ubuntu-22.04
 #### **Docker Build** (Any Platform)
 ```bash
 # Build Docker image and extract binaries
-./build-docker-release.sh
+./scripts/build-docker-release.sh
 
 # Run directly from Docker
 docker run -d --name radiant-node \

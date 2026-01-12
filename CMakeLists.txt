@@ -78,12 +78,10 @@ endif()
 
 exclude_from_source_package(
 	# Subdirectories
-	"arcanist/"
 	"depends/"
 
 	# Files
 	"[^.]+[.]md$"
-	"Dockerfile-doxygen"
 )
 
 option(ENABLE_COVERAGE "Enable coverage" OFF)

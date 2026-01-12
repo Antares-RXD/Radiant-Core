@@ -70,11 +70,11 @@ fi
 
 # Build the CI Docker image (contains build tools)
 log_info "Building CI Docker image..."
-docker build -f "$PROJECT_ROOT/Dockerfile.ci" -t radiant-node-ci "$PROJECT_ROOT"
+docker build -f "$PROJECT_ROOT/docker/Dockerfile.ci" -t radiant-node-ci "$PROJECT_ROOT"
 
 # Build the release Docker image (contains radiantd binary)
 log_info "Building release Docker image..."
-docker build -f "$PROJECT_ROOT/Dockerfile.core" \
+docker build -f "$PROJECT_ROOT/docker/Dockerfile.core" \
     -t "${IMAGE_NAME}:${VERSION}" \
     -t "${IMAGE_NAME}:latest" \
     "$PROJECT_ROOT"

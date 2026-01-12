@@ -5,10 +5,10 @@
 ### ✅ **Completed Components:**
 
 #### **1. Platform-Specific Build Scripts**
-- **`build-linux-release.sh`** - Native Linux x86_64 builds
-- **`build-docker-release.sh`** - Docker container builds (any platform)
-- **`build-macos-release.sh`** - macOS Universal Binary builds
-- **`build-all-releases.sh`** - Multi-platform orchestration script
+- **`scripts/build-linux-release.sh`** - Native Linux x86_64 builds
+- **`scripts/build-docker-release.sh`** - Docker container builds (any platform)
+- **`scripts/build-macos-release.sh`** - macOS Universal Binary builds
+- **`scripts/build-all-releases.sh`** - Multi-platform orchestration script
 
 #### **2. Documentation**
 - **`doc/release-build-guide.md`** - Comprehensive build instructions
@@ -29,12 +29,12 @@
 #### **Quick Start - Any Platform**
 ```bash
 # Build for current platform
-./build-linux-release.sh    # Linux
-./build-docker-release.sh   # Docker (any OS)
-./build-macos-release.sh    # macOS
+./scripts/build-linux-release.sh    # Linux
+./scripts/build-docker-release.sh   # Docker (any OS)
+./scripts/build-macos-release.sh    # macOS
 
 # Build all platforms
-./build-all-releases.sh
+./scripts/build-all-releases.sh
 
 # Windows users: Use WSL2 with Linux build
 # See doc/build-windows-portable.md
@@ -43,7 +43,7 @@
 #### **Docker Usage**
 ```bash
 # Build and run
-./build-docker-release.sh
+./scripts/build-docker-release.sh
 docker run -d --name radiant-node \
   -p 7332:7332 -p 7333:7333 \
   -v radiant-data:/home/radiant/.radiant \

@@ -36,7 +36,7 @@ Regtest (regression test) mode is ideal for:
 
 ### Step 1: Create Regtest Configuration
 
-Create a configuration file `radiant-regtest.conf`:
+Create a configuration file (see `contrib/conf/radiant-regtest.conf` for example):
 
 ```ini
 # Regtest Configuration
@@ -173,7 +173,7 @@ debug=1
 
 For testing with the wider community on a shared testnet:
 
-### Configuration (`radiant-testnet.conf`)
+### Configuration (see `contrib/conf/radiant-testnet.conf`)
 
 ```ini
 testnet=1
