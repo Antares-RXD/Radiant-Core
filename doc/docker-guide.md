@@ -2,6 +2,24 @@
 
 This document explains the different Dockerfiles available for Radiant Core and their intended use cases.
 
+## Quick Start with Pre-built Release
+
+The fastest way to run Radiant Core via Docker:
+
+```bash
+# Load the pre-built image from releases/Docker/
+docker load < releases/Docker/radiant-core-docker-v2.0.0.tar.gz
+
+# Run the node
+docker run -d --name radiant-node \
+  -p 7332:7332 -p 7333:7333 \
+  -v radiant-data:/home/radiant/.radiant \
+  radiant-core:v2.0.0
+
+# Check status
+docker exec radiant-node radiant-cli getblockchaininfo
+```
+
 ## Dockerfiles Overview
 
 ### Production Dockerfiles
