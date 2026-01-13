@@ -1,0 +1,7 @@
+{
+  "datadir": "/Users/main/Library/Application Support/Radiant",
+  "network": "mainnet",
+  "prune": false,
+  "prune_size": 550,
+  "auto_start": true
+}

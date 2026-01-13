@@ -40,10 +40,11 @@ WORKDIR /root/Radiant-Core/build
 
 RUN cmake -GNinja .. \
     -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-    -DBUILD_RADIANT_WALLET=OFF \
-    -DBUILD_RADIANT_ZMQ=OFF \
+    -DBUILD_RADIANT_WALLET=ON \
+    -DBUILD_RADIANT_ZMQ=ON \
     -DBUILD_RADIANT_QT=OFF \
-    -DENABLE_UPNP=OFF
+    -DENABLE_UPNP=ON \
+    -DENABLE_HARDENING=ON
 
 RUN ninja
 
@@ -90,9 +91,9 @@ WORKDIR /home/radiant
 # Expose ports
 EXPOSE 7332 7333
 
-# Default command
+# Default command with wallet enabled
 ENTRYPOINT ["radiantd"]
-CMD ["-server", "-rest", "-txindex=1"]
+CMD ["-server", "-rest", "-txindex=1", "-disablewallet=0"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

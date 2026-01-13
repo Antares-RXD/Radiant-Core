@@ -47,7 +47,11 @@ function(generate_versions_variants VARIANTS LIB MAJOR MINOR)
 endfunction()
 
 include(BrewHelper)
-find_brew_prefix(_BerkeleyDB_BREW_HINT berkeley-db)
+# Try versioned formula first (berkeley-db@4), then unversioned (berkeley-db)
+find_brew_prefix(_BerkeleyDB_BREW_HINT berkeley-db@4)
+if(NOT _BerkeleyDB_BREW_HINT)
+	find_brew_prefix(_BerkeleyDB_BREW_HINT berkeley-db)
+endif()
 
 # If the include directory is user supplied, skip the search
 if(NOT BerkeleyDB_INCLUDE_DIR)
@@ -71,7 +75,7 @@ if(NOT BerkeleyDB_INCLUDE_DIR)
 	# the `BerkeleyDB_ROOT` variable to cmake.
 	find_path(BerkeleyDB_INCLUDE_DIR
 		NAMES db.h
-		HINTS ${_BerkeleyDB_BREW_HINT}
+		HINTS ${BerkeleyDB_ROOT} ${_BerkeleyDB_BREW_HINT}
 		PATH_SUFFIXES ${_BerkeleyDB_PATH_SUFFIXES}
 	)
 endif()
@@ -87,46 +91,57 @@ if(BerkeleyDB_INCLUDE_DIR)
 	if(NOT DEFINED BerkeleyDB_VERSION)
 		# Read the version from file db.h into a variable.
 		file(READ "${BerkeleyDB_INCLUDE_DIR}/db.h" _BerkeleyDB_DB_HEADER)
-	
-		# Parse the version into variables.
-		string(REGEX REPLACE
-			".*DB_VERSION_MAJOR[ \t]+([0-9]+).*" "\\1"
-			BerkeleyDB_VERSION_MAJOR
-			"${_BerkeleyDB_DB_HEADER}"
-		)
-		string(REGEX REPLACE
-			".*DB_VERSION_MINOR[ \t]+([0-9]+).*" "\\1"
-			BerkeleyDB_VERSION_MINOR
-			"${_BerkeleyDB_DB_HEADER}"
-		)
-		# Patch version example on non-crypto installs: x.x.xNC
-		string(REGEX REPLACE
-			".*DB_VERSION_PATCH[ \t]+([0-9]+(NC)?).*" "\\1"
-			BerkeleyDB_VERSION_PATCH
-			"${_BerkeleyDB_DB_HEADER}"
-		)
 
-		# Strip any whitespace/newlines that may have been captured
-		string(STRIP "${BerkeleyDB_VERSION_MAJOR}" BerkeleyDB_VERSION_MAJOR)
-		string(STRIP "${BerkeleyDB_VERSION_MINOR}" BerkeleyDB_VERSION_MINOR)
-		string(STRIP "${BerkeleyDB_VERSION_PATCH}" BerkeleyDB_VERSION_PATCH)
+		# Check if this is actually BerkeleyDB and not the BSD db.h.
+		# BerkeleyDB headers contain DB_VERSION_MAJOR, BSD db.h does not.
+		string(FIND "${_BerkeleyDB_DB_HEADER}" "DB_VERSION_MAJOR" _BerkeleyDB_HAS_VERSION)
+		if(_BerkeleyDB_HAS_VERSION EQUAL -1)
+			# This is not BerkeleyDB (likely BSD db.h from macOS SDK).
+			# Clear the include dir so we can search again or fail properly.
+			unset(BerkeleyDB_INCLUDE_DIR)
+			unset(BerkeleyDB_INCLUDE_DIR CACHE)
+			set(BerkeleyDB_INCLUDE_DIRS "")
+		else()
+			# Parse the version into variables.
+			string(REGEX REPLACE
+				".*DB_VERSION_MAJOR[ \t]+([0-9]+).*" "\\1"
+				BerkeleyDB_VERSION_MAJOR
+				"${_BerkeleyDB_DB_HEADER}"
+			)
+			string(REGEX REPLACE
+				".*DB_VERSION_MINOR[ \t]+([0-9]+).*" "\\1"
+				BerkeleyDB_VERSION_MINOR
+				"${_BerkeleyDB_DB_HEADER}"
+			)
+			# Patch version example on non-crypto installs: x.x.xNC
+			string(REGEX REPLACE
+				".*DB_VERSION_PATCH[ \t]+([0-9]+(NC)?).*" "\\1"
+				BerkeleyDB_VERSION_PATCH
+				"${_BerkeleyDB_DB_HEADER}"
+			)
 
-		# Cache the result.
-		set(BerkeleyDB_VERSION_MAJOR ${BerkeleyDB_VERSION_MAJOR}
-			CACHE INTERNAL "BerekeleyDB major version number"
-		)
-		set(BerkeleyDB_VERSION_MINOR ${BerkeleyDB_VERSION_MINOR}
-			CACHE INTERNAL "BerekeleyDB minor version number"
-		)
-		set(BerkeleyDB_VERSION_PATCH ${BerkeleyDB_VERSION_PATCH}
-			CACHE INTERNAL "BerekeleyDB patch version number"
-		)
-		# The actual returned/output version variable (the others can be used if
-		# needed).
-		set(BerkeleyDB_VERSION
-			"${BerkeleyDB_VERSION_MAJOR}.${BerkeleyDB_VERSION_MINOR}.${BerkeleyDB_VERSION_PATCH}"
-			CACHE INTERNAL "BerekeleyDB full version"
-		)
+			# Strip any whitespace/newlines that may have been captured
+			string(STRIP "${BerkeleyDB_VERSION_MAJOR}" BerkeleyDB_VERSION_MAJOR)
+			string(STRIP "${BerkeleyDB_VERSION_MINOR}" BerkeleyDB_VERSION_MINOR)
+			string(STRIP "${BerkeleyDB_VERSION_PATCH}" BerkeleyDB_VERSION_PATCH)
+
+			# Cache the result.
+			set(BerkeleyDB_VERSION_MAJOR ${BerkeleyDB_VERSION_MAJOR}
+				CACHE INTERNAL "BerekeleyDB major version number"
+			)
+			set(BerkeleyDB_VERSION_MINOR ${BerkeleyDB_VERSION_MINOR}
+				CACHE INTERNAL "BerekeleyDB minor version number"
+			)
+			set(BerkeleyDB_VERSION_PATCH ${BerkeleyDB_VERSION_PATCH}
+				CACHE INTERNAL "BerekeleyDB patch version number"
+			)
+			# The actual returned/output version variable (the others can be used if
+			# needed).
+			set(BerkeleyDB_VERSION
+				"${BerkeleyDB_VERSION_MAJOR}.${BerkeleyDB_VERSION_MINOR}.${BerkeleyDB_VERSION_PATCH}"
+				CACHE INTERNAL "BerekeleyDB full version"
+			)
+		endif()
 	endif()
 
 	include(ExternalLibraryHelper)
