@@ -65,8 +65,12 @@ Linux x86_64:
 macOS (Apple Silicon):
 ----------------------
   cd "Mac - Apple Silicon"
-  tar -xzf radiant-core-macos-arm64.tar.gz
+  unzip radiant-core-macos-arm64.zip
   cd radiant-core-macos-arm64
+  
+  # Remove quarantine (required for downloaded files)
+  xattr -rd com.apple.quarantine .
+  
   ./radiantd --version
   ./radiantd -server -txindex=1
 
@@ -95,7 +99,7 @@ Windows (via WSL2):
 Verify Checksums:
 -----------------
 Each release includes a .sha256 file. Verify with:
-  shasum -a 256 -c <release>.tar.gz.sha256
+  shasum -a 256 -c <release>.sha256
 
 Ports:
 ------

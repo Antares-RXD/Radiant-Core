@@ -34,12 +34,12 @@ except ImportError:
 GITHUB_RELEASE_URL = "https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0"
 RELEASE_ASSETS = {
     "darwin_arm64": {
-        "filename": "radiant-core-macos-arm64.tar.gz",
+        "filename": "radiant-core-macos-arm64.zip",
         "folder": "radiant-core-macos-arm64",
         "display": "macOS (Apple Silicon)",
     },
     "darwin_x86_64": {
-        "filename": "radiant-core-macos-arm64.tar.gz",  # Use ARM64 for now, x64 not available
+        "filename": "radiant-core-macos-arm64.zip",  # Use ARM64 for now, x64 not available
         "folder": "radiant-core-macos-arm64",
         "display": "macOS (Intel) - Using ARM64 binary via Rosetta",
     },

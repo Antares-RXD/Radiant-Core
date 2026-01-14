@@ -114,34 +114,40 @@ jobs:
       - name: Build
         run: cmake --build build --config ${{ env.BUILD_TYPE }} -j$(sysctl -n hw.ncpu)
 
-      - name: Create DMG
+      - name: Create release packages
         run: |
           VERSION=${{ github.event.inputs.version || github.ref_name }}
-          mkdir -p radiant-${VERSION}-macos
-          cp build/src/radiantd radiant-${VERSION}-macos/ || true
-          cp build/src/radiant-cli radiant-${VERSION}-macos/ || true
-          cp build/src/radiant-tx radiant-${VERSION}-macos/ || true
-          cp build/src/radiant-wallet radiant-${VERSION}-macos/ || true
-          cp -R build/src/qt/Radiant-Qt.app radiant-${VERSION}-macos/ || true
-          cp README.md radiant-${VERSION}-macos/ || true
-          cp COPYING radiant-${VERSION}-macos/ || true
           
-          # Create DMG
+          # Create package with standard naming (radiant-core-macos-arm64)
+          mkdir -p radiant-core-macos-arm64
+          cp build/src/radiantd radiant-core-macos-arm64/ || true
+          cp build/src/radiant-cli radiant-core-macos-arm64/ || true
+          cp build/src/radiant-tx radiant-core-macos-arm64/ || true
+          cp build/src/radiant-wallet radiant-core-macos-arm64/ || true
+          cp -R build/src/qt/Radiant-Qt.app radiant-core-macos-arm64/ || true
+          cp README.md radiant-core-macos-arm64/ || true
+          cp COPYING radiant-core-macos-arm64/ || true
+          
+          # Create .tar.gz
+          tar -czvf radiant-core-macos-arm64.tar.gz radiant-core-macos-arm64
+          
+          # Create .zip (preferred for macOS users)
+          zip -r radiant-core-macos-arm64.zip radiant-core-macos-arm64
+          
+          # Create DMG (optional)
           hdiutil create -volname "Radiant-${VERSION}" \
-            -srcfolder radiant-${VERSION}-macos \
+            -srcfolder radiant-core-macos-arm64 \
             -ov -format UDZO \
             radiant-${VERSION}-macos.dmg || true
-          
-          # Also create zip
-          zip -r radiant-${VERSION}-macos.zip radiant-${VERSION}-macos
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: radiant-macos
           path: |
+            radiant-core-macos-arm64.tar.gz
+            radiant-core-macos-arm64.zip
             radiant-*-macos.dmg
-            radiant-*-macos.zip
 
   build-gui-packages:
     needs: [build-linux, build-macos]
