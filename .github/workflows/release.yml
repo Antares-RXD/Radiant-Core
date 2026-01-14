@@ -143,8 +143,123 @@ jobs:
             radiant-*-macos.dmg
             radiant-*-macos.zip
 
-  create-release:
+  build-gui-packages:
     needs: [build-linux, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: radiant-linux-x64
+          path: binaries/linux
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: radiant-macos
+          path: binaries/macos
+
+      - name: Build GUI packages
+        run: |
+          VERSION=${{ github.event.inputs.version || github.ref_name }}
+          VERSION=${VERSION#v}  # Remove 'v' prefix if present
+          
+          # Create GUI package for Linux
+          echo "Building Linux GUI package..."
+          mkdir -p radiant-node-gui-linux-x64-v${VERSION}
+          
+          # Extract Linux binaries
+          tar -xzf binaries/linux/radiant-*-linux-x64.tar.gz --strip-components=1 -C radiant-node-gui-linux-x64-v${VERSION}/ 2>/dev/null || \
+          unzip -o binaries/linux/radiant-*-linux-x64.zip -d temp-linux && mv temp-linux/*/radiant* radiant-node-gui-linux-x64-v${VERSION}/ 2>/dev/null || true
+          
+          # Copy GUI files
+          cp gui/radiant_node_web.py radiant-node-gui-linux-x64-v${VERSION}/
+          cp gui/bip39.py radiant-node-gui-linux-x64-v${VERSION}/
+          
+          # Create launcher script
+          cat > radiant-node-gui-linux-x64-v${VERSION}/start-gui.sh << 'EOF'
+          #!/bin/bash
+          cd "$(dirname "$0")"
+          chmod +x radiantd radiant-cli radiant-tx 2>/dev/null
+          echo "Starting Radiant Node GUI..."
+          python3 radiant_node_web.py
+          EOF
+          chmod +x radiant-node-gui-linux-x64-v${VERSION}/start-gui.sh
+          
+          # Create README
+          cat > radiant-node-gui-linux-x64-v${VERSION}/README.txt << 'EOF'
+          Radiant Node GUI - All-in-One Package
+          =====================================
+          
+          Quick Start:
+            ./start-gui.sh
+          
+          The GUI opens at http://127.0.0.1:8765
+          
+          Support: https://radiantblockchain.org
+          EOF
+          
+          tar -czvf radiant-node-gui-linux-x64-v${VERSION}.tar.gz radiant-node-gui-linux-x64-v${VERSION}
+          sha256sum radiant-node-gui-linux-x64-v${VERSION}.tar.gz > radiant-node-gui-linux-x64-v${VERSION}.tar.gz.sha256
+          
+          # Create GUI package for macOS
+          echo "Building macOS GUI package..."
+          mkdir -p radiant-node-gui-macos-v${VERSION}
+          
+          # Extract macOS binaries
+          unzip -o binaries/macos/radiant-*-macos.zip -d temp-macos 2>/dev/null && \
+          cp temp-macos/*/radiantd temp-macos/*/radiant-cli temp-macos/*/radiant-tx radiant-node-gui-macos-v${VERSION}/ 2>/dev/null || true
+          
+          # Copy GUI files
+          cp gui/radiant_node_web.py radiant-node-gui-macos-v${VERSION}/
+          cp gui/bip39.py radiant-node-gui-macos-v${VERSION}/
+          
+          # Create launcher script (.command for double-click)
+          cat > radiant-node-gui-macos-v${VERSION}/start-gui.command << 'EOF'
+          #!/bin/bash
+          cd "$(dirname "$0")"
+          if xattr -l . 2>/dev/null | grep -q "com.apple.quarantine"; then
+              echo "Removing macOS quarantine..."
+              xattr -rd com.apple.quarantine .
+          fi
+          chmod +x radiantd radiant-cli radiant-tx 2>/dev/null
+          echo "Starting Radiant Node GUI..."
+          python3 radiant_node_web.py
+          EOF
+          chmod +x radiant-node-gui-macos-v${VERSION}/start-gui.command
+          
+          # Create README
+          cat > radiant-node-gui-macos-v${VERSION}/README.txt << 'EOF'
+          Radiant Node GUI - All-in-One Package
+          =====================================
+          
+          Quick Start:
+            Double-click "start-gui.command"
+          
+          First time: If blocked by Gatekeeper, run:
+            xattr -rd com.apple.quarantine .
+          
+          The GUI opens at http://127.0.0.1:8765
+          
+          Support: https://radiantblockchain.org
+          EOF
+          
+          tar -czvf radiant-node-gui-macos-v${VERSION}.tar.gz radiant-node-gui-macos-v${VERSION}
+          sha256sum radiant-node-gui-macos-v${VERSION}.tar.gz > radiant-node-gui-macos-v${VERSION}.tar.gz.sha256
+
+      - name: Upload GUI packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: radiant-gui-packages
+          path: |
+            radiant-node-gui-*.tar.gz
+            radiant-node-gui-*.sha256
+
+  create-release:
+    needs: [build-linux, build-macos, build-gui-packages]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -165,5 +280,6 @@ jobs:
             artifacts/**/*.tar.gz
             artifacts/**/*.zip
             artifacts/**/*.dmg
+            artifacts/**/*.sha256
           draft: true
           generate_release_notes: true

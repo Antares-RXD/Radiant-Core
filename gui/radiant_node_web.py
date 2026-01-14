@@ -13,11 +13,239 @@ import subprocess
 import threading
 import time
 import webbrowser
+import tarfile
+import hashlib
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+from urllib.request import urlopen, Request
+from urllib.error import URLError, HTTPError
 import socketserver
 import signal
 import sys
+
+# Import BIP39 mnemonic support
+try:
+    from bip39 import generate_mnemonic, validate_mnemonic, mnemonic_to_wif
+    BIP39_AVAILABLE = True
+except ImportError:
+    BIP39_AVAILABLE = False
+
+# GitHub release configuration
+GITHUB_RELEASE_URL = "https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0"
+RELEASE_ASSETS = {
+    "darwin_arm64": {
+        "filename": "radiant-core-macos-arm64.tar.gz",
+        "folder": "radiant-core-macos-arm64",
+        "display": "macOS (Apple Silicon)",
+    },
+    "darwin_x86_64": {
+        "filename": "radiant-core-macos-arm64.tar.gz",  # Use ARM64 for now, x64 not available
+        "folder": "radiant-core-macos-arm64",
+        "display": "macOS (Intel) - Using ARM64 binary via Rosetta",
+    },
+    "linux_x86_64": {
+        "filename": "radiant-core-linux-x64.tar.gz",
+        "folder": "radiant-core-linux-x64",
+        "display": "Linux (x86_64)",
+    },
+    "linux_aarch64": {
+        "filename": "radiant-core-linux-x64.tar.gz",  # ARM Linux not available yet
+        "folder": "radiant-core-linux-x64",
+        "display": "Linux (ARM64) - x64 binary (requires emulation)",
+    },
+}
+
+
+class DownloadManager:
+    """Manages downloading and extracting Radiant Core binaries."""
+    
+    def __init__(self, base_path):
+        self.base_path = Path(base_path)
+        self.binaries_path = self.base_path / "binaries"
+        self.download_progress = {"status": "idle", "percent": 0, "message": ""}
+        self._download_thread = None
+    
+    def get_platform_key(self):
+        """Detect current platform and return the asset key."""
+        system = platform.system().lower()
+        machine = platform.machine().lower()
+        
+        if system == "darwin":
+            if machine in ("arm64", "aarch64"):
+                return "darwin_arm64"
+            return "darwin_x86_64"
+        elif system == "linux":
+            if machine in ("x86_64", "amd64"):
+                return "linux_x86_64"
+            elif machine in ("arm64", "aarch64"):
+                return "linux_aarch64"
+        return None
+    
+    def get_platform_info(self):
+        """Get information about the detected platform and available download."""
+        key = self.get_platform_key()
+        if key and key in RELEASE_ASSETS:
+            asset = RELEASE_ASSETS[key]
+            return {
+                "detected": True,
+                "platform_key": key,
+                "display_name": asset["display"],
+                "filename": asset["filename"],
+                "download_url": f"{GITHUB_RELEASE_URL}/{asset['filename']}",
+                "installed": self._is_installed(key),
+            }
+        return {
+            "detected": False,
+            "platform_key": None,
+            "display_name": f"Unknown ({platform.system()} {platform.machine()})",
+            "available_platforms": [
+                {"key": k, "display": v["display"]} 
+                for k, v in RELEASE_ASSETS.items()
+            ],
+        }
+    
+    def _is_installed(self, platform_key):
+        """Check if binaries are already installed for the given platform."""
+        if platform_key not in RELEASE_ASSETS:
+            return False
+        folder = RELEASE_ASSETS[platform_key]["folder"]
+        binary_path = self.binaries_path / folder / "radiantd"
+        return binary_path.exists()
+    
+    def get_binary_path(self, platform_key=None):
+        """Get the path to installed binaries."""
+        if platform_key is None:
+            platform_key = self.get_platform_key()
+        if platform_key and platform_key in RELEASE_ASSETS:
+            folder = RELEASE_ASSETS[platform_key]["folder"]
+            return self.binaries_path / folder
+        return None
+    
+    def download_and_extract(self, platform_key=None):
+        """Download and extract binaries for the specified platform."""
+        if platform_key is None:
+            platform_key = self.get_platform_key()
+        
+        if not platform_key or platform_key not in RELEASE_ASSETS:
+            self.download_progress = {
+                "status": "error",
+                "percent": 0,
+                "message": "Unsupported platform",
+            }
+            return False
+        
+        asset = RELEASE_ASSETS[platform_key]
+        url = f"{GITHUB_RELEASE_URL}/{asset['filename']}"
+        
+        self.download_progress = {
+            "status": "downloading",
+            "percent": 0,
+            "message": f"Downloading {asset['filename']}...",
+        }
+        
+        try:
+            # Create binaries directory
+            self.binaries_path.mkdir(parents=True, exist_ok=True)
+            tar_path = self.binaries_path / asset["filename"]
+            
+            # Download with progress
+            req = Request(url, headers={"User-Agent": "RadiantCoreGUI/2.0"})
+            with urlopen(req, timeout=60) as response:
+                total_size = int(response.headers.get("Content-Length", 0))
+                downloaded = 0
+                chunk_size = 65536
+                
+                with open(tar_path, "wb") as f:
+                    while True:
+                        chunk = response.read(chunk_size)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size > 0:
+                            percent = int((downloaded / total_size) * 100)
+                            self.download_progress = {
+                                "status": "downloading",
+                                "percent": percent,
+                                "message": f"Downloading... {downloaded // 1024 // 1024}MB / {total_size // 1024 // 1024}MB",
+                            }
+            
+            # Extract
+            self.download_progress = {
+                "status": "extracting",
+                "percent": 100,
+                "message": "Extracting files...",
+            }
+            
+            with tarfile.open(tar_path, "r:gz") as tar:
+                tar.extractall(path=self.binaries_path)
+            
+            # Remove quarantine on macOS
+            if platform.system() == "Darwin":
+                self.download_progress["message"] = "Removing quarantine..."
+                extract_path = self.binaries_path / asset["folder"]
+                subprocess.run(
+                    ["xattr", "-rd", "com.apple.quarantine", str(extract_path)],
+                    capture_output=True,
+                )
+            
+            # Make binaries executable
+            extract_path = self.binaries_path / asset["folder"]
+            for binary in ["radiantd", "radiant-cli", "radiant-tx"]:
+                bin_path = extract_path / binary
+                if bin_path.exists():
+                    bin_path.chmod(0o755)
+            
+            # Clean up tar file
+            tar_path.unlink()
+            
+            self.download_progress = {
+                "status": "complete",
+                "percent": 100,
+                "message": "Installation complete!",
+                "binary_path": str(extract_path),
+            }
+            return True
+            
+        except HTTPError as e:
+            self.download_progress = {
+                "status": "error",
+                "percent": 0,
+                "message": f"Download failed: HTTP {e.code}",
+            }
+            return False
+        except URLError as e:
+            self.download_progress = {
+                "status": "error",
+                "percent": 0,
+                "message": f"Network error: {e.reason}",
+            }
+            return False
+        except Exception as e:
+            self.download_progress = {
+                "status": "error",
+                "percent": 0,
+                "message": f"Error: {str(e)}",
+            }
+            return False
+    
+    def start_download(self, platform_key=None):
+        """Start download in background thread."""
+        if self._download_thread and self._download_thread.is_alive():
+            return {"success": False, "error": "Download already in progress"}
+        
+        self._download_thread = threading.Thread(
+            target=self.download_and_extract,
+            args=(platform_key,),
+            daemon=True,
+        )
+        self._download_thread.start()
+        return {"success": True, "message": "Download started"}
+    
+    def get_progress(self):
+        """Get current download progress."""
+        return self.download_progress
+
 
 # Global state
 node_process = None
@@ -33,6 +261,7 @@ class NodeManager:
         self.output_lines = []
         self.is_running = False
         self.log_thread = None
+        self.download_manager = DownloadManager(self.base_path / "gui")
         self._check_initial_state()
         
     def _get_default_datadir(self):
@@ -71,33 +300,65 @@ class NodeManager:
     def _check_initial_state(self):
         """Check if node is already running on GUI startup."""
         self._log("Checking for running node...")
+        
+        # First check if binary exists
+        binary = self._find_binary("radiantd")
+        
         if self._is_node_running_externally():
             self._log("Connected to existing Radiant node")
-            # Get initial info
             cli = self._find_binary("radiant-cli")
             if cli:
                 try:
                     result = subprocess.run([cli, "getblockchaininfo"], capture_output=True, text=True, timeout=5)
                     if result.returncode == 0:
                         info = json.loads(result.stdout)
+                        blocks = info.get('blocks', 0)
+                        headers = info.get('headers', 0)
+                        ibd = info.get('initialblockdownload', True)
+                        
                         self._log(f"Network: {info.get('chain', 'unknown')}")
-                        self._log(f"Block height: {info.get('blocks', 0):,}")
-                        self._log(f"Sync progress: {info.get('verificationprogress', 0) * 100:.1f}%")
+                        self._log(f"Block height: {blocks:,}")
+                        
+                        # Show accurate sync status
+                        if not ibd and blocks >= headers - 1:
+                            self._log("Status: ✓ Fully synced")
+                        elif headers > 0:
+                            progress = (blocks / headers) * 100
+                            self._log(f"Sync progress: {progress:.1f}% ({blocks:,} / {headers:,} blocks)")
+                        else:
+                            self._log("Status: Connecting to network...")
                 except Exception:
                     pass
+        elif binary:
+            self._log(f"Found radiantd: {binary}")
+            self._log("Ready to start node")
         else:
-            binary = self._find_binary("radiantd")
-            if binary:
-                self._log(f"Found radiantd: {binary}")
-                self._log("Ready to start node")
-            else:
-                self._log("Warning: radiantd binary not found")
-                self._log("Please build the project or install binaries")
+            self._log("Node binaries not found")
+            self._log("Click 'Download Binaries' above to install")
     
     def _find_binary(self, name):
         if platform.system() == "Windows":
             name += ".exe"
-        paths = [
+        
+        # Check downloaded binaries first
+        downloaded_path = self.download_manager.get_binary_path()
+        
+        paths = []
+        if downloaded_path:
+            paths.append(downloaded_path / name)
+        
+        # Common user download locations
+        home = Path.home()
+        paths.extend([
+            # User's Downloads folder
+            home / "Downloads" / "radiant-core-macos-arm64" / name,
+            home / "Downloads" / "radiant-core-linux-x64" / name,
+            # Desktop
+            home / "Desktop" / "radiant-core-macos-arm64" / name,
+            home / "Desktop" / "radiant-core-linux-x64" / name,
+        ])
+        
+        paths.extend([
             self.base_path / "build" / "src" / name,
             self.base_path / "src" / name,
             self.base_path / name,
@@ -108,7 +369,7 @@ class NodeManager:
             self.base_path / "releases" / "Windows" / "radiant-core-windows-x64" / name,
             Path("/usr/local/bin") / name,
             Path("/usr/bin") / name,
-        ]
+        ])
         for p in paths:
             if p.exists():
                 return str(p)
@@ -163,9 +424,22 @@ class NodeManager:
                     )
                     if result.returncode == 0:
                         bc_info = json.loads(result.stdout)
-                        info["blocks"] = bc_info.get("blocks", 0)
-                        info["progress"] = bc_info.get("verificationprogress", 0) * 100
+                        blocks = bc_info.get("blocks", 0)
+                        headers = bc_info.get("headers", 0)
+                        info["blocks"] = blocks
+                        info["headers"] = headers
                         info["chain"] = bc_info.get("chain", "unknown")
+                        info["initialblockdownload"] = bc_info.get("initialblockdownload", True)
+                        
+                        # Calculate accurate sync progress based on blocks vs headers
+                        if headers > 0:
+                            info["progress"] = (blocks / headers) * 100
+                        else:
+                            info["progress"] = 0
+                        
+                        # Mark as synced if IBD is done and blocks match headers
+                        info["synced"] = (not bc_info.get("initialblockdownload", True) 
+                                         and blocks >= headers - 1)
                 except Exception:
                     pass
                 
@@ -257,8 +531,12 @@ class NodeManager:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def stop(self):
-        if not self.is_running:
+    def stop(self, force_external=False):
+        # Check if we can stop - either GUI started it or force_external is True
+        if not self.is_running and not force_external:
+            # Check if there's an external node we could stop
+            if self._is_node_running_externally():
+                return {"success": False, "error": "Node was started externally. Use 'radiant-cli stop' in terminal to stop it."}
             return {"success": False, "error": "Node not running"}
         
         self._log("Stopping node...")
@@ -266,9 +544,11 @@ class NodeManager:
         cli = self._find_binary("radiant-cli")
         if cli:
             try:
-                subprocess.run([cli, "stop"], capture_output=True, timeout=10)
-            except Exception:
-                pass
+                result = subprocess.run([cli, "stop"], capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    self._log("Stop command sent")
+            except Exception as e:
+                self._log(f"Stop command failed: {e}")
         
         if self.process:
             try:
@@ -387,7 +667,7 @@ class NodeManager:
         
         return {"success": False, "error": err or "Failed to list addresses", "addresses": []}
     
-    def send_rxd(self, address, amount):
+    def send_rxd(self, address, amount, subtract_fee=False):
         if not self._is_node_available():
             return {"error": "Node not running"}
         
@@ -412,12 +692,112 @@ class NodeManager:
                 pass
         
         # Send transaction
-        txid, err = self._run_cli("sendtoaddress", address, str(amount))
+        # If subtract_fee is True, the fee will be deducted from the amount (for send-max)
+        if subtract_fee:
+            # sendtoaddress "address" amount "comment" "comment_to" subtractfeefromamount
+            txid, err = self._run_cli("sendtoaddress", address, str(amount), "", "", "true")
+        else:
+            txid, err = self._run_cli("sendtoaddress", address, str(amount))
+        
         if txid:
             self._log(f"Sent {amount} RXD to {address[:16]}... - TXID: {txid[:16]}...")
             return {"success": True, "txid": txid}
         
         return {"success": False, "error": err or "Transaction failed"}
+    
+    def get_max_sendable_amount(self, address=None):
+        """Calculate maximum sendable amount by deducting estimated transaction fee from balance."""
+        if not self._is_node_available():
+            return {"success": False, "error": "Node not running"}
+        
+        # Get current balance
+        balance, err = self._run_cli("getbalance")
+        if balance is None:
+            return {"success": False, "error": err or "Failed to get balance"}
+        
+        try:
+            balance = float(balance)
+        except:
+            return {"success": False, "error": "Invalid balance"}
+        
+        if balance <= 0:
+            return {"success": True, "max_amount": 0, "fee": 0, "balance": 0}
+        
+        # Count actual UTXOs to estimate transaction size accurately
+        # Use minconf=0 to include unconfirmed UTXOs
+        utxo_count = 1  # Default minimum
+        utxo_result, _ = self._run_cli("listunspent", "0")
+        if utxo_result:
+            try:
+                utxos = json.loads(utxo_result)
+                utxo_count = len(utxos) if utxos else 1
+            except:
+                pass
+        
+        # Get relay fee from network info (minimum fee rate the network will accept)
+        # Radiant default: 10,000,000 satoshis/kB = 0.1 RXD/kB (from validation.h)
+        relay_fee_per_kb = 0.1  # Default: 0.1 RXD/kB (10 sat/byte) - Radiant's minimum
+        net_result, _ = self._run_cli("getnetworkinfo")
+        if net_result:
+            try:
+                net_info = json.loads(net_result)
+                if "relayfee" in net_info and net_info["relayfee"] > 0:
+                    relay_fee_per_kb = net_info["relayfee"]
+            except:
+                pass
+        
+        # Get fee rate using estimatesmartfee (returns fee rate in RXD/kB)
+        fee_rate_per_kb = relay_fee_per_kb  # Start with relay fee as minimum
+        
+        fee_result, _ = self._run_cli("estimatesmartfee", "6")
+        if fee_result:
+            try:
+                fee_data = json.loads(fee_result)
+                if "feerate" in fee_data and fee_data["feerate"] > 0:
+                    # Use the higher of estimatesmartfee or relay fee
+                    fee_rate_per_kb = max(fee_data["feerate"], relay_fee_per_kb)
+            except:
+                pass
+        
+        # Calculate transaction size based on actual UTXO count
+        # P2PKH transaction size formula:
+        # - Base overhead: ~10 bytes
+        # - Per input (UTXO): ~148 bytes each
+        # - Per output: ~34 bytes each (we have 1 output for send-all)
+        tx_overhead = 10
+        bytes_per_input = 148
+        bytes_per_output = 34
+        num_outputs = 1  # Sending all to one address
+        
+        estimated_tx_bytes = tx_overhead + (bytes_per_input * utxo_count) + (bytes_per_output * num_outputs)
+        estimated_tx_kb = estimated_tx_bytes / 1000.0
+        
+        # Calculate fee
+        estimated_fee = fee_rate_per_kb * estimated_tx_kb
+        
+        # Add 25% safety margin to avoid "insufficient fee" errors
+        estimated_fee = estimated_fee * 1.25
+        
+        # Round up to 8 decimal places
+        estimated_fee = round(estimated_fee + 0.000000005, 8)
+        
+        max_amount = balance - estimated_fee
+        if max_amount < 0:
+            max_amount = 0
+        
+        # Round down to 8 decimal places to avoid floating point issues
+        max_amount = float(f"{max_amount:.8f}")
+        
+        return {
+            "success": True,
+            "max_amount": max_amount,
+            "fee": estimated_fee,
+            "balance": balance,
+            "utxo_count": utxo_count,
+            "tx_size_bytes": estimated_tx_bytes,
+            "fee_rate_per_kb": fee_rate_per_kb,
+            "relay_fee_per_kb": relay_fee_per_kb
+        }
     
     def get_transactions(self, count=20):
         if not self._is_node_available():
@@ -432,6 +812,190 @@ class NodeManager:
                 pass
         
         return {"success": False, "error": err or "Failed to list transactions", "transactions": []}
+    
+    # Wallet backup/restore functions
+    def dump_privkey(self, address):
+        """Export private key for a specific address."""
+        if not self._is_node_available():
+            return {"success": False, "error": "Node not running"}
+        
+        if not address:
+            return {"success": False, "error": "Address is required"}
+        
+        privkey, err = self._run_cli("dumpprivkey", address)
+        if privkey:
+            self._log(f"Exported private key for {address[:16]}...")
+            return {"success": True, "privkey": privkey, "address": address}
+        
+        return {"success": False, "error": err or "Failed to export private key"}
+    
+    def import_privkey(self, privkey, label="", rescan=True):
+        """Import a private key into the wallet."""
+        if not self._is_node_available():
+            return {"success": False, "error": "Node not running"}
+        
+        if not privkey:
+            return {"success": False, "error": "Private key is required"}
+        
+        self._log(f"Importing private key (rescan={rescan})...")
+        
+        args = ["importprivkey", privkey]
+        if label:
+            args.append(label)
+        args.append(str(rescan).lower())
+        
+        result, err = self._run_cli(*args, timeout=300)  # Rescan can take a while
+        if err:
+            return {"success": False, "error": err}
+        
+        self._log("Private key imported successfully")
+        return {"success": True, "message": "Private key imported successfully"}
+    
+    def backup_wallet(self, destination=None):
+        """Backup wallet to a file."""
+        if not self._is_node_available():
+            return {"success": False, "error": "Node not running"}
+        
+        if not destination:
+            # Default backup location
+            backup_dir = Path.home() / "Documents" / "RadiantBackups"
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            destination = str(backup_dir / f"wallet_backup_{timestamp}.dat")
+        
+        result, err = self._run_cli("backupwallet", destination)
+        if err:
+            return {"success": False, "error": err}
+        
+        self._log(f"Wallet backed up to: {destination}")
+        return {"success": True, "path": destination, "message": f"Wallet backed up to {destination}"}
+    
+    def get_all_addresses_with_keys(self):
+        """Get all addresses in the wallet for key export."""
+        if not self._is_node_available():
+            return {"success": False, "error": "Node not running"}
+        
+        # Get all addresses using listaddressgroupings
+        result, err = self._run_cli("listaddressgroupings")
+        addresses = []
+        if result:
+            try:
+                groups = json.loads(result)
+                for group in groups:
+                    for addr_info in group:
+                        if len(addr_info) >= 1:
+                            addresses.append({
+                                "address": addr_info[0],
+                                "balance": addr_info[1] if len(addr_info) > 1 else 0,
+                                "label": addr_info[2] if len(addr_info) > 2 else ""
+                            })
+            except:
+                pass
+        
+        # Also get addresses from listreceivedbyaddress
+        result2, _ = self._run_cli("listreceivedbyaddress", "0", "true")
+        if result2:
+            try:
+                received = json.loads(result2)
+                existing = {a["address"] for a in addresses}
+                for r in received:
+                    if r.get("address") and r["address"] not in existing:
+                        addresses.append({
+                            "address": r["address"],
+                            "balance": r.get("amount", 0),
+                            "label": r.get("label", "")
+                        })
+            except:
+                pass
+        
+        return {"success": True, "addresses": addresses}
+    
+    # Seed phrase (BIP39 mnemonic) functions
+    def generate_seed_phrase(self, words=12):
+        """Generate a new BIP39 seed phrase."""
+        if not BIP39_AVAILABLE:
+            return {"success": False, "error": "BIP39 module not available"}
+        
+        strength = 128 if words == 12 else 256
+        try:
+            mnemonic = generate_mnemonic(strength)
+            return {"success": True, "mnemonic": mnemonic, "words": words}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def import_seed_phrase(self, mnemonic, passphrase="", rescan=True):
+        """Import wallet from BIP39 seed phrase."""
+        if not BIP39_AVAILABLE:
+            return {"success": False, "error": "BIP39 module not available"}
+        
+        if not self._is_node_available():
+            return {"success": False, "error": "Node not running"}
+        
+        if not mnemonic:
+            return {"success": False, "error": "Seed phrase is required"}
+        
+        # Validate mnemonic
+        if not validate_mnemonic(mnemonic):
+            return {"success": False, "error": "Invalid seed phrase. Must be 12 or 24 words from BIP39 wordlist."}
+        
+        try:
+            # Convert mnemonic to WIF
+            wif = mnemonic_to_wif(mnemonic, passphrase)
+            
+            self._log(f"Importing seed phrase (rescan={rescan})...")
+            
+            # Import the derived private key
+            args = ["importprivkey", wif, "seed-phrase-import"]
+            args.append(str(rescan).lower())
+            
+            result, err = self._run_cli(*args, timeout=300)
+            if err:
+                return {"success": False, "error": err}
+            
+            self._log("Seed phrase imported successfully")
+            return {"success": True, "message": "Seed phrase imported successfully"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    # System install function
+    def install_to_system(self):
+        """Install binaries to user's local bin directory."""
+        binary_path = self.download_manager.get_binary_path()
+        if not binary_path or not binary_path.exists():
+            return {"success": False, "error": "Binaries not found. Download them first."}
+        
+        # Use ~/bin instead of /usr/local/bin to avoid sudo
+        user_bin = Path.home() / "bin"
+        user_bin.mkdir(parents=True, exist_ok=True)
+        
+        binaries = ["radiantd", "radiant-cli", "radiant-tx"]
+        installed = []
+        
+        for binary in binaries:
+            src = binary_path / binary
+            dst = user_bin / binary
+            if src.exists():
+                try:
+                    import shutil
+                    shutil.copy2(src, dst)
+                    dst.chmod(0o755)
+                    installed.append(binary)
+                except Exception as e:
+                    return {"success": False, "error": f"Failed to copy {binary}: {e}"}
+        
+        if installed:
+            self._log(f"Installed to ~/bin: {', '.join(installed)}")
+            # Provide shell config instructions
+            shell_config = "~/.zshrc" if os.path.exists(os.path.expanduser("~/.zshrc")) else "~/.bashrc"
+            return {
+                "success": True,
+                "installed": installed,
+                "path": str(user_bin),
+                "message": f"Installed {len(installed)} binaries to ~/bin",
+                "instructions": f'Add to PATH by running: echo \'export PATH="$HOME/bin:$PATH"\' >> {shell_config} && source {shell_config}'
+            }
+        
+        return {"success": False, "error": "No binaries found to install"}
 
 
 # Global node manager
@@ -847,6 +1411,85 @@ HTML_PAGE = '''<!DOCTYPE html>
             font-size: 16px;
             border-radius: 12px;
         }
+        
+        .download-panel {
+            background: linear-gradient(135deg, rgba(0,217,255,0.1), rgba(0,232,138,0.1));
+            border: 2px dashed var(--accent);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .download-panel h2 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+        .download-panel p {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+        .download-panel .platform-detected {
+            background: var(--bg-secondary);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        .download-panel .platform-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .btn-download {
+            background: linear-gradient(135deg, var(--accent), var(--accent-green));
+            color: #0a0a0f;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,217,255,0.5);
+        }
+        .btn-download:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-green));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .download-status {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+        .download-status.error { color: var(--accent-red); }
+        .download-status.complete { color: var(--accent-green); }
+        .manual-download {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        .manual-download a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .manual-download a:hover { text-decoration: underline; }
     </style>
 </head>
 <body data-theme="dark">
@@ -873,6 +1516,26 @@ HTML_PAGE = '''<!DOCTYPE html>
         
         <!-- NODE TAB -->
         <div id="nodeTab" class="tab-content active">
+            <!-- Download Panel (shown when binaries not found) -->
+            <div id="downloadPanel" class="download-panel" style="display:none;">
+                <h2>📦 Download Radiant Core</h2>
+                <p>Node binaries not found. Download the pre-built binaries for your platform.</p>
+                <div class="platform-detected">
+                    <div style="font-size:12px;color:var(--text-muted);margin-bottom:5px;">Detected Platform</div>
+                    <div class="platform-name" id="platformName">Detecting...</div>
+                </div>
+                <button class="btn-download" id="downloadBtn" onclick="startDownload()">
+                    ⬇ Download Binaries
+                </button>
+                <div class="progress-bar" id="downloadProgress" style="display:none;">
+                    <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+                </div>
+                <div class="download-status" id="downloadStatus"></div>
+                <div class="manual-download">
+                    <small>Or download manually from <a href="https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.0.0" target="_blank">GitHub Releases</a></small>
+                </div>
+            </div>
+            
             <div class="controls">
                 <button class="btn-start" id="startBtn" onclick="startNode()">▶ Start Node</button>
                 <button class="btn-stop" id="stopBtn" onclick="stopNode()" disabled>■ Stop Node</button>
@@ -964,7 +1627,11 @@ HTML_PAGE = '''<!DOCTYPE html>
                         </div>
                         <div class="form-group">
                             <label>Amount (RXD)</label>
-                            <input type="number" id="sendAmount" placeholder="0.00" step="0.00000001" min="0">
+                            <div style="display:flex;gap:8px;">
+                                <input type="number" id="sendAmount" placeholder="0.00" step="0.00000001" min="0" style="flex:1;">
+                                <button class="btn-secondary btn-small" onclick="setMaxAmount()" style="white-space:nowrap;" title="Send all available balance minus fee">Max</button>
+                            </div>
+                            <div id="feeEstimate" style="font-size:11px;color:var(--text-muted);margin-top:5px;"></div>
                         </div>
                         <button class="btn-send" onclick="sendRXD()">Send RXD</button>
                     </div>
@@ -975,6 +1642,51 @@ HTML_PAGE = '''<!DOCTYPE html>
                     <div class="tx-list" id="txList">
                         <div style="text-align:center;color:#888;padding:20px;">Loading transactions...</div>
                     </div>
+                </div>
+                
+                <div class="panel">
+                    <h2>🔐 Backup & Restore</h2>
+                    
+                    <!-- Seed Phrase Section -->
+                    <div style="background:linear-gradient(135deg,rgba(0,217,255,0.1),rgba(0,232,138,0.1));border-radius:8px;padding:15px;margin-bottom:15px;">
+                        <h4 style="margin-bottom:10px;color:var(--accent);">🌱 Seed Phrase (Recommended)</h4>
+                        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">12-word recovery phrase - write it down and store safely!</p>
+                        <div style="display:flex;gap:10px;margin-bottom:10px;">
+                            <button class="btn-secondary btn-small" onclick="generateSeedPhrase()">Generate New Seed</button>
+                            <button class="btn-secondary btn-small" onclick="showImportSeedModal()">Import Seed Phrase</button>
+                        </div>
+                        <div id="seedPhraseDisplay" style="display:none;background:var(--bg-tertiary);padding:12px;border-radius:6px;margin-top:10px;">
+                            <div style="font-size:11px;color:var(--accent-orange);margin-bottom:8px;">⚠️ Write this down! Never share or store digitally!</div>
+                            <div id="seedWords" style="font-family:monospace;font-size:14px;line-height:1.8;color:var(--text-primary);word-spacing:8px;"></div>
+                            <button class="btn-small" style="margin-top:10px;font-size:11px;" onclick="copySeedPhrase()">Copy to Clipboard</button>
+                        </div>
+                    </div>
+                    
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
+                        <div>
+                            <h4 style="margin-bottom:10px;color:var(--text-primary);">Backup Wallet</h4>
+                            <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Create a backup of your wallet file</p>
+                            <button class="btn-secondary btn-small" onclick="backupWallet()">📁 Backup Wallet File</button>
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom:10px;color:var(--text-primary);">Export Private Key</h4>
+                            <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Export key for a specific address</p>
+                            <button class="btn-secondary btn-small" onclick="showExportKeyModal()">🔑 Export Key</button>
+                        </div>
+                    </div>
+                    <div style="margin-top:15px;padding-top:15px;border-top:1px solid var(--border-color);">
+                        <h4 style="margin-bottom:10px;color:var(--text-primary);">Import Private Key</h4>
+                        <div class="form-group" style="margin-bottom:10px;">
+                            <input type="text" id="importPrivkey" placeholder="Enter private key (WIF format)" style="font-family:monospace;">
+                        </div>
+                        <div style="display:flex;gap:10px;align-items:center;">
+                            <button class="btn-secondary btn-small" onclick="importPrivkey()">📥 Import Key</button>
+                            <label style="font-size:12px;color:var(--text-muted);">
+                                <input type="checkbox" id="rescanChain" checked> Rescan blockchain (slow but finds old transactions)
+                            </label>
+                        </div>
+                    </div>
+                    <div id="backupStatus" class="download-status" style="margin-top:10px;"></div>
                 </div>
             </div>
         </div>
@@ -994,12 +1706,66 @@ HTML_PAGE = '''<!DOCTYPE html>
         </div>
     </div>
     
+    <div class="modal" id="exportKeyModal">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="modal-header">
+                <h2>🔑 Export Private Key</h2>
+                <button class="modal-close" onclick="closeExportModal()">&times;</button>
+            </div>
+            <div style="margin-bottom:15px;">
+                <p style="color:var(--text-secondary);font-size:13px;margin-bottom:15px;">
+                    ⚠️ <strong>Warning:</strong> Never share your private key. Anyone with this key can access your funds.
+                </p>
+                <div class="form-group">
+                    <label>Address to export</label>
+                    <input type="text" id="exportAddress" placeholder="Enter your RXD address">
+                </div>
+                <button class="btn-secondary" onclick="exportPrivkey()" style="width:100%;">Export Private Key</button>
+            </div>
+            <div id="exportedKey" style="display:none;">
+                <label style="color:var(--text-muted);font-size:12px;">Private Key (WIF format) - Click to copy:</label>
+                <div class="address-box" id="privkeyDisplay" onclick="copyPrivkey()" style="background:var(--bg-tertiary);color:var(--accent-orange);word-break:break-all;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="importSeedModal">
+        <div class="modal-content" style="max-width:550px;">
+            <div class="modal-header">
+                <h2>🌱 Import Seed Phrase</h2>
+                <button class="modal-close" onclick="closeImportSeedModal()">&times;</button>
+            </div>
+            <div>
+                <p style="color:var(--text-secondary);font-size:13px;margin-bottom:15px;">
+                    Enter your 12 or 24-word seed phrase to restore your wallet.
+                </p>
+                <div class="form-group">
+                    <label>Seed Phrase</label>
+                    <textarea id="importSeedWords" rows="3" placeholder="Enter your 12 or 24 words separated by spaces" style="font-family:monospace;resize:none;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Passphrase (optional)</label>
+                    <input type="password" id="seedPassphrase" placeholder="Leave empty if none">
+                </div>
+                <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:15px;">
+                    <input type="checkbox" id="seedRescan" checked> Rescan blockchain for transactions (recommended)
+                </label>
+                <button class="btn-secondary" onclick="importSeedPhrase()" style="width:100%;">Import Seed Phrase</button>
+                <div id="importSeedStatus" class="download-status" style="margin-top:10px;"></div>
+            </div>
+        </div>
+    </div>
+    
     <script>
         let refreshInterval;
         let walletInterval;
+        let downloadInterval;
         let nodeRunning = false;
         let settingsLoaded = false;
         let autoStartTriggered = false;
+        let binaryFound = false;
+        let platformInfo = null;
+        let downloadInProgress = false;
         
         // Theme toggle functionality
         function toggleTheme() {
@@ -1023,6 +1789,90 @@ HTML_PAGE = '''<!DOCTYPE html>
             const btn = document.querySelector('.theme-toggle');
             if (btn) btn.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
         })();
+        
+        // Download functionality
+        function checkPlatform() {
+            fetch('/api/download/platform')
+                .then(r => r.json())
+                .then(data => {
+                    platformInfo = data;
+                    const platformName = document.getElementById('platformName');
+                    if (data.detected) {
+                        platformName.textContent = data.display_name;
+                        if (data.installed) {
+                            document.getElementById('downloadPanel').style.display = 'none';
+                        }
+                    } else {
+                        platformName.textContent = data.display_name;
+                        platformName.style.color = 'var(--accent-orange)';
+                    }
+                });
+        }
+        
+        function startDownload() {
+            if (downloadInProgress) return;
+            
+            const btn = document.getElementById('downloadBtn');
+            const progress = document.getElementById('downloadProgress');
+            const status = document.getElementById('downloadStatus');
+            
+            btn.disabled = true;
+            btn.textContent = 'Downloading...';
+            progress.style.display = 'block';
+            downloadInProgress = true;
+            
+            fetch('/api/download/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ platform_key: platformInfo?.platform_key })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Start polling for progress
+                    downloadInterval = setInterval(checkDownloadProgress, 500);
+                } else {
+                    status.textContent = 'Error: ' + (data.error || 'Failed to start download');
+                    status.className = 'download-status error';
+                    btn.disabled = false;
+                    btn.textContent = '⬇ Download Binaries';
+                    downloadInProgress = false;
+                }
+            });
+        }
+        
+        function checkDownloadProgress() {
+            fetch('/api/download/progress')
+                .then(r => r.json())
+                .then(data => {
+                    const fill = document.getElementById('progressFill');
+                    const status = document.getElementById('downloadStatus');
+                    const btn = document.getElementById('downloadBtn');
+                    
+                    fill.style.width = data.percent + '%';
+                    status.textContent = data.message;
+                    status.className = 'download-status';
+                    
+                    if (data.status === 'complete') {
+                        clearInterval(downloadInterval);
+                        status.className = 'download-status complete';
+                        btn.textContent = '✓ Installed';
+                        downloadInProgress = false;
+                        
+                        // Hide download panel after a delay and refresh status
+                        setTimeout(() => {
+                            document.getElementById('downloadPanel').style.display = 'none';
+                            updateStatus();
+                        }, 2000);
+                    } else if (data.status === 'error') {
+                        clearInterval(downloadInterval);
+                        status.className = 'download-status error';
+                        btn.disabled = false;
+                        btn.textContent = '⬇ Retry Download';
+                        downloadInProgress = false;
+                    }
+                });
+        }
         
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1050,16 +1900,29 @@ HTML_PAGE = '''<!DOCTYPE html>
                     
                     if (data.running) {
                         dot.className = 'status-dot running';
-                        text.textContent = 'Running';
+                        // Show different status for external vs GUI-started nodes
+                        if (data.started_by_gui) {
+                            text.textContent = 'Running';
+                            stopBtn.disabled = false;
+                        } else {
+                            text.textContent = 'Running (external)';
+                            stopBtn.disabled = true;  // Can't stop external nodes
+                        }
                         startBtn.disabled = true;
-                        stopBtn.disabled = false;
                         statsPanel.style.display = 'block';
                         walletContent.classList.remove('disabled-overlay');
                         
                         document.getElementById('blockHeight').textContent = 
                             data.blocks ? data.blocks.toLocaleString() : '-';
-                        document.getElementById('syncProgress').textContent = 
-                            data.progress ? data.progress.toFixed(1) + '%' : '-';
+                        // Show "Synced" if fully synced, otherwise show percentage
+                        if (data.synced) {
+                            document.getElementById('syncProgress').textContent = '✓ Synced';
+                            document.getElementById('syncProgress').style.color = 'var(--accent-green)';
+                        } else {
+                            document.getElementById('syncProgress').textContent = 
+                                data.progress ? data.progress.toFixed(1) + '%' : '-';
+                            document.getElementById('syncProgress').style.color = '';
+                        }
                         document.getElementById('peerCount').textContent = 
                             data.peers !== undefined ? data.peers : '-';
                         document.getElementById('networkName').textContent = 
@@ -1075,6 +1938,15 @@ HTML_PAGE = '''<!DOCTYPE html>
                     
                     if (!data.binary_found) {
                         text.textContent = 'Binary Not Found';
+                        // Show download panel if binaries not found
+                        if (!downloadInProgress) {
+                            document.getElementById('downloadPanel').style.display = 'block';
+                            checkPlatform();
+                        }
+                    } else {
+                        // Hide download panel if binaries are found
+                        binaryFound = true;
+                        document.getElementById('downloadPanel').style.display = 'none';
                     }
                     
                     // Update settings (only first time)
@@ -1179,6 +2051,34 @@ HTML_PAGE = '''<!DOCTYPE html>
             }
         }
         
+        let sendingMax = false;  // Track if user clicked Max button
+        
+        function setMaxAmount() {
+            const feeEstimate = document.getElementById('feeEstimate');
+            feeEstimate.textContent = 'Calculating...';
+            feeEstimate.style.color = 'var(--text-muted)';
+            
+            fetch('/api/wallet/info')
+            .then(r => r.json())
+            .then(data => {
+                if (data.balance !== undefined && data.balance > 0) {
+                    // Set full balance - fee will be subtracted by node when sending
+                    document.getElementById('sendAmount').value = data.balance.toFixed(8);
+                    sendingMax = true;  // Mark that we're sending max
+                    feeEstimate.innerHTML = '<span style="color:var(--accent-green);">✓ Sending full balance</span> <span style="color:var(--text-muted);">(fee will be deducted automatically)</span>';
+                } else {
+                    feeEstimate.textContent = 'No balance available';
+                    feeEstimate.style.color = 'var(--accent-red)';
+                    sendingMax = false;
+                }
+            })
+            .catch(err => {
+                feeEstimate.textContent = 'Error getting balance';
+                feeEstimate.style.color = 'var(--accent-red)';
+                sendingMax = false;
+            });
+        }
+        
         function sendRXD() {
             const address = document.getElementById('sendAddress').value.trim();
             const amount = document.getElementById('sendAmount').value;
@@ -1192,12 +2092,16 @@ HTML_PAGE = '''<!DOCTYPE html>
                 return;
             }
             
-            if (!confirm(`Send ${amount} RXD to ${address}?`)) return;
+            let confirmMsg = `Send ${amount} RXD to ${address}?`;
+            if (sendingMax) {
+                confirmMsg += '\\n\\n(Fee will be deducted from this amount)';
+            }
+            if (!confirm(confirmMsg)) return;
             
             fetch('/api/wallet/send', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ address, amount })
+                body: JSON.stringify({ address, amount, subtract_fee: sendingMax })
             })
             .then(r => r.json())
             .then(data => {
@@ -1205,12 +2109,25 @@ HTML_PAGE = '''<!DOCTYPE html>
                     alert('Transaction sent!\\nTXID: ' + data.txid);
                     document.getElementById('sendAddress').value = '';
                     document.getElementById('sendAmount').value = '';
+                    document.getElementById('feeEstimate').textContent = '';
+                    sendingMax = false;  // Reset flag
                     updateWallet();
                 } else {
                     alert('Error: ' + (data.error || 'Transaction failed'));
                 }
             });
         }
+        
+        // Reset sendingMax flag if user manually edits the amount
+        document.addEventListener('DOMContentLoaded', function() {
+            const amountInput = document.getElementById('sendAmount');
+            if (amountInput) {
+                amountInput.addEventListener('input', function() {
+                    sendingMax = false;
+                    document.getElementById('feeEstimate').textContent = '';
+                });
+            }
+        });
         
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -1277,6 +2194,195 @@ HTML_PAGE = '''<!DOCTYPE html>
             document.getElementById('infoModal').classList.remove('show');
         }
         
+        // Wallet backup/restore functions
+        function backupWallet() {
+            const status = document.getElementById('backupStatus');
+            status.textContent = 'Creating backup...';
+            status.className = 'download-status';
+            
+            fetch('/api/wallet/backup', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        status.textContent = '✓ ' + data.message;
+                        status.className = 'download-status complete';
+                        alert('Wallet backed up to:\\n' + data.path);
+                    } else {
+                        status.textContent = 'Error: ' + data.error;
+                        status.className = 'download-status error';
+                    }
+                });
+        }
+        
+        function showExportKeyModal() {
+            document.getElementById('exportKeyModal').classList.add('show');
+            document.getElementById('exportedKey').style.display = 'none';
+            document.getElementById('exportAddress').value = '';
+        }
+        
+        function closeExportModal() {
+            document.getElementById('exportKeyModal').classList.remove('show');
+            document.getElementById('exportedKey').style.display = 'none';
+        }
+        
+        function exportPrivkey() {
+            const address = document.getElementById('exportAddress').value.trim();
+            if (!address) {
+                alert('Please enter an address');
+                return;
+            }
+            
+            fetch('/api/wallet/dumpprivkey', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ address })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('privkeyDisplay').textContent = data.privkey;
+                    document.getElementById('exportedKey').style.display = 'block';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+        
+        function copyPrivkey() {
+            const key = document.getElementById('privkeyDisplay').textContent;
+            navigator.clipboard.writeText(key);
+            const box = document.getElementById('privkeyDisplay');
+            box.classList.add('copied');
+            setTimeout(() => box.classList.remove('copied'), 1000);
+        }
+        
+        function importPrivkey() {
+            const privkey = document.getElementById('importPrivkey').value.trim();
+            const rescan = document.getElementById('rescanChain').checked;
+            
+            if (!privkey) {
+                alert('Please enter a private key');
+                return;
+            }
+            
+            if (!confirm('Import this private key?' + (rescan ? '\\n\\nNote: Blockchain rescan may take several minutes.' : ''))) {
+                return;
+            }
+            
+            const status = document.getElementById('backupStatus');
+            status.textContent = 'Importing key' + (rescan ? ' and rescanning blockchain...' : '...');
+            status.className = 'download-status';
+            
+            fetch('/api/wallet/importprivkey', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ privkey, rescan })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    status.textContent = '✓ ' + data.message;
+                    status.className = 'download-status complete';
+                    document.getElementById('importPrivkey').value = '';
+                    updateWallet();
+                } else {
+                    status.textContent = 'Error: ' + data.error;
+                    status.className = 'download-status error';
+                }
+            });
+        }
+        
+        // Seed phrase functions
+        let currentSeedPhrase = '';
+        
+        function generateSeedPhrase() {
+            const status = document.getElementById('backupStatus');
+            status.textContent = 'Generating seed phrase...';
+            status.className = 'download-status';
+            
+            fetch('/api/wallet/generate-seed', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ words: 12 })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    currentSeedPhrase = data.mnemonic;
+                    document.getElementById('seedWords').textContent = data.mnemonic;
+                    document.getElementById('seedPhraseDisplay').style.display = 'block';
+                    status.textContent = '✓ Seed phrase generated - WRITE IT DOWN!';
+                    status.className = 'download-status complete';
+                } else {
+                    status.textContent = 'Error: ' + data.error;
+                    status.className = 'download-status error';
+                }
+            });
+        }
+        
+        function copySeedPhrase() {
+            if (currentSeedPhrase) {
+                navigator.clipboard.writeText(currentSeedPhrase);
+                alert('Seed phrase copied!\\n\\n⚠️ Remember: Never store digitally - write it on paper!');
+            }
+        }
+        
+        function showImportSeedModal() {
+            document.getElementById('importSeedModal').classList.add('show');
+            document.getElementById('importSeedWords').value = '';
+            document.getElementById('seedPassphrase').value = '';
+            document.getElementById('importSeedStatus').textContent = '';
+        }
+        
+        function closeImportSeedModal() {
+            document.getElementById('importSeedModal').classList.remove('show');
+        }
+        
+        function importSeedPhrase() {
+            const mnemonic = document.getElementById('importSeedWords').value.trim().toLowerCase();
+            const passphrase = document.getElementById('seedPassphrase').value;
+            const rescan = document.getElementById('seedRescan').checked;
+            const status = document.getElementById('importSeedStatus');
+            
+            if (!mnemonic) {
+                alert('Please enter your seed phrase');
+                return;
+            }
+            
+            const words = mnemonic.split(/\\s+/);
+            if (words.length !== 12 && words.length !== 24) {
+                alert('Seed phrase must be 12 or 24 words');
+                return;
+            }
+            
+            if (!confirm('Import this seed phrase?' + (rescan ? '\\n\\nNote: Blockchain rescan may take several minutes.' : ''))) {
+                return;
+            }
+            
+            status.textContent = 'Importing seed phrase' + (rescan ? ' and rescanning...' : '...');
+            status.className = 'download-status';
+            
+            fetch('/api/wallet/import-seed', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ mnemonic, passphrase, rescan })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    status.textContent = '✓ ' + data.message;
+                    status.className = 'download-status complete';
+                    setTimeout(() => {
+                        closeImportSeedModal();
+                        updateWallet();
+                    }, 1500);
+                } else {
+                    status.textContent = 'Error: ' + data.error;
+                    status.className = 'download-status error';
+                }
+            });
+        }
+        
         function togglePrune() {
             document.getElementById('pruneSize').disabled = 
                 !document.getElementById('prune').checked;
@@ -1329,6 +2435,12 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
         elif parsed.path == "/api/wallet/addresses":
             self.send_json(manager.get_addresses())
         
+        elif parsed.path == "/api/download/platform":
+            self.send_json(manager.download_manager.get_platform_info())
+        
+        elif parsed.path == "/api/download/progress":
+            self.send_json(manager.download_manager.get_progress())
+        
         elif parsed.path == "/logo-light.svg":
             self.serve_logo("RXD_light_logo.svg")
         
@@ -1379,7 +2491,51 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
         elif parsed.path == "/api/wallet/send":
             address = data.get("address", "")
             amount = data.get("amount", 0)
-            result = manager.send_rxd(address, amount)
+            subtract_fee = data.get("subtract_fee", False)
+            result = manager.send_rxd(address, amount, subtract_fee)
+            self.send_json(result)
+        
+        elif parsed.path == "/api/wallet/maxsend":
+            address = data.get("address", "")
+            result = manager.get_max_sendable_amount(address)
+            self.send_json(result)
+        
+        elif parsed.path == "/api/download/start":
+            platform_key = data.get("platform_key")
+            result = manager.download_manager.start_download(platform_key)
+            self.send_json(result)
+        
+        elif parsed.path == "/api/install":
+            result = manager.install_to_system()
+            self.send_json(result)
+        
+        elif parsed.path == "/api/wallet/backup":
+            destination = data.get("destination")
+            result = manager.backup_wallet(destination)
+            self.send_json(result)
+        
+        elif parsed.path == "/api/wallet/dumpprivkey":
+            address = data.get("address", "")
+            result = manager.dump_privkey(address)
+            self.send_json(result)
+        
+        elif parsed.path == "/api/wallet/importprivkey":
+            privkey = data.get("privkey", "")
+            label = data.get("label", "")
+            rescan = data.get("rescan", True)
+            result = manager.import_privkey(privkey, label, rescan)
+            self.send_json(result)
+        
+        elif parsed.path == "/api/wallet/generate-seed":
+            words = data.get("words", 12)
+            result = manager.generate_seed_phrase(words)
+            self.send_json(result)
+        
+        elif parsed.path == "/api/wallet/import-seed":
+            mnemonic = data.get("mnemonic", "")
+            passphrase = data.get("passphrase", "")
+            rescan = data.get("rescan", True)
+            result = manager.import_seed_phrase(mnemonic, passphrase, rescan)
             self.send_json(result)
         
         else:

@@ -2,6 +2,41 @@
 
 A simple browser-based GUI for running a Radiant node. Designed for non-technical users to easily start and manage their node.
 
+## Download
+
+Get the **All-in-One Package** for your platform (includes GUI + node binaries):
+
+| Platform | Download | Size |
+|----------|----------|------|
+| **macOS (Apple Silicon)** | [radiant-node-gui-macos-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-macos-v2.0.0.tar.gz) | ~15 MB |
+| **Linux (x86_64)** | [radiant-node-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-linux-x64-v2.0.0.tar.gz) | ~20 MB |
+
+### Quick Install
+
+**macOS:**
+```bash
+# Download and extract
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-macos-v2.0.0.tar.gz
+tar xzf radiant-node-gui-macos-v2.0.0.tar.gz
+cd radiant-node-gui-macos-v2.0.0
+
+# Remove quarantine (required for downloaded apps)
+xattr -rd com.apple.quarantine .
+
+# Launch - double-click start-gui.command or run:
+./start-gui.command
+```
+
+**Linux:**
+```bash
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-linux-x64-v2.0.0.tar.gz
+tar xzf radiant-node-gui-linux-x64-v2.0.0.tar.gz
+cd radiant-node-gui-linux-x64-v2.0.0
+./start-gui.sh
+```
+
+The GUI opens automatically in your browser at **http://127.0.0.1:8765**
+
 ## Features
 
 - **One-click start/stop** - Start and stop your node with a single button click
@@ -14,6 +49,8 @@ A simple browser-based GUI for running a Radiant node. Designed for non-technica
 - **Modern UI** - Clean interface with light/dark mode toggle
 - **Wallet Integration** - Send/receive RXD, view balances and transactions (requires wallet-enabled build)
 - **Auto-start** - Optionally start the node automatically when GUI launches
+- **Auto-download binaries** - Automatically detect your platform and download pre-built binaries
+- **Wallet Backup & Restore** - Export/import private keys and seed phrases for wallet recovery
 
 ## Architecture
 
@@ -62,9 +99,70 @@ make -j$(nproc)
 
 **Option 2: Use pre-built binaries with wallet support**
 
-Download wallet-enabled binaries from the releases page.
+Download wallet-enabled binaries from the [GitHub Releases page](https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.0.0):
+
+| Platform | Download |
+|----------|----------|
+| macOS (Apple Silicon) | [radiant-core-macos-arm64.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-macos-arm64.tar.gz) |
+| Linux (x86_64) | [radiant-core-linux-x64.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-linux-x64.tar.gz) |
+| Docker (x86_64) | [radiant-core-docker-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-docker-v2.0.0.tar.gz) |
+
+**Quick setup (macOS):**
+```bash
+# Download and extract
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-macos-arm64.tar.gz
+tar xzf radiant-core-macos-arm64.tar.gz
+
+# Remove quarantine (required for downloaded binaries)
+xattr -rd com.apple.quarantine radiant-core-macos-arm64
+
+# Run the GUI
+cd radiant-core-macos-arm64
+python3 ../gui/radiant_node_web.py
+```
+
+**Quick setup (Linux):**
+```bash
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-linux-x64.tar.gz
+tar xzf radiant-core-linux-x64.tar.gz
+cd radiant-core-linux-x64
+./radiantd -server -txindex=1
+```
 
 **Note:** When the GUI starts a node, it automatically enables wallet functionality with the `-disablewallet=0` flag.
+
+### Wallet Backup & Restore
+
+The GUI provides several ways to backup and restore your wallet:
+
+#### Backup Options
+
+| Method | Description | Use Case |
+|--------|-------------|----------|
+| **Backup Wallet File** | Creates a copy of `wallet.dat` | Full backup of all keys and transactions |
+| **Export Private Key** | Exports WIF key for a specific address | Backup individual addresses |
+| **Export Seed Phrase** | 12/24-word mnemonic phrase | Human-readable backup, easy to write down |
+
+#### Restore Options
+
+| Method | Description |
+|--------|-------------|
+| **Import Private Key** | Import a WIF-format private key |
+| **Import Seed Phrase** | Restore wallet from 12/24-word mnemonic |
+
+#### Using Seed Phrases (Recommended)
+
+Seed phrases are the safest way to backup your wallet:
+
+1. Go to **Wallet** tab → **Backup & Restore** section
+2. Click **Generate Seed Phrase** to create a new 12-word phrase
+3. **Write it down on paper** - never store digitally!
+4. To restore: Enter your seed phrase and click **Import Seed Phrase**
+
+⚠️ **Security Warning:**
+- Never share your seed phrase or private keys
+- Anyone with access can steal your funds
+- Store backups in a secure, offline location
 
 ### Interfacing with an Existing Node
 
@@ -173,7 +271,8 @@ The GUI looks for the node binary in these locations:
 
 **Solutions:**
 - Build the node from source: See [INSTALL.md](../INSTALL.md)
-- Or download pre-built binaries and place in one of the above locations
+- Or download pre-built binaries from [GitHub Releases](https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.0.0)
+- Or use the GUI's built-in **Download Binaries** feature (auto-detects your platform)
 
 ### Node won't start
 
@@ -189,18 +288,24 @@ The GUI uses your system's native theme. Appearance may vary between:
 - Windows (Windows theme)
 - Linux (depends on desktop environment)
 
-## Building Radiant Node
+## Getting Binaries
 
-If you haven't built the node binaries yet:
+### Option 1: Download Pre-built (Recommended)
+
+The GUI can automatically download the correct binaries for your platform. Just click **Download Binaries** when prompted.
+
+Or download manually from [GitHub Releases](https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.0.0).
+
+### Option 2: Build from Source
 
 ```bash
 # Install dependencies (macOS)
-brew install cmake boost openssl libevent
+brew install cmake boost openssl libevent berkeley-db@4
 
-# Build
+# Build with wallet support
 mkdir build && cd build
-cmake ..
-make -j$(nproc)
+cmake -DBUILD_RADIANT_WALLET=ON ..
+make -j$(sysctl -n hw.ncpu)
 ```
 
 See [INSTALL.md](../INSTALL.md) for detailed build instructions.
