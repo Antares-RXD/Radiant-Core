@@ -1,6 +1,6 @@
-# Radiant Node GUI
+# Radiant Core GUI
 
-A simple browser-based GUI for running a Radiant node. Designed for non-technical users to easily start and manage their node.
+A simple browser-based GUI for running a Radiant Core node. Designed for non-technical users to easily start and manage their node.
 
 ## Download
 
@@ -8,17 +8,17 @@ Get the **All-in-One Package** for your platform (includes GUI + node binaries):
 
 | Platform | Download | Size |
 |----------|----------|------|
-| **macOS (Apple Silicon)** | [radiant-node-gui-macos-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-macos-v2.0.0.tar.gz) | ~15 MB |
-| **Linux (x86_64)** | [radiant-node-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-linux-x64-v2.0.0.tar.gz) | ~20 MB |
+| **macOS (Apple Silicon)** | [radiant-core-gui-macos-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-v2.0.0.tar.gz) | ~15 MB |
+| **Linux (x86_64)** | [radiant-core-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz) | ~20 MB |
 
 ### Quick Install
 
 **macOS:**
 ```bash
 # Download and extract
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-macos-v2.0.0.tar.gz
-tar xzf radiant-node-gui-macos-v2.0.0.tar.gz
-cd radiant-node-gui-macos-v2.0.0
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-v2.0.0.tar.gz
+tar xzf radiant-core-gui-macos-v2.0.0.tar.gz
+cd radiant-core-gui-macos-v2.0.0
 
 # Remove quarantine (required for downloaded apps)
 xattr -rd com.apple.quarantine .
@@ -29,9 +29,9 @@ xattr -rd com.apple.quarantine .
 
 **Linux:**
 ```bash
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-linux-x64-v2.0.0.tar.gz
-tar xzf radiant-node-gui-linux-x64-v2.0.0.tar.gz
-cd radiant-node-gui-linux-x64-v2.0.0
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz
+tar xzf radiant-core-gui-linux-x64-v2.0.0.tar.gz
+cd radiant-core-gui-linux-x64-v2.0.0
 ./start-gui.sh
 ```
 
@@ -177,7 +177,7 @@ The GUI will detect the running node and display its status.
 
 - **Python 3.6+** - Usually pre-installed on macOS and Linux
 - **Radiant Node binaries** - Either build from source or download pre-built binaries
-- **Web browser** - Any modern browser (Chrome, Firefox, Safari, Edge)
+- **Web browser** - Any modern browser (Chrome, Firefox, Safari, Brave)
 
 ### Installing Python
 
@@ -191,9 +191,6 @@ brew install python3
 ```bash
 sudo apt install python3
 ```
-
-#### Windows
-Download from [python.org/downloads](https://www.python.org/downloads/)
 
 ## Quick Start
 

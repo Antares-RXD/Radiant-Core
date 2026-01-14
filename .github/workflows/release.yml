@@ -169,29 +169,29 @@ jobs:
           
           # Create GUI package for Linux
           echo "Building Linux GUI package..."
-          mkdir -p radiant-node-gui-linux-x64-v${VERSION}
+          mkdir -p radiant-core-gui-linux-x64-v${VERSION}
           
           # Extract Linux binaries
-          tar -xzf binaries/linux/radiant-*-linux-x64.tar.gz --strip-components=1 -C radiant-node-gui-linux-x64-v${VERSION}/ 2>/dev/null || \
-          unzip -o binaries/linux/radiant-*-linux-x64.zip -d temp-linux && mv temp-linux/*/radiant* radiant-node-gui-linux-x64-v${VERSION}/ 2>/dev/null || true
+          tar -xzf binaries/linux/radiant-*-linux-x64.tar.gz --strip-components=1 -C radiant-core-gui-linux-x64-v${VERSION}/ 2>/dev/null || \
+          unzip -o binaries/linux/radiant-*-linux-x64.zip -d temp-linux && mv temp-linux/*/radiant* radiant-core-gui-linux-x64-v${VERSION}/ 2>/dev/null || true
           
           # Copy GUI files
-          cp gui/radiant_node_web.py radiant-node-gui-linux-x64-v${VERSION}/
-          cp gui/bip39.py radiant-node-gui-linux-x64-v${VERSION}/
+          cp gui/radiant_node_web.py radiant-core-gui-linux-x64-v${VERSION}/
+          cp gui/bip39.py radiant-core-gui-linux-x64-v${VERSION}/
           
           # Create launcher script
-          cat > radiant-node-gui-linux-x64-v${VERSION}/start-gui.sh << 'EOF'
+          cat > radiant-core-gui-linux-x64-v${VERSION}/start-gui.sh << 'EOF'
           #!/bin/bash
           cd "$(dirname "$0")"
           chmod +x radiantd radiant-cli radiant-tx 2>/dev/null
-          echo "Starting Radiant Node GUI..."
+          echo "Starting Radiant Core GUI..."
           python3 radiant_node_web.py
           EOF
-          chmod +x radiant-node-gui-linux-x64-v${VERSION}/start-gui.sh
+          chmod +x radiant-core-gui-linux-x64-v${VERSION}/start-gui.sh
           
           # Create README
-          cat > radiant-node-gui-linux-x64-v${VERSION}/README.txt << 'EOF'
-          Radiant Node GUI - All-in-One Package
+          cat > radiant-core-gui-linux-x64-v${VERSION}/README.txt << 'EOF'
+          Radiant Core GUI - All-in-One Package
           =====================================
           
           Quick Start:
@@ -202,23 +202,23 @@ jobs:
           Support: https://radiantblockchain.org
           EOF
           
-          tar -czvf radiant-node-gui-linux-x64-v${VERSION}.tar.gz radiant-node-gui-linux-x64-v${VERSION}
-          sha256sum radiant-node-gui-linux-x64-v${VERSION}.tar.gz > radiant-node-gui-linux-x64-v${VERSION}.tar.gz.sha256
+          tar -czvf radiant-core-gui-linux-x64-v${VERSION}.tar.gz radiant-core-gui-linux-x64-v${VERSION}
+          sha256sum radiant-core-gui-linux-x64-v${VERSION}.tar.gz > radiant-core-gui-linux-x64-v${VERSION}.tar.gz.sha256
           
           # Create GUI package for macOS
           echo "Building macOS GUI package..."
-          mkdir -p radiant-node-gui-macos-v${VERSION}
+          mkdir -p radiant-core-gui-macos-v${VERSION}
           
           # Extract macOS binaries
           unzip -o binaries/macos/radiant-*-macos.zip -d temp-macos 2>/dev/null && \
-          cp temp-macos/*/radiantd temp-macos/*/radiant-cli temp-macos/*/radiant-tx radiant-node-gui-macos-v${VERSION}/ 2>/dev/null || true
+          cp temp-macos/*/radiantd temp-macos/*/radiant-cli temp-macos/*/radiant-tx radiant-core-gui-macos-v${VERSION}/ 2>/dev/null || true
           
           # Copy GUI files
-          cp gui/radiant_node_web.py radiant-node-gui-macos-v${VERSION}/
-          cp gui/bip39.py radiant-node-gui-macos-v${VERSION}/
+          cp gui/radiant_node_web.py radiant-core-gui-macos-v${VERSION}/
+          cp gui/bip39.py radiant-core-gui-macos-v${VERSION}/
           
           # Create launcher script (.command for double-click)
-          cat > radiant-node-gui-macos-v${VERSION}/start-gui.command << 'EOF'
+          cat > radiant-core-gui-macos-v${VERSION}/start-gui.command << 'EOF'
           #!/bin/bash
           cd "$(dirname "$0")"
           if xattr -l . 2>/dev/null | grep -q "com.apple.quarantine"; then
@@ -226,14 +226,14 @@ jobs:
               xattr -rd com.apple.quarantine .
           fi
           chmod +x radiantd radiant-cli radiant-tx 2>/dev/null
-          echo "Starting Radiant Node GUI..."
+          echo "Starting Radiant Core GUI..."
           python3 radiant_node_web.py
           EOF
-          chmod +x radiant-node-gui-macos-v${VERSION}/start-gui.command
+          chmod +x radiant-core-gui-macos-v${VERSION}/start-gui.command
           
           # Create README
-          cat > radiant-node-gui-macos-v${VERSION}/README.txt << 'EOF'
-          Radiant Node GUI - All-in-One Package
+          cat > radiant-core-gui-macos-v${VERSION}/README.txt << 'EOF'
+          Radiant Core GUI - All-in-One Package
           =====================================
           
           Quick Start:
@@ -247,16 +247,16 @@ jobs:
           Support: https://radiantblockchain.org
           EOF
           
-          tar -czvf radiant-node-gui-macos-v${VERSION}.tar.gz radiant-node-gui-macos-v${VERSION}
-          sha256sum radiant-node-gui-macos-v${VERSION}.tar.gz > radiant-node-gui-macos-v${VERSION}.tar.gz.sha256
+          tar -czvf radiant-core-gui-macos-v${VERSION}.tar.gz radiant-core-gui-macos-v${VERSION}
+          sha256sum radiant-core-gui-macos-v${VERSION}.tar.gz > radiant-core-gui-macos-v${VERSION}.tar.gz.sha256
 
       - name: Upload GUI packages
         uses: actions/upload-artifact@v4
         with:
           name: radiant-gui-packages
           path: |
-            radiant-node-gui-*.tar.gz
-            radiant-node-gui-*.sha256
+            radiant-core-gui-*.tar.gz
+            radiant-core-gui-*.sha256
 
   create-release:
     needs: [build-linux, build-macos, build-gui-packages]

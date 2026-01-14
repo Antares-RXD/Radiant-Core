@@ -22,7 +22,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo "=============================================="
-echo "  Radiant Node GUI Release Builder v${VERSION}"
+echo "  Radiant Core GUI Release Builder v${VERSION}"
 echo "=============================================="
 echo ""
 
@@ -63,7 +63,7 @@ download_binaries() {
 build_package() {
     local platform=$1
     local binary_archive=$(get_binary_filename "$platform")
-    local package_name="radiant-node-gui-${platform}-v${VERSION}"
+    local package_name="radiant-core-gui-${platform}-v${VERSION}"
     local package_dir="$BUILD_DIR/$package_name"
     
     echo ""
@@ -86,7 +86,7 @@ build_package() {
     
     # Create README for the package
     cat > "$package_dir/README.txt" << 'README_EOF'
-Radiant Node GUI - All-in-One Package
+Radiant Core GUI - All-in-One Package
 ======================================
 
 This package contains everything you need to run a Radiant node with a
@@ -142,7 +142,7 @@ fi
 chmod +x radiantd radiant-cli radiant-tx 2>/dev/null
 
 # Start the GUI
-echo "Starting Radiant Node GUI..."
+echo "Starting Radiant Core GUI..."
 python3 radiant_node_web.py
 LAUNCHER_EOF
         chmod +x "$package_dir/start-gui.command"
@@ -157,7 +157,7 @@ cd "$(dirname "$0")"
 chmod +x radiantd radiant-cli radiant-tx 2>/dev/null
 
 # Start the GUI
-echo "Starting Radiant Node GUI..."
+echo "Starting Radiant Core GUI..."
 python3 radiant_node_web.py
 LAUNCHER_EOF
         chmod +x "$package_dir/start-gui.sh"
