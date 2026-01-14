@@ -196,3 +196,10 @@ start_orbstack.sh
 
 # VS Code workspace (already partially covered)
 radiant-core.code-workspace
+
+# GUI build artifacts
+macos-app-build/
+release-builds/
+gui/__pycache__/
+gui/*.iconset/
+*.app/

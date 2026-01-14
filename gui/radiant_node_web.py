@@ -5,6 +5,7 @@ Designed for non-technical users to easily start and manage their node.
 Uses only Python standard library - no external dependencies required.
 """
 
+import argparse
 import http.server
 import json
 import os
@@ -15,6 +16,7 @@ import time
 import webbrowser
 import tarfile
 import hashlib
+import zipfile
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen, Request
@@ -22,6 +24,14 @@ from urllib.error import URLError, HTTPError
 import socketserver
 import signal
 import sys
+
+# pywebview is optional - only needed for windowed mode on macOS
+WEBVIEW_AVAILABLE = False
+try:
+    import webview
+    WEBVIEW_AVAILABLE = True
+except ImportError:
+    pass
 
 # Import BIP39 mnemonic support
 try:
@@ -54,6 +64,12 @@ RELEASE_ASSETS = {
         "display": "Linux (ARM64) - x64 binary (requires emulation)",
     },
 }
+
+# Fallback logo SVG (simple R icon) used when logo files can't be found
+FALLBACK_LOGO_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="20" fill="#1a1f2e"/>
+  <text x="50" y="68" font-family="Arial,sans-serif" font-size="50" font-weight="bold" fill="#e6e6e6" text-anchor="middle">R</text>
+</svg>'''
 
 
 class DownloadManager:
@@ -146,7 +162,7 @@ class DownloadManager:
         try:
             # Create binaries directory
             self.binaries_path.mkdir(parents=True, exist_ok=True)
-            tar_path = self.binaries_path / asset["filename"]
+            archive_path = self.binaries_path / asset["filename"]
             
             # Download with progress
             req = Request(url, headers={"User-Agent": "RadiantCoreGUI/2.0"})
@@ -155,7 +171,7 @@ class DownloadManager:
                 downloaded = 0
                 chunk_size = 65536
                 
-                with open(tar_path, "wb") as f:
+                with open(archive_path, "wb") as f:
                     while True:
                         chunk = response.read(chunk_size)
                         if not chunk:
@@ -170,15 +186,20 @@ class DownloadManager:
                                 "message": f"Downloading... {downloaded // 1024 // 1024}MB / {total_size // 1024 // 1024}MB",
                             }
             
-            # Extract
+            # Extract based on file type
             self.download_progress = {
                 "status": "extracting",
                 "percent": 100,
                 "message": "Extracting files...",
             }
             
-            with tarfile.open(tar_path, "r:gz") as tar:
-                tar.extractall(path=self.binaries_path)
+            archive_path = self.binaries_path / asset["filename"]
+            if asset["filename"].endswith(".zip"):
+                with zipfile.ZipFile(archive_path, 'r') as zf:
+                    zf.extractall(path=self.binaries_path)
+            else:
+                with tarfile.open(archive_path, "r:gz") as tar:
+                    tar.extractall(path=self.binaries_path)
             
             # Remove quarantine on macOS
             if platform.system() == "Darwin":
@@ -196,8 +217,8 @@ class DownloadManager:
                 if bin_path.exists():
                     bin_path.chmod(0o755)
             
-            # Clean up tar file
-            tar_path.unlink()
+            # Clean up archive file
+            archive_path.unlink()
             
             self.download_progress = {
                 "status": "complete",
@@ -340,10 +361,17 @@ class NodeManager:
         if platform.system() == "Windows":
             name += ".exe"
         
-        # Check downloaded binaries first
-        downloaded_path = self.download_manager.get_binary_path()
-        
         paths = []
+        
+        # Check app bundle Resources/binaries first (for frozen macOS app)
+        if getattr(sys, 'frozen', False) and platform.system() == 'Darwin':
+            # Running as macOS app bundle
+            bundle_dir = Path(sys.executable).parent.parent  # Contents/MacOS -> Contents
+            resources_binaries = bundle_dir / "Resources" / "binaries" / name
+            paths.append(resources_binaries)
+        
+        # Check downloaded binaries
+        downloaded_path = self.download_manager.get_binary_path()
         if downloaded_path:
             paths.append(downloaded_path / name)
         
@@ -2451,18 +2479,37 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404)
     
     def serve_logo(self, filename):
+        # Try multiple locations for logo files
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        logo_path = os.path.join(script_dir, "..", "doc", "images", filename)
-        try:
-            with open(logo_path, "rb") as f:
-                content = f.read()
-            self.send_response(200)
-            self.send_header("Content-Type", "image/svg+xml")
-            self.send_header("Cache-Control", "max-age=86400")
-            self.end_headers()
-            self.wfile.write(content)
-        except FileNotFoundError:
-            self.send_error(404)
+        possible_paths = [
+            os.path.join(script_dir, "..", "doc", "images", filename),  # Dev mode
+            os.path.join(script_dir, "images", filename),  # App bundle
+            os.path.join(os.path.dirname(script_dir), "doc", "images", filename),
+        ]
+        
+        # If running as frozen app, check Resources folder
+        if getattr(sys, 'frozen', False):
+            bundle_dir = os.path.dirname(sys.executable)
+            possible_paths.insert(0, os.path.join(bundle_dir, "..", "Resources", "images", filename))
+        
+        content = None
+        for path in possible_paths:
+            try:
+                with open(path, "rb") as f:
+                    content = f.read()
+                break
+            except FileNotFoundError:
+                continue
+        
+        if content is None:
+            # Fallback: serve embedded placeholder SVG
+            content = FALLBACK_LOGO_SVG.encode()
+        
+        self.send_response(200)
+        self.send_header("Content-Type", "image/svg+xml")
+        self.send_header("Cache-Control", "max-age=86400")
+        self.end_headers()
+        self.wfile.write(content)
     
     def do_POST(self):
         parsed = urlparse(self.path)
@@ -2553,8 +2600,8 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     allow_reuse_address = True
 
 
-def main():
-    port = 8765
+def run_browser_mode(port):
+    """Run in browser mode (default for Linux)."""
     server = ThreadedHTTPServer(("127.0.0.1", port), RequestHandler)
     
     url = f"http://127.0.0.1:{port}"
@@ -2591,6 +2638,86 @@ def main():
             print("Stopping node...")
             manager.stop()
         server.server_close()
+
+
+def run_windowed_mode(port):
+    """Run in windowed mode using pywebview (macOS app)."""
+    if not WEBVIEW_AVAILABLE:
+        print("Error: pywebview is required for windowed mode.")
+        print("Install with: pip install pywebview")
+        sys.exit(1)
+    
+    server = ThreadedHTTPServer(("127.0.0.1", port), RequestHandler)
+    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+    server_thread.start()
+    
+    url = f"http://127.0.0.1:{port}"
+    print(f"Starting Radiant Core GUI at {url}")
+    
+    def on_closed():
+        """Called when the window is closed."""
+        print("\nShutting down...")
+        if manager.is_running:
+            manager.stop()
+        server.shutdown()
+    
+    # Create native window
+    window = webview.create_window(
+        'Radiant Core',
+        url,
+        width=1200,
+        height=800,
+        min_size=(800, 600),
+        resizable=True
+    )
+    
+    # Start webview (blocks until window is closed)
+    webview.start()
+    
+    # Cleanup after window closes
+    on_closed()
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Radiant Core Node GUI',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+  python radiant_node_web.py              # Browser mode (default)
+  python radiant_node_web.py --windowed   # Native window mode (macOS)
+  python radiant_node_web.py --port 9000  # Custom port
+        '''
+    )
+    parser.add_argument(
+        '--windowed', '-w',
+        action='store_true',
+        help='Run in native window mode (requires pywebview)'
+    )
+    parser.add_argument(
+        '--port', '-p',
+        type=int,
+        default=8765,
+        help='Port to run the server on (default: 8765)'
+    )
+    parser.add_argument(
+        '--browser',
+        action='store_true',
+        help='Force browser mode even on macOS app bundle'
+    )
+    
+    args = parser.parse_args()
+    
+    # Detect if running as macOS app bundle
+    is_app_bundle = getattr(sys, 'frozen', False) and platform.system() == 'Darwin'
+    
+    # Determine mode: windowed if --windowed flag or running as app bundle (unless --browser)
+    use_windowed = (args.windowed or is_app_bundle) and not args.browser
+    
+    if use_windowed:
+        run_windowed_mode(args.port)
+    else:
+        run_browser_mode(args.port)
 
 
 if __name__ == "__main__":

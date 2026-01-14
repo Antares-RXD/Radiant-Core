@@ -8,6 +8,7 @@ Available Releases:
 - Linux/                - Linux x86_64 binaries
 - Mac - Apple Silicon/  - macOS ARM64 (Apple Silicon) binaries
 - Docker/               - Docker image tarball
+- Radiant-Core-GUI-2.0.0.dmg - macOS GUI Application (node + wallet)
 
 All releases include:
 - radiantd      - Node daemon
@@ -64,6 +65,17 @@ Linux x86_64:
 
 macOS (Apple Silicon):
 ----------------------
+
+  OPTION 1: GUI Application (Recommended for most users)
+  -------------------------------------------------------
+  Download Radiant-Core-GUI-2.0.0.dmg, open it, and drag to Applications.
+  Double-click to launch - includes node and wallet in one app.
+  
+  If blocked by Gatekeeper:
+    xattr -rd com.apple.quarantine /Applications/Radiant\ Core.app
+
+  OPTION 2: Command-Line Binaries
+  --------------------------------
   cd "Mac - Apple Silicon"
   unzip radiant-core-macos-arm64.zip
   cd radiant-core-macos-arm64

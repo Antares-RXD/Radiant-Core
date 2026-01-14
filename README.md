@@ -17,6 +17,31 @@ peer-to-peer technology to operate with no central authority: managing
 transactions are carried out collectively by the network. Radiant is a L1 
 network based on the original Bitcoin design. RXD is the native token of Radiant.
 
+## 🖥️ Radiant Core GUI
+
+**For most users**, the easiest way to run a Radiant node is the **Radiant Core GUI** - a simple desktop application for self-custody and helping distribute the network.
+
+### Download
+
+| Platform | Download | Description |
+|----------|----------|-------------|
+| **macOS** | [Radiant-Core-GUI-2.0.0.dmg](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/Radiant-Core-GUI-2.0.0.dmg) | Native app with node + wallet |
+| **Linux** | [radiant-core-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz) | GUI package |
+
+### Features
+- **One-click node**: Start and stop your node with a single click
+- **Built-in wallet**: Send and receive RXD with self-custody
+- **Seed phrase backup**: BIP39 mnemonic support for wallet recovery
+- **No technical knowledge required**: Just download, install, and run
+
+### macOS Installation
+1. Download the DMG file
+2. Open and drag **Radiant Core** to Applications
+3. If blocked by Gatekeeper: `xattr -rd com.apple.quarantine /Applications/Radiant\ Core.app`
+4. Double-click to launch
+
+---
+
 ## Features
 
 - **C++20 Codebase**: Modern C++ with `std::filesystem` and improved type safety
@@ -25,7 +50,7 @@ network based on the original Bitcoin design. RXD is the native token of Radiant
 - **Node Profiles**: `-nodeprofile=archive|agent|mining` for easy configuration
 - **Large Transaction Support**: Up to 12 MB transactions (~81,000 inputs)
 
-## 🚀 Quick Start: Release Builds
+## 🚀 Quick Start: Command-Line Builds
 
 We provide comprehensive release build scripts for all platforms with automated dependency management and security verification.
 
