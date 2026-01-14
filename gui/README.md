@@ -8,16 +8,16 @@ Get the **All-in-One Package** for your platform (includes GUI + node binaries):
 
 | Platform | Download | Size |
 |----------|----------|------|
-| **macOS (Apple Silicon)** | [radiant-core-gui-macos-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-v2.0.0.tar.gz) | ~15 MB |
-| **Linux (x86_64)** | [radiant-core-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz) | ~20 MB |
+| **macOS (Apple Silicon)** | [radiant-core-gui-macos-v2.0.0.zip](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-v2.0.0.zip) | ~3 MB |
+| **Linux (x86_64)** | [radiant-core-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz) | ~4 MB |
 
 ### Quick Install
 
 **macOS:**
 ```bash
 # Download and extract
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-v2.0.0.tar.gz
-tar xzf radiant-core-gui-macos-v2.0.0.tar.gz
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-v2.0.0.zip
+unzip radiant-core-gui-macos-v2.0.0.zip
 cd radiant-core-gui-macos-v2.0.0
 
 # Remove quarantine (required for downloaded apps)

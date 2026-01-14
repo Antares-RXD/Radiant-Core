@@ -249,6 +249,10 @@ jobs:
           
           tar -czvf radiant-core-gui-macos-v${VERSION}.tar.gz radiant-core-gui-macos-v${VERSION}
           sha256sum radiant-core-gui-macos-v${VERSION}.tar.gz > radiant-core-gui-macos-v${VERSION}.tar.gz.sha256
+          
+          # Create .zip for macOS (preferred format for Mac users)
+          zip -r radiant-core-gui-macos-v${VERSION}.zip radiant-core-gui-macos-v${VERSION}
+          sha256sum radiant-core-gui-macos-v${VERSION}.zip > radiant-core-gui-macos-v${VERSION}.zip.sha256
 
       - name: Upload GUI packages
         uses: actions/upload-artifact@v4
@@ -256,6 +260,7 @@ jobs:
           name: radiant-gui-packages
           path: |
             radiant-core-gui-*.tar.gz
+            radiant-core-gui-*.zip
             radiant-core-gui-*.sha256
 
   create-release:

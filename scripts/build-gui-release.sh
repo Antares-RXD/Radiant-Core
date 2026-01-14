@@ -163,22 +163,32 @@ LAUNCHER_EOF
         chmod +x "$package_dir/start-gui.sh"
     fi
     
-    # Create the archive
+    # Create the archives
     echo "  Creating archive..."
     cd "$BUILD_DIR"
     tar -czf "${package_name}.tar.gz" "$package_name"
     
-    # Generate checksum
+    # Generate checksum for tar.gz
     if command -v sha256sum &> /dev/null; then
         sha256sum "${package_name}.tar.gz" > "${package_name}.tar.gz.sha256"
     else
         shasum -a 256 "${package_name}.tar.gz" > "${package_name}.tar.gz.sha256"
     fi
     
-    # Get file size
     local size=$(ls -lh "${package_name}.tar.gz" | awk '{print $5}')
-    
     echo -e "  ${GREEN}✓${NC} Created: ${package_name}.tar.gz ($size)"
+    
+    # Create .zip for macOS (preferred format for Mac users)
+    if [[ "$platform" == macos* ]]; then
+        zip -rq "${package_name}.zip" "$package_name"
+        if command -v sha256sum &> /dev/null; then
+            sha256sum "${package_name}.zip" > "${package_name}.zip.sha256"
+        else
+            shasum -a 256 "${package_name}.zip" > "${package_name}.zip.sha256"
+        fi
+        local zip_size=$(ls -lh "${package_name}.zip" | awk '{print $5}')
+        echo -e "  ${GREEN}✓${NC} Created: ${package_name}.zip ($zip_size)"
+    fi
     
     # Cleanup extracted directory
     rm -rf "$package_dir"
@@ -207,11 +217,11 @@ echo "=============================================="
 echo ""
 echo "Release packages created in: $BUILD_DIR/"
 echo ""
-ls -lh "$BUILD_DIR"/*.tar.gz 2>/dev/null
+ls -lh "$BUILD_DIR"/*.tar.gz "$BUILD_DIR"/*.zip 2>/dev/null
 echo ""
 echo "SHA256 checksums:"
 cat "$BUILD_DIR"/*.sha256 2>/dev/null
 echo ""
 echo "To upload to GitHub Release:"
-echo "  gh release upload v${VERSION} $BUILD_DIR/*.tar.gz $BUILD_DIR/*.sha256"
+echo "  gh release upload v${VERSION} $BUILD_DIR/*.tar.gz $BUILD_DIR/*.zip $BUILD_DIR/*.sha256"
 echo ""
