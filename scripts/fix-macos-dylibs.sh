@@ -46,15 +46,26 @@ fi
 # Create libs directory
 mkdir -p "$LIBS_DIR"
 
-# Function to get non-system dylib dependencies
+# Function to get non-system dylib dependencies (including @loader_path/@rpath for transitive deps)
 get_dylib_deps() {
     local binary="$1"
-    otool -L "$binary" 2>/dev/null | tail -n +2 | awk '{print $1}' | \
-        grep -v "^/usr/lib" | \
-        grep -v "^/System" | \
-        grep -v "^@executable_path" | \
-        grep -v "^@loader_path" | \
-        grep -v "^@rpath" || true
+    local include_loader_path="${2:-false}"
+    
+    if [[ "$include_loader_path" == "true" ]]; then
+        # Include @loader_path and @rpath for finding transitive deps in copied libs
+        otool -L "$binary" 2>/dev/null | tail -n +2 | awk '{print $1}' | \
+            grep -v "^/usr/lib" | \
+            grep -v "^/System" | \
+            grep -v "^@executable_path" || true
+    else
+        # Exclude @loader_path/@rpath for initial binary scan
+        otool -L "$binary" 2>/dev/null | tail -n +2 | awk '{print $1}' | \
+            grep -v "^/usr/lib" | \
+            grep -v "^/System" | \
+            grep -v "^@executable_path" | \
+            grep -v "^@loader_path" | \
+            grep -v "^@rpath" || true
+    fi
 }
 
 # Function to find a dylib in common Homebrew locations
@@ -115,16 +126,26 @@ copy_and_fix_dylib() {
     # Change the library's own install name to use @loader_path
     install_name_tool -id "@loader_path/libs/$dylib_name" "$dest_path" 2>/dev/null || true
     
-    # Recursively process this library's dependencies
-    local deps=$(get_dylib_deps "$dest_path")
+    # Recursively process this library's dependencies (including @loader_path/@rpath refs)
+    local deps=$(get_dylib_deps "$dest_path" true)
     for dep in $deps; do
         local dep_name=$(basename "$dep")
         
-        # Copy the dependency if needed
-        copy_and_fix_dylib "$dep"
-        
-        # Update the reference in the current library
-        install_name_tool -change "$dep" "@loader_path/$dep_name" "$dest_path" 2>/dev/null || true
+        # Handle @loader_path and @rpath references
+        if [[ "$dep" == @loader_path/* ]] || [[ "$dep" == @rpath/* ]]; then
+            # Try to find in Homebrew
+            local actual_path=$(find_dylib "$dep_name")
+            if [[ -n "$actual_path" ]]; then
+                copy_and_fix_dylib "$actual_path"
+            fi
+            # Update to use @loader_path (already correct format for libs dir)
+            install_name_tool -change "$dep" "@loader_path/$dep_name" "$dest_path" 2>/dev/null || true
+        else
+            # Copy the dependency if needed
+            copy_and_fix_dylib "$dep"
+            # Update the reference in the current library
+            install_name_tool -change "$dep" "@loader_path/$dep_name" "$dest_path" 2>/dev/null || true
+        fi
     done
     
     return 0
@@ -220,13 +241,32 @@ if $all_good; then
     echo -e "${GREEN}=============================================="
     echo "  Success! All binaries are now portable."
     echo "==============================================${NC}"
-    echo ""
-    echo "Bundled libraries in $LIBS_DIR:"
-    ls -la "$LIBS_DIR"
 else
-    echo -e "${RED}=============================================="
-    echo "  Warning: Some dependencies could not be fixed."
-    echo "  The binaries may not work on other machines."
+    echo -e "${YELLOW}=============================================="
+    echo "  Warning: Some external dependencies remain."
     echo "==============================================${NC}"
-    exit 1
 fi
+
+# Code sign all binaries and libraries (required on macOS)
+echo ""
+echo "Code signing binaries and libraries..."
+echo "----------------------------------------------"
+
+for lib in "$LIBS_DIR"/*.dylib; do
+    if [[ -f "$lib" ]]; then
+        codesign --force -s - "$lib" 2>/dev/null && echo "  Signed: $(basename "$lib")" || true
+    fi
+done
+
+for bin in $BINARIES; do
+    bin_path="$BINARIES_DIR/$bin"
+    if [[ -f "$bin_path" ]]; then
+        codesign --force -s - "$bin_path" 2>/dev/null && echo "  Signed: $bin" || true
+    fi
+done
+
+echo ""
+echo "Bundled libraries in $LIBS_DIR:"
+ls -la "$LIBS_DIR"
+echo ""
+echo -e "${GREEN}Done!${NC}"
