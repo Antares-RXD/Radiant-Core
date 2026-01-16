@@ -16,6 +16,7 @@ Download the standalone macOS application - no dependencies required:
 1. Download the DMG file
 2. Open the DMG and drag "Radiant Core" to Applications
 3. First launch: Right-click the app → Open (to bypass Gatekeeper)
+   On newer software it may not want to open the unsigned (Apple approved) app. Go to Settings > Privacy and Security > Approve running the Radiant Core App 
 4. The app includes all node binaries - no additional downloads needed
 
 **If macOS blocks the app:**
