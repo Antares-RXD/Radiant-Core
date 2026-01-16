@@ -61,6 +61,14 @@ cp src/radiantd ../release-macos/
 cp src/radiant-cli ../release-macos/
 cp src/radiant-tx ../release-macos/
 
+# Bundle dynamic libraries for portable distribution
+echo "Bundling dynamic libraries for distribution..."
+if [[ -f ../scripts/fix-macos-dylibs.sh ]]; then
+    ../scripts/fix-macos-dylibs.sh ../release-macos
+else
+    echo "WARNING: fix-macos-dylibs.sh not found, binaries may not be portable"
+fi
+
 # Create DMG creation script
 cat > ../create-dmg.sh << 'EOF'
 #!/bin/bash

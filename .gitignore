@@ -203,3 +203,20 @@ release-builds/
 gui/__pycache__/
 gui/*.iconset/
 *.app/
+gui/build/
+gui/dist/
+
+# Release output directory
+release/
+
+# Build directories (CMake/Ninja)
+build-release/
+build-debug/
+macos-release/
+native/
+
+# Bundled libraries (created by fix-macos-dylibs.sh)
+gui/binaries/*/libs/
+
+# py2app artifacts
+*.egg-info/

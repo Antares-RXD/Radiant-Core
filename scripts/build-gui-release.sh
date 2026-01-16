@@ -127,6 +127,14 @@ README_EOF
 
     # Create platform-specific launcher scripts
     if [[ "$platform" == macos* ]]; then
+        # Fix dynamic library paths for macOS distribution
+        if [[ -f "$SCRIPT_DIR/fix-macos-dylibs.sh" ]]; then
+            echo "  Fixing dynamic library paths..."
+            "$SCRIPT_DIR/fix-macos-dylibs.sh" "$package_dir" 2>/dev/null || {
+                echo -e "  ${YELLOW}Warning: Could not fix dylib paths${NC}"
+            }
+        fi
+        
         # macOS launcher (.command file - double-clickable)
         cat > "$package_dir/start-gui.command" << 'LAUNCHER_EOF'
 #!/bin/bash
@@ -140,6 +148,11 @@ fi
 
 # Make binaries executable
 chmod +x radiantd radiant-cli radiant-tx 2>/dev/null
+
+# Set library path for bundled dylibs
+if [ -d "libs" ]; then
+    export DYLD_LIBRARY_PATH="$(pwd)/libs:$DYLD_LIBRARY_PATH"
+fi
 
 # Start the GUI
 echo "Starting Radiant Core GUI..."

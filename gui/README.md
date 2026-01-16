@@ -4,26 +4,45 @@ A simple browser-based GUI for running a Radiant Core node. Designed for non-tec
 
 ## Download
 
-Get the **All-in-One Package** for your platform (includes GUI + node binaries):
+### macOS App (Recommended)
+
+Download the standalone macOS application - no dependencies required:
 
 | Platform | Download | Size |
 |----------|----------|------|
-| **macOS (Apple Silicon)** | [radiant-core-gui-macos-v2.0.0.zip](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-v2.0.0.zip) | ~3 MB |
-| **Linux (x86_64)** | [radiant-core-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz) | ~4 MB |
+| **macOS (Apple Silicon/Intel)** | [Radiant-Core-GUI-2.0.0.dmg](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/Radiant-Core-GUI-2.0.0.dmg) | ~19 MB |
 
-### Quick Install
+**Quick Install (macOS DMG):**
+1. Download the DMG file
+2. Open the DMG and drag "Radiant Core" to Applications
+3. First launch: Right-click the app → Open (to bypass Gatekeeper)
+4. The app includes all node binaries - no additional downloads needed
 
-**macOS:**
+**If macOS blocks the app:**
+```bash
+xattr -rd com.apple.quarantine /Applications/Radiant\ Core.app
+```
+
+### Portable Packages (All Platforms)
+
+For users who prefer a portable installation or Linux:
+
+| Platform | Download | Size |
+|----------|----------|------|
+| **macOS (Apple Silicon)** | [radiant-core-gui-macos-arm64-v2.0.0.zip](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-arm64-v2.0.0.zip) | ~15 MB |
+| **Linux (x86_64)** | [radiant-core-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz) | ~15 MB |
+
+**macOS Portable:**
 ```bash
 # Download and extract
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-v2.0.0.zip
-unzip radiant-core-gui-macos-v2.0.0.zip
-cd radiant-core-gui-macos-v2.0.0
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-arm64-v2.0.0.zip
+unzip radiant-core-gui-macos-arm64-v2.0.0.zip
+cd radiant-core-gui-macos-arm64-v2.0.0
 
 # Remove quarantine (required for downloaded apps)
 xattr -rd com.apple.quarantine .
 
-# Launch - double-click start-gui.command or run:
+# Launch
 ./start-gui.command
 ```
 

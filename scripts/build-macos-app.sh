@@ -127,6 +127,14 @@ if [[ -f "$BUILD_DIR/binaries.zip" ]]; then
     unzip -q "$BUILD_DIR/binaries.zip" -d "$BUILD_DIR/binary-extract"
     cp "$BUILD_DIR/binary-extract/radiant-core-macos-arm64"/* "$BINARIES_DIR/" 2>/dev/null || true
     chmod +x "$BINARIES_DIR"/* 2>/dev/null || true
+    
+    # Fix dynamic library paths for portable distribution
+    if [[ -f "$ROOT_DIR/scripts/fix-macos-dylibs.sh" ]]; then
+        echo "  Fixing dynamic library paths..."
+        "$ROOT_DIR/scripts/fix-macos-dylibs.sh" "$BINARIES_DIR" || {
+            echo -e "  ${YELLOW}Warning: Could not fix dylib paths. Binaries may require Homebrew.${NC}"
+        }
+    fi
     echo -e "  ${GREEN}✓${NC} Binaries bundled"
 else
     echo "  Skipping binary bundling"

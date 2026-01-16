@@ -542,12 +542,23 @@ class NodeManager:
         self._log(f"Starting: {' '.join(cmd)}")
         
         try:
+            # Set up environment with library path for bundled dylibs
+            env = os.environ.copy()
+            binary_dir = os.path.dirname(binary)
+            libs_dir = os.path.join(binary_dir, "libs")
+            if os.path.isdir(libs_dir):
+                # Add bundled libs to library path for macOS
+                existing_path = env.get("DYLD_LIBRARY_PATH", "")
+                env["DYLD_LIBRARY_PATH"] = f"{libs_dir}:{existing_path}" if existing_path else libs_dir
+                self._log(f"Using bundled libraries from: {libs_dir}")
+            
             self.process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
-                bufsize=1
+                bufsize=1,
+                env=env
             )
             self.is_running = True
             self._log("Node started successfully")
