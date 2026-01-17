@@ -116,29 +116,74 @@ RESOURCES_DIR="$APP_PATH/Contents/Resources"
 BINARIES_DIR="$RESOURCES_DIR/binaries"
 mkdir -p "$BINARIES_DIR"
 
-# Download macOS binaries
-BINARY_URL="https://github.com/Radiant-Core/Radiant-Core/releases/download/v${VERSION}/radiant-core-macos-arm64.zip"
-echo "  Downloading binaries..."
-curl -sL -o "$BUILD_DIR/binaries.zip" "$BINARY_URL" || {
-    echo -e "${YELLOW}Warning: Could not download binaries. App will prompt user to download.${NC}"
-}
+# Check for local binaries first (from build-release or gui/binaries)
+LOCAL_BINARIES="$ROOT_DIR/gui/binaries/radiant-core-macos-arm64"
+BUILD_BINARIES="$ROOT_DIR/build-release/src"
+BINARIES_FOUND=false
 
-if [[ -f "$BUILD_DIR/binaries.zip" ]]; then
-    unzip -q "$BUILD_DIR/binaries.zip" -d "$BUILD_DIR/binary-extract"
-    cp "$BUILD_DIR/binary-extract/radiant-core-macos-arm64"/* "$BINARIES_DIR/" 2>/dev/null || true
+if [[ -f "$LOCAL_BINARIES/radiantd" ]] && [[ -d "$LOCAL_BINARIES/libs" ]]; then
+    # Use pre-bundled local binaries (already has libs fixed)
+    echo "  Using local bundled binaries from gui/binaries..."
+    cp -R "$LOCAL_BINARIES"/* "$BINARIES_DIR/" 2>/dev/null || true
+    chmod +x "$BINARIES_DIR/radiantd" "$BINARIES_DIR/radiant-cli" "$BINARIES_DIR/radiant-tx" 2>/dev/null || true
+    BINARIES_FOUND=true
+    echo -e "  ${GREEN}✓${NC} Local binaries bundled (with libs)"
+    
+elif [[ -f "$BUILD_BINARIES/radiantd" ]]; then
+    # Use freshly built binaries - need to fix dylibs
+    echo "  Using freshly built binaries from build-release..."
+    cp "$BUILD_BINARIES/radiantd" "$BUILD_BINARIES/radiant-cli" "$BUILD_BINARIES/radiant-tx" "$BINARIES_DIR/" 2>/dev/null || true
     chmod +x "$BINARIES_DIR"/* 2>/dev/null || true
     
     # Fix dynamic library paths for portable distribution
+    # This copies Homebrew dylibs, rewrites paths to @loader_path/libs/, and code signs
     if [[ -f "$ROOT_DIR/scripts/fix-macos-dylibs.sh" ]]; then
-        echo "  Fixing dynamic library paths..."
+        echo "  Running fix-macos-dylibs.sh to bundle libraries..."
         "$ROOT_DIR/scripts/fix-macos-dylibs.sh" "$BINARIES_DIR" || {
             echo -e "  ${YELLOW}Warning: Could not fix dylib paths. Binaries may require Homebrew.${NC}"
         }
     fi
-    echo -e "  ${GREEN}✓${NC} Binaries bundled"
+    BINARIES_FOUND=true
+    echo -e "  ${GREEN}✓${NC} Built binaries bundled"
+    
 else
-    echo "  Skipping binary bundling"
+    # Try downloading from GitHub releases
+    BINARY_URL="https://github.com/Radiant-Core/Radiant-Core/releases/download/v${VERSION}/radiant-core-macos-arm64.zip"
+    echo "  Downloading binaries from GitHub..."
+    curl -sL -o "$BUILD_DIR/binaries.zip" "$BINARY_URL" || {
+        echo -e "${YELLOW}Warning: Could not download binaries.${NC}"
+    }
+    
+    if [[ -f "$BUILD_DIR/binaries.zip" ]]; then
+        unzip -q "$BUILD_DIR/binaries.zip" -d "$BUILD_DIR/binary-extract"
+        cp -R "$BUILD_DIR/binary-extract/radiant-core-macos-arm64"/* "$BINARIES_DIR/" 2>/dev/null || true
+        chmod +x "$BINARIES_DIR"/* 2>/dev/null || true
+        
+        # Fix dynamic library paths if libs not already bundled
+        if [[ ! -d "$BINARIES_DIR/libs" ]] && [[ -f "$ROOT_DIR/scripts/fix-macos-dylibs.sh" ]]; then
+            echo "  Running fix-macos-dylibs.sh to bundle libraries..."
+            "$ROOT_DIR/scripts/fix-macos-dylibs.sh" "$BINARIES_DIR" || {
+                echo -e "  ${YELLOW}Warning: Could not fix dylib paths.${NC}"
+            }
+        fi
+        BINARIES_FOUND=true
+        echo -e "  ${GREEN}✓${NC} Downloaded binaries bundled"
+    fi
 fi
+
+if ! $BINARIES_FOUND; then
+    echo -e "  ${YELLOW}No binaries found. App will prompt user to download.${NC}"
+fi
+
+# Code sign the entire app bundle (required for macOS)
+echo ""
+echo "Step 3b: Code signing app bundle..."
+echo "----------------------------------------"
+codesign --force --deep -s - "$APP_PATH" 2>/dev/null && {
+    echo -e "  ${GREEN}✓${NC} App bundle signed"
+} || {
+    echo -e "  ${YELLOW}Warning: Code signing failed${NC}"
+}
 
 echo ""
 echo "Step 4: Creating DMG installer..."

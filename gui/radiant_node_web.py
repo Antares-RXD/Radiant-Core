@@ -975,7 +975,7 @@ class NodeManager:
         
         # Validate mnemonic
         if not validate_mnemonic(mnemonic):
-            return {"success": False, "error": "Invalid seed phrase. Must be 12 or 24 words from BIP39 wordlist."}
+            return {"success": False, "error": "Invalid seed phrase. Must be 12, 15, 18, 21, or 24 words from BIP39 wordlist."}
         
         try:
             # Convert mnemonic to WIF
@@ -1769,18 +1769,18 @@ HTML_PAGE = '''<!DOCTYPE html>
     </div>
     
     <div class="modal" id="importSeedModal">
-        <div class="modal-content" style="max-width:550px;">
+        <div class="modal-content" style="max-width:650px;">
             <div class="modal-header">
                 <h2>🌱 Import Seed Phrase</h2>
                 <button class="modal-close" onclick="closeImportSeedModal()">&times;</button>
             </div>
             <div>
                 <p style="color:var(--text-secondary);font-size:13px;margin-bottom:15px;">
-                    Enter your 12 or 24-word seed phrase to restore your wallet.
+                    Enter your 12, 15, 18, 21, or 24-word seed phrase to restore your wallet.
                 </p>
                 <div class="form-group">
                     <label>Seed Phrase</label>
-                    <textarea id="importSeedWords" rows="3" placeholder="Enter your 12 or 24 words separated by spaces" style="font-family:monospace;resize:none;"></textarea>
+                    <textarea id="importSeedWords" rows="4" placeholder="Enter your 12, 15, 18, 21, or 24 words separated by spaces" style="font-family:monospace;resize:none;width:100%;padding:12px;font-size:14px;line-height:1.5;box-sizing:border-box;"></textarea>
                 </div>
                 <div class="form-group">
                     <label>Passphrase (optional)</label>
@@ -2389,8 +2389,8 @@ HTML_PAGE = '''<!DOCTYPE html>
             }
             
             const words = mnemonic.split(/\\s+/);
-            if (words.length !== 12 && words.length !== 24) {
-                alert('Seed phrase must be 12 or 24 words');
+            if (![12, 15, 18, 21, 24].includes(words.length)) {
+                alert('Seed phrase must be 12, 15, 18, 21, or 24 words');
                 return;
             }
             
