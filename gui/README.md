@@ -1,46 +1,65 @@
-# Radiant Node GUI
+# Radiant Core GUI
 
-A simple browser-based GUI for running a Radiant node. Designed for non-technical users to easily start and manage their node.
+A simple browser-based GUI for running a Radiant Core node. Designed for non-technical users to easily start and manage their node.
 
 ## Download
 
-Get the **All-in-One Package** for your platform (includes GUI + node binaries):
+### macOS App (Recommended)
+
+Download the standalone macOS application - no dependencies required:
 
 | Platform | Download | Size |
 |----------|----------|------|
+| **macOS (Apple Silicon/Intel)** | [Radiant-Core-GUI-2.0.0.dmg](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/Radiant-Core-GUI-2.0.0.dmg) | ~19 MB |
 | **Windows (x64)** | [releases/Windows/](../releases/Windows/) | ~46 MB |
-| **macOS (Apple Silicon)** | [radiant-node-gui-macos-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-macos-v2.0.0.tar.gz) | ~15 MB |
-| **Linux (x86_64)** | [radiant-node-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-linux-x64-v2.0.0.tar.gz) | ~20 MB |
+| **Linux (x86_64)** | [radiant-core-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz) | ~15 MB |
 
-### Quick Install
+**Quick Install (macOS DMG):**
+1. Download the DMG file
+2. Open the DMG and drag "Radiant Core" to Applications
+3. First launch: Right-click the app → Open (to bypass Gatekeeper)
+   On newer software it may not want to open the unsigned (Apple approved) app. Go to Settings > Privacy and Security > Approve running the Radiant Core App 
+4. The app includes all node binaries - no additional downloads needed
+
+**If macOS blocks the app:**
+```bash
+xattr -rd com.apple.quarantine /Applications/Radiant\ Core.app
+```
 
 **Windows (Recommended for most users):**
 
 1. Go to `releases/Windows/` folder (all binaries and DLLs are pre-extracted)
-
 2. Double-click `RadiantCore.exe`
-
 3. The GUI will launch in your default web browser at `http://127.0.0.1:8765`
 
-**macOS:**
+### Portable Packages (All Platforms)
+
+For users who prefer a portable installation or Linux:
+
+| Platform | Download | Size |
+|----------|----------|------|
+| **macOS (Apple Silicon)** | [radiant-core-gui-macos-arm64-v2.0.0.zip](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-arm64-v2.0.0.zip) | ~15 MB |
+| **Linux (x86_64)** | [radiant-core-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz) | ~15 MB |
+
+**macOS Portable:**
 ```bash
 # Download and extract
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-macos-v2.0.0.tar.gz
-tar xzf radiant-node-gui-macos-v2.0.0.tar.gz
-cd radiant-node-gui-macos-v2.0.0
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-arm64-v2.0.0.zip
+unzip radiant-core-gui-macos-arm64-v2.0.0.zip
+cd radiant-core-gui-macos-arm64-v2.0.0
 
 # Remove quarantine (required for downloaded apps)
 xattr -rd com.apple.quarantine .
 
-# Launch - double-click start-gui.command or run:
+# Launch
 ./start-gui.command
 ```
 
 **Linux:**
 ```bash
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-linux-x64-v2.0.0.tar.gz
-tar xzf radiant-node-gui-linux-x64-v2.0.0.tar.gz
-cd radiant-node-gui-linux-x64-v2.0.0
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz
+tar xzf radiant-core-gui-linux-x64-v2.0.0.tar.gz
+cd radiant-core-gui-linux-x64-v2.0.0
 ./start-gui.sh
 ```
 
@@ -186,7 +205,7 @@ The GUI will detect the running node and display its status.
 
 - **Python 3.6+** - Usually pre-installed on macOS and Linux
 - **Radiant Node binaries** - Either build from source or download pre-built binaries
-- **Web browser** - Any modern browser (Chrome, Firefox, Safari, Edge)
+- **Web browser** - Any modern browser (Chrome, Firefox, Safari, Brave)
 
 ### Installing Python
 
@@ -200,9 +219,6 @@ brew install python3
 ```bash
 sudo apt install python3
 ```
-
-#### Windows
-Download from [python.org/downloads](https://www.python.org/downloads/)
 
 ## Quick Start
 

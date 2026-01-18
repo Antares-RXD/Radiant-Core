@@ -613,7 +613,7 @@ def _base58_decode(s):
 
 def mnemonic_to_wif(mnemonic, passphrase="", testnet=False, use_bip44=True):
     """
-    Convert mnemonic directly to WIF private key.
+    Convert mnemonic directly to WIF private key using BIP44 derivation.
     
     Args:
         mnemonic: Space-separated mnemonic phrase
@@ -675,9 +675,18 @@ def private_key_to_address(private_key_bytes, compressed=True, testnet=False):
 
 
 if __name__ == "__main__":
-    # Test
+    # Test with known test vector
+    test_mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    print(f"Test mnemonic: {test_mnemonic}")
+    print(f"Valid: {validate_mnemonic(test_mnemonic)}")
+    
+    # Test BIP44 derivation (m/44'/0'/0'/0/0)
+    wif = mnemonic_to_wif(test_mnemonic)
+    print(f"WIF (m/44'/0'/0'/0/0): {wif}")
+    
+    # Generate new mnemonic
     mnemonic = generate_mnemonic(128)
-    print(f"Generated mnemonic: {mnemonic}")
+    print(f"\nGenerated mnemonic: {mnemonic}")
     print(f"Valid: {validate_mnemonic(mnemonic)}")
     wif = mnemonic_to_wif(mnemonic)
-    print(f"WIF: {wif}")
+    print(f"WIF (m/44'/0'/0'/0/0): {wif}")

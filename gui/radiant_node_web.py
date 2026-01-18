@@ -5,6 +5,7 @@ Designed for non-technical users to easily start and manage their node.
 Uses only Python standard library - no external dependencies required.
 """
 
+import argparse
 import http.server
 import json
 import os
@@ -16,6 +17,7 @@ import webbrowser
 import tarfile
 import zipfile
 import hashlib
+import zipfile
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen, Request
@@ -24,6 +26,14 @@ import socketserver
 import signal
 import sys
 import shutil
+
+# pywebview is optional - only needed for windowed mode on macOS
+WEBVIEW_AVAILABLE = False
+try:
+    import webview
+    WEBVIEW_AVAILABLE = True
+except ImportError:
+    pass
 
 # Import BIP39 mnemonic support
 try:
@@ -38,12 +48,12 @@ except ImportError:
 GITHUB_RELEASE_URL = "https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0"
 RELEASE_ASSETS = {
     "darwin_arm64": {
-        "filename": "radiant-core-macos-arm64.tar.gz",
+        "filename": "radiant-core-macos-arm64.zip",
         "folder": "radiant-core-macos-arm64",
         "display": "macOS (Apple Silicon)",
     },
     "darwin_x86_64": {
-        "filename": "radiant-core-macos-arm64.tar.gz",  # Use ARM64 for now, x64 not available
+        "filename": "radiant-core-macos-arm64.zip",  # Use ARM64 for now, x64 not available
         "folder": "radiant-core-macos-arm64",
         "display": "macOS (Intel) - Using ARM64 binary via Rosetta",
     },
@@ -63,6 +73,12 @@ RELEASE_ASSETS = {
         "display": "Windows (x64)",
     },
 }
+
+# Fallback logo SVG (simple R icon) used when logo files can't be found
+FALLBACK_LOGO_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="20" fill="#1a1f2e"/>
+  <text x="50" y="68" font-family="Arial,sans-serif" font-size="50" font-weight="bold" fill="#e6e6e6" text-anchor="middle">R</text>
+</svg>'''
 
 
 class DownloadManager:
@@ -242,6 +258,7 @@ class DownloadManager:
         }
         
         try:
+            # Extract based on file type
             if asset["filename"].endswith(".zip"):
                 with zipfile.ZipFile(tar_path, 'r') as zip_ref:
                     zip_ref.extractall(self.binaries_path)
@@ -265,7 +282,7 @@ class DownloadManager:
                 if bin_path.exists():
                     bin_path.chmod(0o755)
             
-            # Clean up tar file
+            # Clean up archive file
             tar_path.unlink()
             
             self.download_progress = {
@@ -395,10 +412,17 @@ class NodeManager:
         if platform.system() == "Windows":
             name += ".exe"
         
-        # Check downloaded binaries first
-        downloaded_path = self.download_manager.get_binary_path()
-        
         paths = []
+        
+        # Check app bundle Resources/binaries first (for frozen macOS app)
+        if getattr(sys, 'frozen', False) and platform.system() == 'Darwin':
+            # Running as macOS app bundle
+            bundle_dir = Path(sys.executable).parent.parent  # Contents/MacOS -> Contents
+            resources_binaries = bundle_dir / "Resources" / "binaries" / name
+            paths.append(resources_binaries)
+        
+        # Check downloaded binaries
+        downloaded_path = self.download_manager.get_binary_path()
         if downloaded_path:
             paths.append(downloaded_path / name)
         
@@ -569,12 +593,23 @@ class NodeManager:
         self._log(f"Starting: {' '.join(cmd)}")
         
         try:
+            # Set up environment with library path for bundled dylibs
+            env = os.environ.copy()
+            binary_dir = os.path.dirname(binary)
+            libs_dir = os.path.join(binary_dir, "libs")
+            if os.path.isdir(libs_dir):
+                # Add bundled libs to library path for macOS
+                existing_path = env.get("DYLD_LIBRARY_PATH", "")
+                env["DYLD_LIBRARY_PATH"] = f"{libs_dir}:{existing_path}" if existing_path else libs_dir
+                self._log(f"Using bundled libraries from: {libs_dir}")
+            
             self.process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
-                bufsize=1
+                bufsize=1,
+                env=env
             )
             self.is_running = True
             self._log("Node started successfully")
@@ -1785,7 +1820,7 @@ HTML_PAGE = '''<!DOCTYPE html>
     </div>
     
     <div class="modal" id="importSeedModal">
-        <div class="modal-content" style="max-width:550px;">
+        <div class="modal-content" style="max-width:650px;">
             <div class="modal-header">
                 <h2>🌱 Import Seed Phrase</h2>
                 <button class="modal-close" onclick="closeImportSeedModal()">&times;</button>
@@ -1796,7 +1831,7 @@ HTML_PAGE = '''<!DOCTYPE html>
                 </p>
                 <div class="form-group">
                     <label>Seed Phrase</label>
-                    <textarea id="importSeedWords" rows="5" placeholder="Enter your seed words separated by spaces (12, 15, 18, 21, or 24 words)" style="font-family:monospace;resize:vertical;min-height:100px;line-height:1.6;"></textarea>
+                    <textarea id="importSeedWords" rows="4" placeholder="Enter your seed words separated by spaces (12, 15, 18, 21, or 24 words)" style="font-family:monospace;resize:vertical;min-height:100px;line-height:1.6;"></textarea>
                 </div>
                 <div class="form-group">
                     <label>Passphrase (optional)</label>
@@ -2405,8 +2440,8 @@ HTML_PAGE = '''<!DOCTYPE html>
             }
             
             const words = mnemonic.split(/\\s+/);
-            if (words.length !== 12 && words.length !== 24) {
-                alert('Seed phrase must be 12 or 24 words');
+            if (![12, 15, 18, 21, 24].includes(words.length)) {
+                alert('Seed phrase must be 12, 15, 18, 21, or 24 words');
                 return;
             }
             
@@ -2506,26 +2541,40 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404)
     
     def serve_logo(self, filename):
+        # Try multiple locations for logo files
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        possible_paths = [
+            os.path.join(script_dir, "..", "doc", "images", filename),  # Dev mode
+            os.path.join(script_dir, "images", filename),  # App bundle
+            os.path.join(os.path.dirname(script_dir), "doc", "images", filename),
+        ]
+        
+        # If running as frozen app (PyInstaller), check additional locations
         if getattr(sys, 'frozen', False):
-            # Running as PyInstaller bundle
-            # Images are in the 'images' folder inside the temporary directory
-            base_path = sys._MEIPASS
-            logo_path = os.path.join(base_path, "images", filename)
-        else:
-            # Running as script
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            logo_path = os.path.join(script_dir, "..", "doc", "images", filename)
-            
-        try:
-            with open(logo_path, "rb") as f:
-                content = f.read()
-            self.send_response(200)
-            self.send_header("Content-Type", "image/svg+xml")
-            self.send_header("Cache-Control", "max-age=86400")
-            self.end_headers()
-            self.wfile.write(content)
-        except FileNotFoundError:
-            self.send_error(404)
+            if hasattr(sys, '_MEIPASS'):
+                # PyInstaller bundle
+                possible_paths.insert(0, os.path.join(sys._MEIPASS, "images", filename))
+            bundle_dir = os.path.dirname(sys.executable)
+            possible_paths.insert(0, os.path.join(bundle_dir, "..", "Resources", "images", filename))
+        
+        content = None
+        for path in possible_paths:
+            try:
+                with open(path, "rb") as f:
+                    content = f.read()
+                break
+            except FileNotFoundError:
+                continue
+        
+        if content is None:
+            # Fallback: serve embedded placeholder SVG
+            content = FALLBACK_LOGO_SVG.encode()
+        
+        self.send_response(200)
+        self.send_header("Content-Type", "image/svg+xml")
+        self.send_header("Cache-Control", "max-age=86400")
+        self.end_headers()
+        self.wfile.write(content)
     
     def do_POST(self):
         parsed = urlparse(self.path)
@@ -2616,8 +2665,8 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     allow_reuse_address = True
 
 
-def main():
-    port = 8765
+def run_browser_mode(port):
+    """Run in browser mode (default for Linux)."""
     server = ThreadedHTTPServer(("127.0.0.1", port), RequestHandler)
     
     url = f"http://127.0.0.1:{port}"
@@ -2654,6 +2703,86 @@ def main():
             print("Stopping node...")
             manager.stop()
         server.server_close()
+
+
+def run_windowed_mode(port):
+    """Run in windowed mode using pywebview (macOS app)."""
+    if not WEBVIEW_AVAILABLE:
+        print("Error: pywebview is required for windowed mode.")
+        print("Install with: pip install pywebview")
+        sys.exit(1)
+    
+    server = ThreadedHTTPServer(("127.0.0.1", port), RequestHandler)
+    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+    server_thread.start()
+    
+    url = f"http://127.0.0.1:{port}"
+    print(f"Starting Radiant Core GUI at {url}")
+    
+    def on_closed():
+        """Called when the window is closed."""
+        print("\nShutting down...")
+        if manager.is_running:
+            manager.stop()
+        server.shutdown()
+    
+    # Create native window
+    window = webview.create_window(
+        'Radiant Core',
+        url,
+        width=1200,
+        height=800,
+        min_size=(800, 600),
+        resizable=True
+    )
+    
+    # Start webview (blocks until window is closed)
+    webview.start()
+    
+    # Cleanup after window closes
+    on_closed()
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Radiant Core Node GUI',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+  python radiant_node_web.py              # Browser mode (default)
+  python radiant_node_web.py --windowed   # Native window mode (macOS)
+  python radiant_node_web.py --port 9000  # Custom port
+        '''
+    )
+    parser.add_argument(
+        '--windowed', '-w',
+        action='store_true',
+        help='Run in native window mode (requires pywebview)'
+    )
+    parser.add_argument(
+        '--port', '-p',
+        type=int,
+        default=8765,
+        help='Port to run the server on (default: 8765)'
+    )
+    parser.add_argument(
+        '--browser',
+        action='store_true',
+        help='Force browser mode even on macOS app bundle'
+    )
+    
+    args = parser.parse_args()
+    
+    # Detect if running as macOS app bundle
+    is_app_bundle = getattr(sys, 'frozen', False) and platform.system() == 'Darwin'
+    
+    # Determine mode: windowed if --windowed flag or running as app bundle (unless --browser)
+    use_windowed = (args.windowed or is_app_bundle) and not args.browser
+    
+    if use_windowed:
+        run_windowed_mode(args.port)
+    else:
+        run_browser_mode(args.port)
 
 
 if __name__ == "__main__":

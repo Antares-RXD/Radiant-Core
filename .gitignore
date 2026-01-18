@@ -194,7 +194,10 @@ monitor.sh
 run_testnet_miner.sh
 start_orbstack.sh
 
-# VS Code workspace (already partially covered)
+# VS Code workspace
+radiant-core.code-workspace
+
+# Windows build artifacts
 *.spec
 temp_test/
 test.cpp
@@ -202,11 +205,9 @@ package_*.py
 test_package_integration.py
 out.txt
 msys2-base.tar.xz
-
-# Build directories
 build_win/
 
-# Local scripts
+# Windows local scripts
 build_real.bat
 gui/build_exe.bat
 install_deps_final.bat
@@ -214,6 +215,29 @@ repair_msys2.bat
 run_msys2_setup.bat
 setup_*.bat
 setup_msys2.sh
+
+# macOS/GUI build artifacts
+macos-app-build/
+release-builds/
+gui/__pycache__/
+gui/*.iconset/
+*.app/
+gui/build/
+
+# Release output directory
+release/
+
+# Build directories (CMake/Ninja)
+build-release/
+build-debug/
+macos-release/
+native/
+
+# Bundled libraries (created by fix-macos-dylibs.sh)
+gui/binaries/*/libs/
+
+# py2app artifacts
+*.egg-info/
 
 # Trash
 src/crypto/common.hb.pyQ.cmakeke

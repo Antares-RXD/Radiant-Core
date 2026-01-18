@@ -22,7 +22,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo "=============================================="
-echo "  Radiant Node GUI Release Builder v${VERSION}"
+echo "  Radiant Core GUI Release Builder v${VERSION}"
 echo "=============================================="
 echo ""
 
@@ -63,7 +63,7 @@ download_binaries() {
 build_package() {
     local platform=$1
     local binary_archive=$(get_binary_filename "$platform")
-    local package_name="radiant-node-gui-${platform}-v${VERSION}"
+    local package_name="radiant-core-gui-${platform}-v${VERSION}"
     local package_dir="$BUILD_DIR/$package_name"
     
     echo ""
@@ -86,7 +86,7 @@ build_package() {
     
     # Create README for the package
     cat > "$package_dir/README.txt" << 'README_EOF'
-Radiant Node GUI - All-in-One Package
+Radiant Core GUI - All-in-One Package
 ======================================
 
 This package contains everything you need to run a Radiant node with a
@@ -127,6 +127,14 @@ README_EOF
 
     # Create platform-specific launcher scripts
     if [[ "$platform" == macos* ]]; then
+        # Fix dynamic library paths for macOS distribution
+        if [[ -f "$SCRIPT_DIR/fix-macos-dylibs.sh" ]]; then
+            echo "  Fixing dynamic library paths..."
+            "$SCRIPT_DIR/fix-macos-dylibs.sh" "$package_dir" 2>/dev/null || {
+                echo -e "  ${YELLOW}Warning: Could not fix dylib paths${NC}"
+            }
+        fi
+        
         # macOS launcher (.command file - double-clickable)
         cat > "$package_dir/start-gui.command" << 'LAUNCHER_EOF'
 #!/bin/bash
@@ -141,8 +149,13 @@ fi
 # Make binaries executable
 chmod +x radiantd radiant-cli radiant-tx 2>/dev/null
 
+# Set library path for bundled dylibs
+if [ -d "libs" ]; then
+    export DYLD_LIBRARY_PATH="$(pwd)/libs:$DYLD_LIBRARY_PATH"
+fi
+
 # Start the GUI
-echo "Starting Radiant Node GUI..."
+echo "Starting Radiant Core GUI..."
 python3 radiant_node_web.py
 LAUNCHER_EOF
         chmod +x "$package_dir/start-gui.command"
@@ -157,28 +170,38 @@ cd "$(dirname "$0")"
 chmod +x radiantd radiant-cli radiant-tx 2>/dev/null
 
 # Start the GUI
-echo "Starting Radiant Node GUI..."
+echo "Starting Radiant Core GUI..."
 python3 radiant_node_web.py
 LAUNCHER_EOF
         chmod +x "$package_dir/start-gui.sh"
     fi
     
-    # Create the archive
+    # Create the archives
     echo "  Creating archive..."
     cd "$BUILD_DIR"
     tar -czf "${package_name}.tar.gz" "$package_name"
     
-    # Generate checksum
+    # Generate checksum for tar.gz
     if command -v sha256sum &> /dev/null; then
         sha256sum "${package_name}.tar.gz" > "${package_name}.tar.gz.sha256"
     else
         shasum -a 256 "${package_name}.tar.gz" > "${package_name}.tar.gz.sha256"
     fi
     
-    # Get file size
     local size=$(ls -lh "${package_name}.tar.gz" | awk '{print $5}')
-    
     echo -e "  ${GREEN}✓${NC} Created: ${package_name}.tar.gz ($size)"
+    
+    # Create .zip for macOS (preferred format for Mac users)
+    if [[ "$platform" == macos* ]]; then
+        zip -rq "${package_name}.zip" "$package_name"
+        if command -v sha256sum &> /dev/null; then
+            sha256sum "${package_name}.zip" > "${package_name}.zip.sha256"
+        else
+            shasum -a 256 "${package_name}.zip" > "${package_name}.zip.sha256"
+        fi
+        local zip_size=$(ls -lh "${package_name}.zip" | awk '{print $5}')
+        echo -e "  ${GREEN}✓${NC} Created: ${package_name}.zip ($zip_size)"
+    fi
     
     # Cleanup extracted directory
     rm -rf "$package_dir"
@@ -207,11 +230,11 @@ echo "=============================================="
 echo ""
 echo "Release packages created in: $BUILD_DIR/"
 echo ""
-ls -lh "$BUILD_DIR"/*.tar.gz 2>/dev/null
+ls -lh "$BUILD_DIR"/*.tar.gz "$BUILD_DIR"/*.zip 2>/dev/null
 echo ""
 echo "SHA256 checksums:"
 cat "$BUILD_DIR"/*.sha256 2>/dev/null
 echo ""
 echo "To upload to GitHub Release:"
-echo "  gh release upload v${VERSION} $BUILD_DIR/*.tar.gz $BUILD_DIR/*.sha256"
+echo "  gh release upload v${VERSION} $BUILD_DIR/*.tar.gz $BUILD_DIR/*.zip $BUILD_DIR/*.sha256"
 echo ""
