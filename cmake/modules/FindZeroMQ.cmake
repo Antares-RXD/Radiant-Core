@@ -82,6 +82,13 @@ if(ZeroMQ_INCLUDE_DIR)
 		set(_ZeroMQ_WINDOWS_LIBRARIES "$<$<PLATFORM_ID:Windows>:ws2_32;rpcrt4;iphlpapi>")
 	endif()
 
+    if(WIN32)
+        find_library(SODIUM_LIBRARY NAMES sodium)
+        if(SODIUM_LIBRARY)
+            list(APPEND _ZeroMQ_WINDOWS_LIBRARIES ${SODIUM_LIBRARY})
+        endif()
+    endif()
+
 	find_component(ZeroMQ zmq
 		NAMES zmq
 		INCLUDE_DIRS ${ZeroMQ_INCLUDE_DIRS}

@@ -40,7 +40,7 @@ Download official releases from [GitHub Releases](https://github.com/Radiant-Cor
 | **Linux x86_64** | [radiant-core-linux-x86_64.tar.gz] | 23 MB | *(Available on release page)* |
 | **macOS Universal** | [radiant-core-macos-universal.tar.gz] | 28 MB | *(Available on release page)* |
 | **Docker Image** | `radiant-core:latest` | 150 MB | *(Verified by Docker Hub)* |
-| **Windows** | Use WSL2 with Linux build | - | See [build-windows-portable.md](doc/build-windows-portable.md) |
+| **Windows x64 (GUI)** | [RadiantCore.exe + radiant-core-windows-x64.zip](gui/dist/) | ~22 MB | *(Available in gui/dist/)* |
 
 **🔐 Security Verification:**
 ```bash
@@ -312,10 +312,35 @@ cmake -GNinja .. -DBUILD_RADIANT_QT=ON
 ninja
 ```
 
-Native Build: Windows (via WSL2)
+Native Build: Windows
 ---------------------
 
-**Native Windows builds are not supported.** We recommend using WSL2 (Windows Subsystem for Linux) for the best experience on Windows.
+### Option 1: Windows GUI Application (Recommended for End Users)
+
+We provide a native Windows GUI application that bundles the node binaries:
+
+**Download from `gui/dist/`:**
+- `RadiantCore.exe` - The GUI application
+- `radiant-core-windows-x64.zip` - Node binaries (radiantd.exe, radiant-cli.exe + DLLs)
+
+**Installation:**
+1. Keep both files in the same folder
+2. Double-click `RadiantCore.exe`
+3. The GUI will automatically detect and install the node binaries
+4. Your browser will open to `http://127.0.0.1:8765`
+
+See [gui/README.md](gui/README.md) for detailed instructions.
+
+### Option 2: WSL2 (Recommended for Developers)
+
+For development and building from source, we recommend WSL2:
+
+```powershell
+# Install WSL2 (run as Administrator)
+wsl --install -d Ubuntu-22.04
+
+# Then follow Linux build instructions inside WSL2
+```
 
 See [build-windows-portable.md](doc/build-windows-portable.md) for WSL2 setup instructions.
 

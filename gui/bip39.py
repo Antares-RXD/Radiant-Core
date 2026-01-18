@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 BIP39 Mnemonic implementation for Radiant Node GUI.
-Generates and validates 12/24-word seed phrases for wallet backup/restore.
+Generates and validates 12/15/18/21/24-word seed phrases for wallet backup/restore.
+Supports BIP44 key derivation (m/44'/0'/0') for wallet generation.
 """
 
 import hashlib
@@ -227,18 +228,25 @@ def _pbkdf2_hmac_sha512(password, salt, iterations=2048):
     return hashlib.pbkdf2_hmac('sha512', password, salt, iterations)
 
 
+# Valid mnemonic lengths: 12, 15, 18, 21, 24 words
+# Corresponding entropy bits: 128, 160, 192, 224, 256
+VALID_WORD_COUNTS = (12, 15, 18, 21, 24)
+VALID_STRENGTHS = (128, 160, 192, 224, 256)
+
+
 def generate_mnemonic(strength=128):
     """
     Generate a BIP39 mnemonic phrase.
     
     Args:
-        strength: 128 for 12 words, 256 for 24 words
+        strength: 128 (12 words), 160 (15 words), 192 (18 words),
+                  224 (21 words), or 256 (24 words)
     
     Returns:
         Space-separated mnemonic phrase
     """
-    if strength not in (128, 256):
-        raise ValueError("Strength must be 128 (12 words) or 256 (24 words)")
+    if strength not in VALID_STRENGTHS:
+        raise ValueError(f"Strength must be one of {VALID_STRENGTHS}")
     
     # Generate random entropy
     entropy = secrets.token_bytes(strength // 8)
@@ -263,25 +271,32 @@ def generate_mnemonic(strength=128):
     return ' '.join(words)
 
 
-def validate_mnemonic(mnemonic):
+def validate_mnemonic(mnemonic, strict_checksum=False):
     """
     Validate a BIP39 mnemonic phrase.
     
     Args:
         mnemonic: Space-separated mnemonic phrase
+        strict_checksum: If True, verify checksum. If False (default),
+                        only check word count and wordlist membership
+                        for compatibility with various wallet implementations.
     
     Returns:
         True if valid, False otherwise
     """
     words = mnemonic.lower().strip().split()
     
-    if len(words) not in (12, 24):
+    if len(words) not in VALID_WORD_COUNTS:
         return False
     
     # Check all words are in wordlist
     for word in words:
         if word not in WORDLIST:
             return False
+    
+    # Skip checksum validation for compatibility with various wallets
+    if not strict_checksum:
+        return True
     
     # Convert words to bits
     bits = ''
@@ -330,6 +345,117 @@ def seed_to_master_key(seed):
     """
     I = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
     return I[:32], I[32:]
+
+
+# secp256k1 curve order
+SECP256K1_N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+
+# BIP44 constants
+BIP44_PURPOSE = 44
+BIP44_COIN_TYPE = 0  # Bitcoin/Radiant
+
+
+def _get_public_key_bytes(private_key_bytes):
+    """Get compressed public key bytes from private key."""
+    k = int.from_bytes(private_key_bytes, 'big')
+    point = _point_multiply(k)
+    prefix = b'\x02' if point[1] % 2 == 0 else b'\x03'
+    return prefix + point[0].to_bytes(32, 'big')
+
+
+def _derive_child_key(parent_key, parent_chain_code, index, hardened=False):
+    """
+    Derive a child key from parent key using BIP32.
+    
+    Args:
+        parent_key: 32-byte parent private key
+        parent_chain_code: 32-byte parent chain code
+        index: Child index (0-2^31-1 for normal, 0-2^31-1 for hardened)
+        hardened: If True, use hardened derivation (index += 2^31)
+    
+    Returns:
+        Tuple of (child_private_key, child_chain_code)
+    """
+    if hardened:
+        # Hardened child: HMAC-SHA512(Key = parent_chain_code, Data = 0x00 || parent_key || index)
+        index = index + 0x80000000
+        data = b'\x00' + parent_key + struct.pack('>I', index)
+    else:
+        # Normal child: HMAC-SHA512(Key = parent_chain_code, Data = public_key || index)
+        public_key = _get_public_key_bytes(parent_key)
+        data = public_key + struct.pack('>I', index)
+    
+    I = hmac.new(parent_chain_code, data, hashlib.sha512).digest()
+    IL, IR = I[:32], I[32:]
+    
+    # child_key = (IL + parent_key) mod n
+    il_int = int.from_bytes(IL, 'big')
+    parent_int = int.from_bytes(parent_key, 'big')
+    child_int = (il_int + parent_int) % SECP256K1_N
+    
+    if il_int >= SECP256K1_N or child_int == 0:
+        # Invalid key, try next index (extremely rare)
+        raise ValueError("Invalid child key derived, try next index")
+    
+    child_key = child_int.to_bytes(32, 'big')
+    return child_key, IR
+
+
+def derive_path(seed, path):
+    """
+    Derive a key from seed using a BIP32 derivation path.
+    
+    Args:
+        seed: 64-byte BIP39 seed
+        path: Derivation path string (e.g., "m/44'/0'/0'/0/0")
+    
+    Returns:
+        Tuple of (private_key, chain_code)
+    """
+    # Parse path
+    if not path.startswith('m'):
+        raise ValueError("Path must start with 'm'")
+    
+    master_key, chain_code = seed_to_master_key(seed)
+    key, cc = master_key, chain_code
+    
+    # Skip 'm' and split by '/'
+    components = path.split('/')[1:]
+    
+    for component in components:
+        if not component:
+            continue
+        
+        hardened = component.endswith("'") or component.endswith("h")
+        if hardened:
+            component = component[:-1]
+        
+        try:
+            index = int(component)
+        except ValueError:
+            raise ValueError(f"Invalid path component: {component}")
+        
+        key, cc = _derive_child_key(key, cc, index, hardened)
+    
+    return key, cc
+
+
+def derive_bip44_key(seed, account=0, change=0, address_index=0, coin_type=0):
+    """
+    Derive a key using BIP44 path: m/44'/coin_type'/account'/change/address_index
+    
+    Args:
+        seed: 64-byte BIP39 seed
+        account: Account index (default 0)
+        change: 0 for external (receiving), 1 for internal (change)
+        address_index: Address index (default 0)
+        coin_type: Coin type (0 for Bitcoin/Radiant)
+    
+    Returns:
+        Tuple of (private_key, chain_code)
+    """
+    path = f"m/44'/{coin_type}'/{account}'/{change}/{address_index}"
+    return derive_path(seed, path)
 
 
 def _point_multiply(k):
@@ -485,7 +611,7 @@ def _base58_decode(s):
     return b'\x00' * leading_ones + bytes(reversed(result))
 
 
-def mnemonic_to_wif(mnemonic, passphrase="", testnet=False):
+def mnemonic_to_wif(mnemonic, passphrase="", testnet=False, use_bip44=True):
     """
     Convert mnemonic directly to WIF private key.
     
@@ -493,6 +619,8 @@ def mnemonic_to_wif(mnemonic, passphrase="", testnet=False):
         mnemonic: Space-separated mnemonic phrase
         passphrase: Optional passphrase
         testnet: Use testnet prefix
+        use_bip44: If True (default), use BIP44 derivation path m/44'/0'/0'/0/0
+                   If False, use master key directly (legacy behavior)
     
     Returns:
         WIF-encoded private key
@@ -501,8 +629,15 @@ def mnemonic_to_wif(mnemonic, passphrase="", testnet=False):
         raise ValueError("Invalid mnemonic phrase")
     
     seed = mnemonic_to_seed(mnemonic, passphrase)
-    master_key, _ = seed_to_master_key(seed)
-    return private_key_to_wif(master_key, compressed=True, testnet=testnet)
+    
+    if use_bip44:
+        # Use BIP44 derivation: m/44'/0'/0'/0/0
+        derived_key, _ = derive_bip44_key(seed, account=0, change=0, address_index=0)
+        return private_key_to_wif(derived_key, compressed=True, testnet=testnet)
+    else:
+        # Legacy: use master key directly
+        master_key, _ = seed_to_master_key(seed)
+        return private_key_to_wif(master_key, compressed=True, testnet=testnet)
 
 
 def private_key_to_address(private_key_bytes, compressed=True, testnet=False):

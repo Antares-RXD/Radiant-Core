@@ -18,9 +18,15 @@ function(find_portable_openssl)
     endif()
     
     # Try MSYS2
-    if(NOT OPENSSL_FOUND AND EXISTS "C:/msys64/mingw64")
-        if(EXISTS "C:/msys64/mingw64/include/openssl/ssl.h")
-            set(OPENSSL_ROOT_DIR "C:/msys64/mingw64" CACHE PATH "OpenSSL root directory")
+    if(NOT OPENSSL_FOUND)
+        if(EXISTS "C:/msys64_real/mingw64")
+             set(MSYS_PREFIX "C:/msys64_real/mingw64")
+        elseif(EXISTS "C:/msys64/mingw64")
+             set(MSYS_PREFIX "C:/msys64/mingw64")
+        endif()
+
+        if(DEFINED MSYS_PREFIX AND EXISTS "${MSYS_PREFIX}/include/openssl/ssl.h")
+            set(OPENSSL_ROOT_DIR "${MSYS_PREFIX}" CACHE PATH "OpenSSL root directory")
             set(OPENSSL_FOUND TRUE)
             message(STATUS "Found OpenSSL via MSYS2: ${OPENSSL_ROOT_DIR}")
         endif()
@@ -202,7 +208,7 @@ find_portable_libevent()
 # Apply portable configuration for Windows
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     # Use static linking for better portability
-    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".lib")
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".lib" ".dll.a")
     
     # Add common Windows flags
     add_compile_definitions(
@@ -213,16 +219,24 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     
     # Set Windows SDK paths for MinGW
     if(MINGW)
+        if(NOT DEFINED MSYS_PREFIX)
+            if(EXISTS "C:/msys64_real/mingw64")
+                 set(MSYS_PREFIX "C:/msys64_real/mingw64")
+            elseif(EXISTS "C:/msys64/mingw64")
+                 set(MSYS_PREFIX "C:/msys64/mingw64")
+            endif()
+        endif()
+
         # Add MinGW include paths
         set(CMAKE_SYSTEM_INCLUDE_PATH 
-            "C:/msys64/mingw64/include"
+            "${MSYS_PREFIX}/include"
             "C:/Strawberry/c/x86_64-w64-mingw32/include"
             ${CMAKE_SYSTEM_INCLUDE_PATH}
         )
         
         # Add MinGW library paths
         set(CMAKE_SYSTEM_LIBRARY_PATH
-            "C:/msys64/mingw64/lib"
+            "${MSYS_PREFIX}/lib"
             "C:/Strawberry/c/x86_64-w64-mingw32/lib"
             ${CMAKE_SYSTEM_LIBRARY_PATH}
         )
@@ -231,9 +245,10 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
         find_path(SHLWAPI_INCLUDE_DIR 
             NAMES shlwapi.h
             PATHS 
-                "C:/msys64/mingw64/include"
+                "${MSYS_PREFIX}/include"
                 "C:/Strawberry/c/x86_64-w64-mingw32/include"
                 "C:/msys64/ucrt64/include"
+                "C:/msys64_real/ucrt64/include"
         )
         
         if(SHLWAPI_INCLUDE_DIR)
@@ -245,13 +260,26 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
         find_library(WS2_32_LIBRARY
             NAMES ws2_32
             PATHS
-                "C:/msys64/mingw64/lib"
+                "${MSYS_PREFIX}/lib"
                 "C:/Strawberry/c/x86_64-w64-mingw32/lib"
-                "C:/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/13.2.0"
+                "${MSYS_PREFIX}/lib/gcc/x86_64-w64-mingw32/13.2.0"
+                "${MSYS_PREFIX}/lib/gcc/x86_64-w64-mingw32/15.2.0"
+        )
+        
+        find_library(CRYPT32_LIBRARY
+            NAMES crypt32
+            PATHS
+                "${MSYS_PREFIX}/lib"
         )
         
         if(WS2_32_LIBRARY)
             message(STATUS "Found ws2_32 library: ${WS2_32_LIBRARY}")
+            link_libraries(${WS2_32_LIBRARY})
+        endif()
+        
+        if(CRYPT32_LIBRARY)
+            message(STATUS "Found crypt32 library: ${CRYPT32_LIBRARY}")
+            link_libraries(${CRYPT32_LIBRARY})
         endif()
         
         add_compile_options(-Wno-unused-parameter)

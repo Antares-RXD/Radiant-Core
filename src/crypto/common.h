@@ -100,14 +100,18 @@ uint64_t static inline CountBits(uint64_t x) {
     }
 #endif
     return index + 1;
+#elif HAVE_DECL___BUILTIN_CLZLL
+    return x ? 8 * sizeof(unsigned long long) - __builtin_clzll(x) : 0;
 #elif HAVE_DECL___BUILTIN_CLZL
     if (sizeof(unsigned long) >= sizeof(uint64_t)) {
         return x ? 8 * sizeof(unsigned long) - __builtin_clzl(x) : 0;
     }
-#elif HAVE_DECL___BUILTIN_CLZLL
-    if (sizeof(unsigned long long) >= sizeof(uint64_t)) {
-        return x ? 8 * sizeof(unsigned long long) - __builtin_clzll(x) : 0;
+    int ret = 0;
+    while (x) {
+        x >>= 1;
+        ++ret;
     }
+    return ret;
 #else
     int ret = 0;
     while (x) {

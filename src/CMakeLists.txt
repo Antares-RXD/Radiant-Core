@@ -228,6 +228,18 @@ include(BrewHelper)
 find_brew_prefix(OPENSSL_ROOT_DIR openssl)
 find_package(OpenSSL REQUIRED)
 
+# Fix for MinGW static OpenSSL dependencies
+if(MINGW AND TARGET OpenSSL::Crypto)
+  find_library(CRYPT32_LIBRARY NAMES crypt32)
+  find_library(WS2_32_LIBRARY NAMES ws2_32)
+  if(CRYPT32_LIBRARY)
+    set_property(TARGET OpenSSL::Crypto APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${CRYPT32_LIBRARY})
+  endif()
+  if(WS2_32_LIBRARY)
+    set_property(TARGET OpenSSL::Crypto APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${WS2_32_LIBRARY})
+  endif()
+endif()
+
 # libtool style configure
 add_subdirectory(config)
 
@@ -448,6 +460,11 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
   find_library(WS2_32_LIBRARY NAMES ws2_32)
   target_link_libraries(util ${WS2_32_LIBRARY})
+
+  find_library(CRYPT32_LIBRARY NAMES crypt32)
+  if(CRYPT32_LIBRARY)
+    target_link_libraries(util ${CRYPT32_LIBRARY})
+  endif()
 
   target_compile_definitions(util PUBLIC BOOST_THREAD_USE_LIB)
 endif()

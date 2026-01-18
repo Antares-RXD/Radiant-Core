@@ -1,6 +1,22 @@
 # Building Radiant Core on Windows
 
-> **Important**: Native Windows builds are not supported. We recommend using **WSL2** (Windows Subsystem for Linux) for the best experience on Windows.
+## For End Users: Native Windows GUI (Recommended)
+
+We provide a native Windows GUI application with pre-built binaries:
+
+1. Download from `gui/dist/`:
+   - `RadiantCore.exe` - The GUI application  
+   - `radiant-core-windows-x64.zip` - Node binaries and DLLs
+
+2. Keep both files in the same folder and double-click `RadiantCore.exe`
+
+See [gui/README.md](../gui/README.md) for detailed instructions.
+
+---
+
+## For Developers: Building from Source
+
+> **Note**: Native Windows builds from source are complex. We recommend using **WSL2** (Windows Subsystem for Linux) for development.
 
 ## Prerequisites
 - Windows 10/11 (Build 19041 or higher)

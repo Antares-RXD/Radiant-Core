@@ -14,6 +14,7 @@ import threading
 import time
 import webbrowser
 import tarfile
+import zipfile
 import hashlib
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -22,13 +23,16 @@ from urllib.error import URLError, HTTPError
 import socketserver
 import signal
 import sys
+import shutil
 
 # Import BIP39 mnemonic support
 try:
-    from bip39 import generate_mnemonic, validate_mnemonic, mnemonic_to_wif
+    from bip39 import (generate_mnemonic, validate_mnemonic, mnemonic_to_wif,
+                        derive_path, derive_bip44_key, VALID_WORD_COUNTS)
     BIP39_AVAILABLE = True
 except ImportError:
     BIP39_AVAILABLE = False
+    VALID_WORD_COUNTS = (12, 15, 18, 21, 24)
 
 # GitHub release configuration
 GITHUB_RELEASE_URL = "https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0"
@@ -53,6 +57,11 @@ RELEASE_ASSETS = {
         "folder": "radiant-core-linux-x64",
         "display": "Linux (ARM64) - x64 binary (requires emulation)",
     },
+    "windows_x64": {
+        "filename": "radiant-core-windows-x64.zip",
+        "folder": "radiant-core-windows-x64",
+        "display": "Windows (x64)",
+    },
 }
 
 
@@ -70,7 +79,9 @@ class DownloadManager:
         system = platform.system().lower()
         machine = platform.machine().lower()
         
-        if system == "darwin":
+        if system == "windows":
+            return "windows_x64"
+        elif system == "darwin":
             if machine in ("arm64", "aarch64"):
                 return "darwin_arm64"
             return "darwin_x86_64"
@@ -135,50 +146,108 @@ class DownloadManager:
             return False
         
         asset = RELEASE_ASSETS[platform_key]
-        url = f"{GITHUB_RELEASE_URL}/{asset['filename']}"
-        
+
+        # Create binaries directory
+        self.binaries_path.mkdir(parents=True, exist_ok=True)
+        tar_path = self.binaries_path / asset["filename"]
+
+        # Check for local file override (adjacent to executable or script)
+        local_file = None
+        if getattr(sys, 'frozen', False):
+            # Running as PyInstaller EXE
+            local_file = Path(sys.executable).parent / asset["filename"]
+        else:
+            # Running as script
+            local_file = Path(__file__).parent / asset["filename"]
+            
+        use_local = False
+        if local_file and local_file.exists():
+             use_local = True
+             self.download_progress = {
+                 "status": "downloading",
+                 "percent": 100,
+                 "message": f"Installing from local file: {local_file.name}...",
+             }
+             try:
+                 shutil.copy2(local_file, tar_path)
+             except Exception as e:
+                 self.download_progress = {
+                     "status": "error",
+                     "percent": 0,
+                     "message": f"Local install failed: {str(e)}",
+                 }
+                 return False
+
+        if not use_local:
+            if "url" in asset:
+                url = asset["url"]
+            else:
+                url = f"{GITHUB_RELEASE_URL}/{asset['filename']}"
+            
+            self.download_progress = {
+                "status": "downloading",
+                "percent": 0,
+                "message": f"Downloading {asset['filename']}...",
+            }
+            
+            try:
+                # Download with progress
+                req = Request(url, headers={"User-Agent": "RadiantCoreGUI/2.0"})
+                with urlopen(req, timeout=60) as response:
+                    total_size = int(response.headers.get("Content-Length", 0))
+                    downloaded = 0
+                    chunk_size = 65536
+                    
+                    with open(tar_path, "wb") as f:
+                        while True:
+                            chunk = response.read(chunk_size)
+                            if not chunk:
+                                break
+                            f.write(chunk)
+                            downloaded += len(chunk)
+                            if total_size > 0:
+                                percent = int((downloaded / total_size) * 100)
+                                self.download_progress = {
+                                    "status": "downloading",
+                                    "percent": percent,
+                                    "message": f"Downloading... {downloaded // 1024 // 1024}MB / {total_size // 1024 // 1024}MB",
+                                }
+            except HTTPError as e:
+                self.download_progress = {
+                    "status": "error",
+                    "percent": 0,
+                    "message": f"Download failed: HTTP {e.code}",
+                }
+                return False
+            except URLError as e:
+                self.download_progress = {
+                    "status": "error",
+                    "percent": 0,
+                    "message": f"Network error: {e.reason}",
+                }
+                return False
+            except Exception as e:
+                self.download_progress = {
+                    "status": "error",
+                    "percent": 0,
+                    "message": f"Error: {str(e)}",
+                }
+                return False
+            
+        # Extract
         self.download_progress = {
-            "status": "downloading",
-            "percent": 0,
-            "message": f"Downloading {asset['filename']}...",
+            "status": "extracting",
+            "percent": 100,
+            "message": "Extracting files...",
         }
         
         try:
-            # Create binaries directory
-            self.binaries_path.mkdir(parents=True, exist_ok=True)
-            tar_path = self.binaries_path / asset["filename"]
-            
-            # Download with progress
-            req = Request(url, headers={"User-Agent": "RadiantCoreGUI/2.0"})
-            with urlopen(req, timeout=60) as response:
-                total_size = int(response.headers.get("Content-Length", 0))
-                downloaded = 0
-                chunk_size = 65536
-                
-                with open(tar_path, "wb") as f:
-                    while True:
-                        chunk = response.read(chunk_size)
-                        if not chunk:
-                            break
-                        f.write(chunk)
-                        downloaded += len(chunk)
-                        if total_size > 0:
-                            percent = int((downloaded / total_size) * 100)
-                            self.download_progress = {
-                                "status": "downloading",
-                                "percent": percent,
-                                "message": f"Downloading... {downloaded // 1024 // 1024}MB / {total_size // 1024 // 1024}MB",
-                            }
-            
-            # Extract
-            self.download_progress = {
-                "status": "extracting",
-                "percent": 100,
-                "message": "Extracting files...",
-            }
-            
-            with tarfile.open(tar_path, "r:gz") as tar:
-                tar.extractall(path=self.binaries_path)
+            if asset["filename"].endswith(".zip"):
+                with zipfile.ZipFile(tar_path, 'r') as zip_ref:
+                    zip_ref.extractall(self.binaries_path)
+            else:
+                with tarfile.open(tar_path, "r:gz") as tar:
+                    tar.extractall(path=self.binaries_path)
             
             # Remove quarantine on macOS
             if platform.system() == "Darwin":
@@ -207,25 +276,11 @@ class DownloadManager:
             }
             return True
             
-        except HTTPError as e:
-            self.download_progress = {
-                "status": "error",
-                "percent": 0,
-                "message": f"Download failed: HTTP {e.code}",
-            }
-            return False
-        except URLError as e:
-            self.download_progress = {
-                "status": "error",
-                "percent": 0,
-                "message": f"Network error: {e.reason}",
-            }
-            return False
         except Exception as e:
             self.download_progress = {
                 "status": "error",
                 "percent": 0,
-                "message": f"Error: {str(e)}",
+                "message": f"Extraction failed: {str(e)}",
             }
             return False
     
@@ -936,7 +991,7 @@ class NodeManager:
         
         # Validate mnemonic
         if not validate_mnemonic(mnemonic):
-            return {"success": False, "error": "Invalid seed phrase. Must be 12 or 24 words from BIP39 wordlist."}
+            return {"success": False, "error": "Invalid seed phrase. Must be 12, 15, 18, 21, or 24 words from BIP39 wordlist."}
         
         try:
             # Convert mnemonic to WIF
@@ -1650,7 +1705,7 @@ HTML_PAGE = '''<!DOCTYPE html>
                     <!-- Seed Phrase Section -->
                     <div style="background:linear-gradient(135deg,rgba(0,217,255,0.1),rgba(0,232,138,0.1));border-radius:8px;padding:15px;margin-bottom:15px;">
                         <h4 style="margin-bottom:10px;color:var(--accent);">🌱 Seed Phrase (Recommended)</h4>
-                        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">12-word recovery phrase - write it down and store safely!</p>
+                        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Recovery phrase (12-24 words) - write it down and store safely!</p>
                         <div style="display:flex;gap:10px;margin-bottom:10px;">
                             <button class="btn-secondary btn-small" onclick="generateSeedPhrase()">Generate New Seed</button>
                             <button class="btn-secondary btn-small" onclick="showImportSeedModal()">Import Seed Phrase</button>
@@ -1737,15 +1792,15 @@ HTML_PAGE = '''<!DOCTYPE html>
             </div>
             <div>
                 <p style="color:var(--text-secondary);font-size:13px;margin-bottom:15px;">
-                    Enter your 12 or 24-word seed phrase to restore your wallet.
+                    Enter your seed phrase (12, 15, 18, 21, or 24 words) to restore your wallet.
                 </p>
                 <div class="form-group">
                     <label>Seed Phrase</label>
-                    <textarea id="importSeedWords" rows="3" placeholder="Enter your 12 or 24 words separated by spaces" style="font-family:monospace;resize:none;"></textarea>
+                    <textarea id="importSeedWords" rows="5" placeholder="Enter your seed words separated by spaces (12, 15, 18, 21, or 24 words)" style="font-family:monospace;resize:vertical;min-height:100px;line-height:1.6;"></textarea>
                 </div>
                 <div class="form-group">
                     <label>Passphrase (optional)</label>
-                    <input type="password" id="seedPassphrase" placeholder="Leave empty if none">
+                    <textarea id="seedPassphrase" rows="2" placeholder="Leave empty if none (BIP39 passphrase for additional security)" style="font-family:monospace;resize:vertical;min-height:50px;"></textarea>
                 </div>
                 <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:15px;">
                     <input type="checkbox" id="seedRescan" checked> Rescan blockchain for transactions (recommended)
@@ -2451,8 +2506,16 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404)
     
     def serve_logo(self, filename):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        logo_path = os.path.join(script_dir, "..", "doc", "images", filename)
+        if getattr(sys, 'frozen', False):
+            # Running as PyInstaller bundle
+            # Images are in the 'images' folder inside the temporary directory
+            base_path = sys._MEIPASS
+            logo_path = os.path.join(base_path, "images", filename)
+        else:
+            # Running as script
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            logo_path = os.path.join(script_dir, "..", "doc", "images", filename)
+            
         try:
             with open(logo_path, "rb") as f:
                 content = f.read()
@@ -2593,5 +2656,7 @@ def main():
         server.server_close()
 
 
+if __name__ == "__main__":
+    main()
 if __name__ == "__main__":
     main()

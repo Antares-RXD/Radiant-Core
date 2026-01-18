@@ -41,12 +41,45 @@ mark_as_advanced(QREncode_INCLUDE_DIR)
 
 if(QREncode_INCLUDE_DIR)
 	include(ExternalLibraryHelper)
+    message(STATUS "Debug: QREncode_INCLUDE_DIR=${QREncode_INCLUDE_DIR}")
 	find_component(QREncode qrencode
 		NAMES qrencode
 		HINTS ${_QREncode_BREW_HINT}
 		PATHS ${PC_QREncode_LIBRARY_DIRS}
 		INCLUDE_DIRS ${QREncode_INCLUDE_DIRS}
 	)
+    
+    if(NOT QREncode_qrencode_LIBRARY)
+        message(STATUS "Debug: Primary search failed, trying fallback for libqrencode.dll.a")
+        find_library(QREncode_qrencode_LIBRARY_FALLBACK
+            NAMES libqrencode.dll.a
+            HINTS ${QREncode_INCLUDE_DIR}/../lib
+        )
+        if(QREncode_qrencode_LIBRARY_FALLBACK)
+             message(STATUS "Debug: Found fallback library: ${QREncode_qrencode_LIBRARY_FALLBACK}")
+             set(QREncode_qrencode_LIBRARY "${QREncode_qrencode_LIBRARY_FALLBACK}" CACHE FILEPATH "Path to qrencode library" FORCE)
+             set(QREncode_qrencode_FOUND TRUE)
+             
+             if(NOT TARGET QREncode::qrencode)
+                add_library(QREncode::qrencode UNKNOWN IMPORTED)
+                set_target_properties(QREncode::qrencode PROPERTIES
+                    IMPORTED_LOCATION "${QREncode_qrencode_LIBRARY}"
+                )
+                set_property(TARGET QREncode::qrencode PROPERTY
+                    INTERFACE_INCLUDE_DIRECTORIES ${QREncode_INCLUDE_DIRS}
+                )
+             endif()
+        else()
+             message(STATUS "Debug: Fallback search failed for libqrencode.dll.a in ${QREncode_INCLUDE_DIR}/../lib")
+        endif()
+    endif()
+
+    message(STATUS "Debug: QREncode_qrencode_LIBRARY=${QREncode_qrencode_LIBRARY}")
+    if(TARGET QREncode::qrencode)
+        message(STATUS "Debug: Target QREncode::qrencode exists")
+    else()
+        message(STATUS "Debug: Target QREncode::qrencode DOES NOT EXIST")
+    endif()
 endif()
 
 include(FindPackageHandleStandardArgs)

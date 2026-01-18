@@ -7,6 +7,7 @@ Available Releases:
 ------------------
 - Linux/                - Linux x86_64 binaries
 - Mac - Apple Silicon/  - macOS ARM64 (Apple Silicon) binaries
+- Windows/              - Windows x86_64 binaries + GUI
 - Docker/               - Docker image tarball
 
 All releases include:
@@ -87,8 +88,36 @@ Docker:
   # View wallet commands
   docker exec radiant-node radiant-cli help | grep -A50 "== Wallet =="
 
-Windows (via WSL2):
--------------------
+Windows (x86_64):
+-----------------
+  cd Windows
+  .\radiantd.exe --version
+  .\radiantd.exe -server -txindex=1
+
+  Files included:
+  - radiantd.exe          - Node daemon
+  - radiant-cli.exe       - Command-line interface
+  - RadiantCore.exe       - GUI application (optional)
+  - Required DLLs:
+    - libcrypto-3-x64.dll, libssl-3-x64.dll (OpenSSL)
+    - libdb_cxx-6.2.dll (BerkeleyDB)
+    - libevent-7.dll, libevent_core-7.dll, libevent_extra-7.dll, libevent_openssl-7.dll
+    - libzmq.dll, libsodium-26.dll (ZeroMQ)
+    - libgcc_s_seh-1.dll, libstdc++-6.dll, libwinpthread-1.dll (MinGW runtime)
+    - libqrencode.dll, zlib1.dll
+
+Windows (Native GUI):
+---------------------
+  For end users, we provide a native Windows GUI application in the Windows/ folder:
+  
+  1. Double-click RadiantCore.exe (in the Windows/ folder)
+  
+  2. The GUI will automatically launch in your browser at http://127.0.0.1:8765
+  
+  3. All required DLLs and node binaries are included in the same folder
+
+Windows (via WSL2 - for developers):
+------------------------------------
   1. Install WSL2: wsl --install -d Ubuntu-24.04
   2. Use the Linux release inside WSL2
 

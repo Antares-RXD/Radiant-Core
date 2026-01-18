@@ -8,10 +8,19 @@ Get the **All-in-One Package** for your platform (includes GUI + node binaries):
 
 | Platform | Download | Size |
 |----------|----------|------|
+| **Windows (x64)** | [releases/Windows/](../releases/Windows/) | ~46 MB |
 | **macOS (Apple Silicon)** | [radiant-node-gui-macos-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-macos-v2.0.0.tar.gz) | ~15 MB |
 | **Linux (x86_64)** | [radiant-node-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-node-gui-linux-x64-v2.0.0.tar.gz) | ~20 MB |
 
 ### Quick Install
+
+**Windows (Recommended for most users):**
+
+1. Go to `releases/Windows/` folder (all binaries and DLLs are pre-extracted)
+
+2. Double-click `RadiantCore.exe`
+
+3. The GUI will launch in your default web browser at `http://127.0.0.1:8765`
 
 **macOS:**
 ```bash
@@ -197,6 +206,17 @@ Download from [python.org/downloads](https://www.python.org/downloads/)
 
 ## Quick Start
 
+### Windows (Native GUI - Recommended)
+1. Go to `releases/Windows/` folder
+2. Double-click `RadiantCore.exe`
+3. The GUI opens automatically in your browser at `http://127.0.0.1:8765`
+
+**Files included in releases/Windows/:**
+- `RadiantCore.exe` - GUI application
+- `radiantd.exe` - The Radiant node daemon
+- `radiant-cli.exe` - Command-line interface
+- Required DLLs (OpenSSL, libevent, BerkeleyDB, ZeroMQ, etc.)
+
 ### macOS
 1. Double-click `run_node_gui.command`
 2. If prompted, right-click → Open to bypass Gatekeeper
@@ -206,9 +226,6 @@ Download from [python.org/downloads](https://www.python.org/downloads/)
 chmod +x run_node_gui.sh
 ./run_node_gui.sh
 ```
-
-### Windows
-Double-click `run_node_gui.bat`
 
 ### Command Line (All Platforms)
 ```bash

@@ -195,4 +195,25 @@ run_testnet_miner.sh
 start_orbstack.sh
 
 # VS Code workspace (already partially covered)
-radiant-core.code-workspace
+*.spec
+temp_test/
+test.cpp
+package_*.py
+test_package_integration.py
+out.txt
+msys2-base.tar.xz
+
+# Build directories
+build_win/
+
+# Local scripts
+build_real.bat
+gui/build_exe.bat
+install_deps_final.bat
+repair_msys2.bat
+run_msys2_setup.bat
+setup_*.bat
+setup_msys2.sh
+
+# Trash
+src/crypto/common.hb.pyQ.cmakeke
