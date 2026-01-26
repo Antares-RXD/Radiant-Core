@@ -339,7 +339,7 @@ static UniValue stop(const Config &config, const JSONRPCRequest &jsonRequest) {
     if (jsonRequest.params[0].isNum()) {
         MilliSleep(jsonRequest.params[0].get_int());
     }
-    return "Bitcoin server stopping";
+    return "Radiant server stopping";
 }
 
 static UniValue uptime(const Config &config,
