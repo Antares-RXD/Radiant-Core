@@ -122,6 +122,14 @@ These changes do not affect consensus and are backward-compatible:
 ### Block Finality
 - Changed `DEFAULT_MAX_REORG_DEPTH` from **10 to 6** blocks for quicker block finality
 
+### Verification Progress Fix
+- Fixed `verificationprogress` in `getblockchaininfo` showing ~5% on fully synced nodes
+- Root cause: `chainTxData` was using stale Bitcoin values (337M txs from 2021) instead of actual Radiant values (~27M txs)
+- Implemented automatic time-based progress calculation that no longer requires periodic manual updates
+- Synced nodes now correctly report `verificationprogress: 1.0`
+
+**Credit**: Issue reported by **eman from icminers.com**.
+
 ---
 
 ## Replay Protection
@@ -218,6 +226,7 @@ For a complete list of Roadmap of future changes, see [upgrades.md](../upgrades.
 Thank you to all contributors to this release, with special thanks to:
 - **iotapi from Vipor.net** for reporting the Empty Block Miner vulnerability 
 - **CraigD** for reporting and assisting with the oversize transaction vulnerability 
+- **eman from icminers.com** for reporting the verificationprogress display bug
 - **Razoo** for all his work on Radiant and PSRT/Glyphs 
 - **Antares** for all he does for Radiant 
 
