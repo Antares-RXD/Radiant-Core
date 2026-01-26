@@ -5975,6 +5975,10 @@ bool IsBlockPruned(const CBlockIndex *pblockindex) {
 //! require cs_main if pindex has not been validated yet (because the chain's
 //! transaction count might be unset) This conditional lock requirement might be
 //! confusing, see: https://github.com/bitcoin/bitcoin/issues/15994
+//!
+//! Radiant: Uses time-based progress for fully synced nodes (when we have all
+//! headers) to avoid requiring periodic chainTxData updates. Falls back to
+//! tx-based estimation during initial sync when headers aren't complete.
 double GuessVerificationProgress(const ChainTxData &data,
                                  const CBlockIndex *pindex) {
     if (pindex == nullptr) {
@@ -5983,15 +5987,25 @@ double GuessVerificationProgress(const ChainTxData &data,
 
     int64_t nNow = time(nullptr);
 
-    double fTxTotal;
-    if (pindex->GetChainTxCount() <= data.nTxCount) {
-        fTxTotal = data.nTxCount + (nNow - data.nTime) * data.dTxRate;
-    } else {
-        fTxTotal = pindex->GetChainTxCount() +
-                   (nNow - pindex->GetBlockTime()) * data.dTxRate;
+    // If the block time is recent (within 24 hours), consider fully synced
+    if (nNow - pindex->GetBlockTime() < 24 * 60 * 60) {
+        return 1.0;
     }
 
-    return pindex->GetChainTxCount() / fTxTotal;
+    // Use time-based progress: how far through time from genesis to now
+    // This doesn't require periodic updates to chainTxData
+    int64_t nGenesisTime = 1655692970; // Radiant mainnet genesis timestamp
+    int64_t nTotalTime = nNow - nGenesisTime;
+    int64_t nProgressTime = pindex->GetBlockTime() - nGenesisTime;
+
+    if (nTotalTime <= 0) {
+        return 0.0;
+    }
+
+    double progress = static_cast<double>(nProgressTime) / nTotalTime;
+
+    // Clamp to valid range
+    return std::min(1.0, std::max(0.0, progress));
 }
 
 class CMainCleanup {

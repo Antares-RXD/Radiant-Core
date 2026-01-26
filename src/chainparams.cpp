@@ -196,20 +196,21 @@ public:
             {0, genesis.GetHash()},
             {10543, BlockHash::fromHex("0000000000389e57f64aeda459b441613dedb49b050ef0df1e25e4f325957dcf")}, 
             {18206, BlockHash::fromHex("000000000002b08f7be7bce01d53c4ab2f7b3420955866b88b3e6e087f941e07")}, // When ASERT went live
-            {19068, BlockHash::fromHex("0000000000021a9928656e3b386b2e352e054fb2344ec0474e003cfabcdf0eff")}  // Latest
+            {19068, BlockHash::fromHex("0000000000021a9928656e3b386b2e352e054fb2344ec0474e003cfabcdf0eff")},
+            {397831, BlockHash::fromHex("0000000000000082e6fc7da00beaa6e8b0c5de0072f546fa13644999034269fa")}  // Jan 2026
         }};
 
         // Data as of block
-        // 000000000000000000d7e938f43eb520468fc75dc626c54ec770f9cd1bd6bc1d
-        // (height 699219).
+        // 0000000000000082e6fc7da00beaa6e8b0c5de0072f546fa13644999034269fa
+        // (height 397831).
         chainTxData = ChainTxData{
             // UNIX timestamp of last known number of transactions.
-            1628025092,
+            1769450074,
             // Total number of transactions between genesis and that timestamp
             // (the tx=... number in the ChainStateFlushed debug.log lines)
-            337117246,
+            27433704,
             // Estimated number of transactions per second after that timestamp.
-            1.49,
+            0.23,
         };
     }
 };
