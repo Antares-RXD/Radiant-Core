@@ -129,9 +129,16 @@ Unable to bind to 127.0.0.1:7334 on this computer. Radiant Core is probably alre
 
 **Cause:** Port 7334 is the Tor onion service target port. If you're running multiple nodes on the same machine, they'll conflict on this port.
 
-**Solution:** Disable Tor binding on the secondary node by adding to `radiant.conf`:
+**Solutions:**
+
+**Option A: Disable Tor binding** (recommended if not using Tor)
 ```ini
 listenonion=0
+```
+
+**Option B: Use a different onion port** (if you need Tor on both nodes)
+```ini
+onionservicetarget=127.0.0.1:7434
 ```
 
 ---
@@ -154,7 +161,7 @@ port=7433
 rpcport=7432
 zmqpubrawblock=tcp://127.0.0.1:29432
 zmqpubrawtx=tcp://127.0.0.1:29433
-listenonion=0
+listenonion=0                         # or: onionservicetarget=127.0.0.1:7434
 datadir=/path/to/node2/data
 ```
 

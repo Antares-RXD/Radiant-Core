@@ -677,6 +677,11 @@ void SetupServerArgs() {
     gArgs.AddArg("-listenonion",
                  strprintf("Automatically create Tor onion service (default: %d)", DEFAULT_LISTEN_ONION),
                  ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-onionservicetarget=<addr:port>",
+                 strprintf("Bind to the given address for incoming Tor connections. "
+                           "Use this to change the onion service target port when running "
+                           "multiple nodes (default: 127.0.0.1:%u)", BaseParams().OnionServiceTargetPort()),
+                 ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
     gArgs.AddArg(
         "-maxconnections=<n>",
         strprintf("Maintain at most <n> connections to peers (default: %u)",
@@ -2895,7 +2900,18 @@ bool AppInitMain(Config &config, RPCServer &rpcServer,
     // Only set up onion binds if listenonion is enabled
     if (gArgs.GetBoolArg("-listenonion", DEFAULT_LISTEN_ONION)) {
         if (connOptions.onion_binds.empty()) {
-            connOptions.onion_binds.push_back(DefaultOnionServiceTarget());
+            // Check for custom onion service target
+            std::string onionServiceTarget = gArgs.GetArg("-onionservicetarget", "");
+            if (!onionServiceTarget.empty()) {
+                CService customTarget;
+                if (Lookup(onionServiceTarget, customTarget, BaseParams().OnionServiceTargetPort(), false)) {
+                    connOptions.onion_binds.push_back(customTarget);
+                } else {
+                    return InitError(strprintf(_("Invalid -onionservicetarget address: '%s'"), onionServiceTarget));
+                }
+            } else {
+                connOptions.onion_binds.push_back(DefaultOnionServiceTarget());
+            }
         }
         const auto bind_addr = connOptions.onion_binds.front();
         if (connOptions.onion_binds.size() > 1) {
