@@ -196,8 +196,8 @@ public:
             {0, genesis.GetHash()},
             {10543, BlockHash::fromHex("0000000000389e57f64aeda459b441613dedb49b050ef0df1e25e4f325957dcf")}, 
             {18206, BlockHash::fromHex("000000000002b08f7be7bce01d53c4ab2f7b3420955866b88b3e6e087f941e07")}, // When ASERT went live
-            {19068, BlockHash::fromHex("0000000000021a9928656e3b386b2e352e054fb2344ec0474e003cfabcdf0eff")},
-            {397831, BlockHash::fromHex("0000000000000082e6fc7da00beaa6e8b0c5de0072f546fa13644999034269fa")}  // Jan 2026
+            {19068, BlockHash::fromHex("0000000000021a9928656e3b386b2e352e054fb2344ec0474e003cfabcdf0eff")}
+            // Note: No checkpoint after block 19068 until after block 400,000 upgrade
         }};
 
         // Data as of block
