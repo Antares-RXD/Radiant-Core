@@ -2892,11 +2892,11 @@ bool AppInitMain(Config &config, RPCServer &rpcServer,
         return InitError(ResolveErrMsg("bind", bind_arg));
     }
 
-    if (connOptions.onion_binds.empty()) {
-        connOptions.onion_binds.push_back(DefaultOnionServiceTarget());
-    }
-
+    // Only set up onion binds if listenonion is enabled
     if (gArgs.GetBoolArg("-listenonion", DEFAULT_LISTEN_ONION)) {
+        if (connOptions.onion_binds.empty()) {
+            connOptions.onion_binds.push_back(DefaultOnionServiceTarget());
+        }
         const auto bind_addr = connOptions.onion_binds.front();
         if (connOptions.onion_binds.size() > 1) {
             InitWarning(strprintf(_("More than one onion bind address is provided. Using %s for the automatically created Tor onion service."), bind_addr.ToStringIPPort()));
