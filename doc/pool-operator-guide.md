@@ -132,13 +132,27 @@ Unable to bind to 127.0.0.1:7334 on this computer. Radiant Core is probably alre
 **Solutions:**
 
 **Option A: Disable Tor binding** (recommended if not using Tor)
+
+In `radiant.conf`:
 ```ini
 listenonion=0
 ```
 
+Or via command line:
+```bash
+radiantd -listenonion=0
+```
+
 **Option B: Use a different onion port** (if you need Tor on both nodes)
+
+In `radiant.conf`:
 ```ini
 onionservicetarget=127.0.0.1:7434
+```
+
+Or via command line:
+```bash
+radiantd -onionservicetarget=127.0.0.1:7434
 ```
 
 ---
@@ -247,8 +261,9 @@ tail -100 ~/.radiant/debug.log
 
 ## Getting Help
 
-- GitHub Issues: https://github.com/radiantblockchain/radiant-node/issues
+- GitHub Issues: https://github.com/Radiant-Core/Radiant-Core/issues
 - Documentation: https://radiantblockchain.org/docs
+- Pool Operator Support: Contact via GitHub issues or community channels
 
 ---Credit and thanks to eman with icminers.com for help with troubleshooting that lead to this guide being created---
 
