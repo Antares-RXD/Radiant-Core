@@ -678,9 +678,9 @@ void SetupServerArgs() {
                  strprintf("Automatically create Tor onion service (default: %d)", DEFAULT_LISTEN_ONION),
                  ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
     gArgs.AddArg("-onionservicetarget=<addr:port>",
-                 strprintf("Bind to the given address for incoming Tor connections. "
-                           "Use this to change the onion service target port when running "
-                           "multiple nodes (default: 127.0.0.1:%u)", BaseParams().OnionServiceTargetPort()),
+                 "Bind to the given address for incoming Tor connections. "
+                 "Use this to change the onion service target port when running "
+                 "multiple nodes (default: 127.0.0.1:7334, testnet: 127.0.0.1:27334)",
                  ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
     gArgs.AddArg(
         "-maxconnections=<n>",

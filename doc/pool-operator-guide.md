@@ -250,6 +250,6 @@ tail -100 ~/.radiant/debug.log
 - GitHub Issues: https://github.com/radiantblockchain/radiant-node/issues
 - Documentation: https://radiantblockchain.org/docs
 
----
+---Credit and thanks to eman with icminers.com for help with troubleshooting that lead to this guide being created---
 
 *Last updated: January 2026*
