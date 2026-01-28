@@ -46,8 +46,8 @@ RUN chown -R radiant:radiant /home/radiant
 USER radiant
 
 # Expose Radiant Testnet ports
-# P2P Port: 27333, RPC Port: 27332
-EXPOSE 27333 27332
+# P2P Port: 27333, RPC Port: 27332, ZMQ Port: 29000
+EXPOSE 27333 27332 29000
 
 # Start Radiant Testnet node with wallet support
 CMD ["radiantd", "-conf=/home/radiant/radiant-testnet.conf"]

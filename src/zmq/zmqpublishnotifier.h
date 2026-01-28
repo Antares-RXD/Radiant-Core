@@ -13,7 +13,7 @@ class CBlockIndex;
 class CZMQAbstractPublishNotifier : public CZMQAbstractNotifier {
 private:
     //! upcounting per message sequence number
-    uint32_t nSequence;
+    uint32_t nSequence{0};
 
 public:
     /* send zmq multipart message

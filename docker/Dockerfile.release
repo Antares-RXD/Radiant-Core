@@ -89,9 +89,11 @@ USER radiant
 WORKDIR /home/radiant
 
 # Expose ports
-EXPOSE 7332 7333
+# 7332 = mainnet P2P, 7333 = mainnet RPC, 29000 = ZMQ notifications
+EXPOSE 7332 7333 29000
 
 # Default command with wallet enabled
+# Note: To enable ZMQ, add -zmqpubhashblock=tcp://0.0.0.0:29000 to your command
 ENTRYPOINT ["radiantd"]
 CMD ["-server", "-rest", "-txindex=1", "-disablewallet=0"]
 

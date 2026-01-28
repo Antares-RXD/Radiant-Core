@@ -137,9 +137,17 @@ void CZMQNotificationInterface::UpdatedBlockTip(const CBlockIndex *pindexNew,
                                                 const CBlockIndex *pindexFork,
                                                 bool fInitialDownload) {
     // In IBD or blocks were disconnected without any new ones
-    if (fInitialDownload || pindexNew == pindexFork) {
+    if (fInitialDownload) {
+        LogPrint(BCLog::ZMQ, "zmq: Skipping UpdatedBlockTip notification - node is in IBD\n");
         return;
     }
+    if (pindexNew == pindexFork) {
+        LogPrint(BCLog::ZMQ, "zmq: Skipping UpdatedBlockTip notification - no chain extension (pindexNew == pindexFork)\n");
+        return;
+    }
+
+    LogPrint(BCLog::ZMQ, "zmq: UpdatedBlockTip - notifying %d notifiers for block %s at height %d\n",
+             notifiers.size(), pindexNew->GetBlockHash().GetHex(), pindexNew->nHeight);
 
     TryForEachAndRemoveFailed(notifiers, [pindexNew](CZMQAbstractNotifier* notifier) {
         return notifier->NotifyBlock(pindexNew);
