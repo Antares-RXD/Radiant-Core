@@ -53,12 +53,17 @@ A new minimum transaction fee policy is enforced at the consensus level to prote
 | Block Height | Minimum Fee | RXD/kB |
 |--------------|-------------|--------|
 | < 400,000 | 1,000,000 sat/kB | 0.01 RXD/kB |
-| ≥ 400,000 | 10,000,000 sat/kB | 0.1 RXD/kB |
+| 400,000 - 404,999 | 1,000,000 sat/kB | 0.01 RXD/kB |
+| ≥ 405,000 | 10,000,000 sat/kB | 0.1 RXD/kB |
 
 **Impact**:
 - Miners cannot set `-blockmintxfee` above the maximum for their height
 - Prevents "empty block" attacks where miners reject all transactions
 - Ensures minimum economic viability for miners
+
+**Note**:
+- The relay/mempool minimum fee (`minrelaytxfee`) and wallet required fee floor follow the same schedule, with a **5,000 block grace period** after 400,000. This improves pre-activation mempool compatibility.
+- `minrelaytxfee` is a *policy/relay* setting (mempool admission and propagation), not a consensus rule.
 
 **Credit**: Empty Block Miner vulnerability reported by **iotapi from Vipor.net**.
 

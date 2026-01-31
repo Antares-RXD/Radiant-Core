@@ -17,9 +17,18 @@ echo
 # Default settings
 NETWORK="testnet"
 PROFILE="mining"
-RPC_USER="testnet"
-RPC_PASS="testnetpass123"
+RPC_USER="${RPC_USER:-}"
+RPC_PASS="${RPC_PASS:-}"
 RPC_PORT="27332"
+
+# Validate credentials
+if [ -z "$RPC_USER" ] || [ -z "$RPC_PASS" ]; then
+    echo -e "${RED}ERROR: RPC_USER and RPC_PASS environment variables are required${NC}"
+    echo "Set them before running:"
+    echo "  export RPC_USER=your_rpc_username"
+    echo "  export RPC_PASS=your_rpc_password"
+    exit 1
+fi
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Parse arguments

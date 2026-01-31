@@ -80,6 +80,16 @@ def hash256(s):
     return sha256(sha256(s))
 
 
+def sha512_256(s):
+    """SHA-512/256 hash (single round)"""
+    return hashlib.new('sha512_256', s).digest()
+
+
+def hash512_256(s):
+    """Double SHA-512/256 - Radiant's block hash algorithm"""
+    return sha512_256(sha512_256(s))
+
+
 def ser_compact_size(size):
     r = b""
     if size < 253:
@@ -573,8 +583,9 @@ class CBlockHeader:
             r += struct.pack("<I", self.nTime)
             r += struct.pack("<I", self.nBits)
             r += struct.pack("<I", self.nNonce)
-            self.sha256 = uint256_from_str(hash256(r))
-            self.hash = encode(hash256(r)[::-1], 'hex_codec').decode('ascii')
+            # Radiant uses SHA-512/256d for block hashing (not SHA-256d)
+            self.sha256 = uint256_from_str(hash512_256(r))
+            self.hash = encode(hash512_256(r)[::-1], 'hex_codec').decode('ascii')
 
     def rehash(self):
         self.sha256 = None

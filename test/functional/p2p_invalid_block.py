@@ -107,9 +107,13 @@ class InvalidBlockRequestTest(BitcoinTestFramework):
 
         self.log.info("Test very broken block.")
 
+        # Clear the block store to avoid sending previously corrupted blocks
+        # when the node requests blocks after receiving block3's header
+        node.p2p.block_store = {}
+
         block3 = create_block(tip, create_coinbase(height), block_time)
         block_time += 1
-        block3.vtx[0].vout[0].nValue = 100 * COIN  # Too high!
+        block3.vtx[0].vout[0].nValue = 100000 * COIN  # Too high! (subsidy is 50000 * COIN)
         block3.vtx[0].sha256 = None
         block3.vtx[0].calc_sha256()
         block3.hashMerkleRoot = block3.calc_merkle_root()

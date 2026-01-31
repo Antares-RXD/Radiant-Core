@@ -17,9 +17,18 @@ echo
 
 # Default settings
 NETWORK="testnet"
-RPC_USER="testnet"
-RPC_PASS="testnetpass123"
+RPC_USER="${RPC_USER:-}"
+RPC_PASS="${RPC_PASS:-}"
 RPC_PORT="27332"
+
+# Validate credentials are set
+if [ -z "$RPC_USER" ] || [ -z "$RPC_PASS" ]; then
+    echo -e "${RED}ERROR: RPC_USER and RPC_PASS environment variables are required${NC}"
+    echo "Set them before running:"
+    echo "  export RPC_USER=your_rpc_username"
+    echo "  export RPC_PASS=your_secure_password"
+    exit 1
+fi
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Parse arguments
@@ -82,6 +91,15 @@ if ! $PROJECT_DIR/build/src/radiant-cli -$NETWORK -rpcuser=$RPC_USER -rpcpasswor
     
     # Start node with ASIC-optimized settings
     cd "$PROJECT_DIR"
+    
+    # Security warning for network binding
+    echo -e "${YELLOW}SECURITY WARNING:${NC}"
+    echo "RPC will be bound to localhost only for security."
+    echo "ASICs connect via Stratum proxy (port 3333), not RPC directly."
+    echo ""
+    echo "Press ENTER to continue with secure configuration, or Ctrl+C to cancel"
+    read -r
+    
     ./build/src/radiantd \
         -$NETWORK \
         -nodeprofile=mining \
@@ -90,8 +108,14 @@ if ! $PROJECT_DIR/build/src/radiant-cli -$NETWORK -rpcuser=$RPC_USER -rpcpasswor
         -rpcpassword=$RPC_PASS \
         -rpcport=$RPC_PORT \
         -maxconnections=50 \
-        -rpcallowip=0.0.0.0/0 \
+        -rpcallowip=127.0.0.1 \
+        -rpcbind=127.0.0.1 \
         -daemon
+    
+    echo ""
+    echo -e "${YELLOW}Note: RPC is bound to localhost for security.${NC}"
+    echo "ASICs should connect to the Stratum proxy, not directly to RPC."
+    echo "The Stratum proxy will communicate with the node via local RPC."
     
     echo -e "${GREEN}Node started with ASIC-optimized settings${NC}"
     sleep 5
@@ -126,37 +150,48 @@ echo "  Port: $RPC_PORT"
 echo "  Block Height: $BLOCK_COUNT"
 echo "  Difficulty: $DIFFICULTY"
 echo
-echo -e "${YELLOW}Stratum Connection:${NC}"
-echo "  URL: stratum+tcp://$NODE_IP:$RPC_PORT"
-echo "  Worker: radiant.YOUR_WORKER_NAME"
-echo "  Password: (any value or leave blank)"
+echo -e "${YELLOW}Stratum Proxy Setup:${NC}"
+echo "  ASICs MUST connect via Stratum proxy, not directly to node RPC"
+echo "  Start proxy with: ./mining/start_stratum_proxy.sh"
+echo "  Default Stratum Port: 3333"
 echo
 echo -e "${YELLOW}ASIC Configuration Examples:${NC}"
 echo
 echo "1. Antminer Web Interface:"
 echo "   - Go to Miner Configuration"
-echo "   - URL: stratum+tcp://$NODE_IP:$RPC_PORT"
-echo "   - Worker: radiant.ASIC_01"
+echo "   - URL: stratum+tcp://$NODE_IP:3333"
+echo "   - Worker: your_worker_name"
+echo "   - Password: x"
 echo "   - Save and restart"
 echo
 echo "2. cgminer/sgminer:"
-echo "   cgminer --url stratum+tcp://$NODE_IP:$RPC_PORT \\"
-echo "           --user radiant.ASIC_01 \\"
+echo "   cgminer --url stratum+tcp://$NODE_IP:3333 \\"
+echo "           --user your_worker_name \\"
 echo "           --pass x"
 echo
 echo "3. WhatsMiner:"
-echo "   - Pool URL: stratum+tcp://$NODE_IP:$RPC_PORT"
-echo "   - Worker: radiant.ASIC_01"
-echo "   - Password: (leave blank)"
+echo "   - Pool URL: stratum+tcp://$NODE_IP:3333"
+echo "   - Worker: your_worker_name"
+echo "   - Password: x"
+echo
+echo -e "${RED}IMPORTANT: Configure ALLOWED_WORKERS before starting stratum proxy!${NC}"
+echo "  export ALLOWED_WORKERS=worker1,worker2,worker3"
+echo
+echo -e "${YELLOW}Next Steps:${NC}"
+echo "1. Configure allowed workers:"
+echo "   export ALLOWED_WORKERS=worker1,worker2"
+echo
+echo "2. Start Stratum proxy:"
+echo "   ./mining/start_stratum_proxy.sh"
+echo
+echo "3. Configure your ASICs to connect to:"
+echo "   stratum+tcp://$NODE_IP:3333"
 echo
 echo -e "${YELLOW}Monitoring Commands:${NC}"
-echo "# Check connected miners"
-echo "./build/src/radiant-cli -$NETWORK -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS getpeerinfo"
+echo "# Check node status"
+echo "./build/src/radiant-cli -$NETWORK getmininginfo"
 echo
-echo "# Check mining stats"
-echo "./build/src/radiant-cli -$NETWORK -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS getmininginfo"
-echo
-echo "# Monitor real-time"
-echo "./mining/monitor.sh"
+echo "# Check stratum proxy logs"
+echo "tail -f stratum_proxy.log"
 echo
 echo -e "${GREEN}Setup complete! Configure your ASIC with the connection details above.${NC}"

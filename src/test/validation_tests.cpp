@@ -130,4 +130,47 @@ BOOST_AUTO_TEST_CASE(validation_load_external_block_file) {
     BOOST_CHECK_NO_THROW({ LoadExternalBlockFile(config, fp, 0); });
 }
 
+BOOST_AUTO_TEST_CASE(min_relay_fee_upgrade_test) {
+    const auto chainParams = CreateChainParams(CBaseChainParams::MAIN);
+    const Consensus::Params& params = chainParams->GetConsensus();
+    int upgradeHeight = params.radiantCore2UpgradeHeight;
+
+    // Save global state
+    CFeeRate originalMinRelayTxFee = ::minRelayTxFee;
+
+    // Case 1: Default global fee (legacy)
+    ::minRelayTxFee = CFeeRate(LEGACY_MIN_RELAY_TX_FEE_PER_KB);
+
+    // Before upgrade
+    BOOST_CHECK(GetEffectiveMinRelayFee(upgradeHeight - 1, params) == CFeeRate(LEGACY_MIN_RELAY_TX_FEE_PER_KB));
+    
+    // At upgrade (start of grace period)
+    BOOST_CHECK(GetEffectiveMinRelayFee(upgradeHeight, params) == CFeeRate(LEGACY_MIN_RELAY_TX_FEE_PER_KB));
+
+    // During grace period (e.g. 4999 blocks in)
+    BOOST_CHECK(GetEffectiveMinRelayFee(upgradeHeight + 4999, params) == CFeeRate(LEGACY_MIN_RELAY_TX_FEE_PER_KB));
+
+    // After grace period (5000 blocks)
+    BOOST_CHECK(GetEffectiveMinRelayFee(upgradeHeight + 5000, params) == CFeeRate(RADIANT_CORE_2_MIN_RELAY_TX_FEE_PER_KB));
+
+    // Case 2: User sets higher fee manually
+    ::minRelayTxFee = CFeeRate(RADIANT_CORE_2_MIN_RELAY_TX_FEE_PER_KB * 2);
+    
+    // Should respect the higher manual fee even before upgrade
+    BOOST_CHECK(GetEffectiveMinRelayFee(upgradeHeight - 1, params) == ::minRelayTxFee);
+    BOOST_CHECK(GetEffectiveMinRelayFee(upgradeHeight + 6000, params) == ::minRelayTxFee);
+
+    // Case 3: User sets lower fee manually (e.g. 0 or very low) - should enforce floor
+    ::minRelayTxFee = CFeeRate(Amount::zero());
+    
+    // Before upgrade: floor is legacy
+    BOOST_CHECK(GetEffectiveMinRelayFee(upgradeHeight - 1, params) == CFeeRate(LEGACY_MIN_RELAY_TX_FEE_PER_KB));
+    
+    // After grace period: floor is new fee
+    BOOST_CHECK(GetEffectiveMinRelayFee(upgradeHeight + 5000, params) == CFeeRate(RADIANT_CORE_2_MIN_RELAY_TX_FEE_PER_KB));
+
+    // Restore global state
+    ::minRelayTxFee = originalMinRelayTxFee;
+}
+
 BOOST_AUTO_TEST_SUITE_END()

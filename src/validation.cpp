@@ -278,10 +278,47 @@ int64_t nMaxTipAge = DEFAULT_MAX_TIP_AGE;
 BlockHash hashAssumeValid;
 arith_uint256 nMinimumChainWork;
 
-CFeeRate minRelayTxFee = CFeeRate(DEFAULT_MIN_RELAY_TX_FEE_PER_KB);
+CFeeRate minRelayTxFee = CFeeRate(LEGACY_MIN_RELAY_TX_FEE_PER_KB);
 Amount maxTxFee = DEFAULT_TRANSACTION_MAXFEE;
 
 CTxMemPool g_mempool;
+
+/**
+ * Get the effective minimum relay fee based on the current height and upgrade parameters.
+ * Implements the 5000 block grace period after Radiant Core 2.0 activation.
+ */
+CFeeRate GetEffectiveMinRelayFee(int nHeight, const Consensus::Params& consensusParams) {
+    // If user has explicitly set -minrelaytxfee, we generally respect it as a floor,
+    // but the global variable minRelayTxFee holds that value. 
+    // However, if the user didn't set it (it's at default), we want to enforce the upgrade logic.
+    // Since we can't easily distinguish "user set" vs "default" here without checking gArgs again,
+    // and standard behavior is that the node operator's setting overrides defaults:
+    
+    // 1. If the global minRelayTxFee is HIGHER than the legacy default, it means either:
+    //    a) The user set it higher manually.
+    //    b) We initialized it to a higher default (which we just fixed to NOT do).
+    //    c) It was set higher by some other mechanism.
+    // In case (a), we should respect the user's higher fee.
+    
+    // 2. The upgrade logic forces a higher fee floor after activation + grace period.
+    // So the effective fee is max(global_setting, required_floor).
+
+    Amount requiredFloor = LEGACY_MIN_RELAY_TX_FEE_PER_KB;
+    
+    // Check if we are past the activation height
+    if (nHeight >= consensusParams.radiantCore2UpgradeHeight) {
+        // Check for grace period (5000 blocks)
+        if (nHeight >= consensusParams.radiantCore2UpgradeHeight + 5000) {
+            requiredFloor = RADIANT_CORE_2_MIN_RELAY_TX_FEE_PER_KB;
+        }
+    }
+    
+    // Return the greater of the configured/global fee and the protocol required floor
+    if (minRelayTxFee.GetFeePerK() > requiredFloor) {
+        return minRelayTxFee;
+    }
+    return CFeeRate(requiredFloor);
+}
 
 /** Constant stuff for coinbase transactions we create: */
 CScript COINBASE_FLAGS;
@@ -735,7 +772,17 @@ AcceptToMemoryPoolWorker(const Config &config, CTxMemPool &pool,
         // disconnected blocks.
         // Do not change this to use virtualsize without coordinating a network
         // policy upgrade.
+<<<<<<< /Users/main/Downloads/Radiant-Core-main/src/validation.cpp
+<<<<<<< /Users/main/Downloads/Radiant-Core-main/src/validation.cpp
         if (!bypass_limits && nModifiedFees < minRelayTxFee.GetFee(nSize)) {
+=======
+=======
+>>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-f443262b/src/validation.cpp
+        int nHeight = ::ChainActive().Height();
+        CFeeRate effectiveMinRelayTxFee = GetEffectiveMinRelayFee(nHeight, consensusParams);
+
+        if (!bypass_limits && nModifiedFees < effectiveMinRelayTxFee.GetFee(nSize)) {
+>>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-f443262b/src/validation.cpp
             return state.DoS(0, false, REJECT_INSUFFICIENTFEE,
                              "min relay fee not met");
         }

@@ -10,6 +10,9 @@ import struct
 import subprocess
 import time
 import numpy as np
+import signal
+import sys
+from pathlib import Path
 
 try:
     import pyopencl as cl
@@ -21,11 +24,67 @@ except ImportError:
 # --- Configuration ---
 import os
 
-RPC_USER = os.getenv("RPC_USER", "testnet")
-RPC_PASS = os.getenv("RPC_PASS", "testnetpass123")
-RPC_PORT = os.getenv("RPC_PORT", "17332")
+# Add mining directory to path for shared utilities
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from mining_utils import (
+    sha512_256, sha512_256d, sha256d,
+    base58_decode, create_coinbase_transaction,
+    calculate_merkle_root, serialize_varint,
+    HASH_SIZE, HEADER_SIZE, MAX_UINT32
+)
+
+# Try to load from config file if env vars not set
+CONFIG_DIR = Path.home() / ".radiant_mining"
+CONFIG_FILE = CONFIG_DIR / "config.json"
+
+def load_config():
+    """Load configuration from file or environment"""
+    config = {}
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE) as f:
+                config = json.load(f)
+        except Exception as e:
+            print(f"Warning: Could not load config file: {e}")
+    
+    # Environment variables override config file
+    rpc_user = os.getenv("RPC_USER") or config.get("rpc", {}).get("user")
+    rpc_pass = os.getenv("RPC_PASS") or config.get("rpc", {}).get("pass")
+    rpc_port = os.getenv("RPC_PORT") or str(config.get("rpc", {}).get("port", "27332"))
+    network = os.getenv("NETWORK") or config.get("network", "testnet")
+    batch_size = int(os.getenv("BATCH_SIZE") or config.get("gpu", {}).get("batch_size", 4194304))
+    
+    return rpc_user, rpc_pass, rpc_port, network, batch_size
+
+RPC_USER, RPC_PASS, RPC_PORT, NETWORK, BATCH_SIZE = load_config()
 PROJECT_DIR = os.getenv("PROJECT_DIR", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-NETWORK = os.getenv("NETWORK", "testnet")
+
+# Validate required configuration
+if not RPC_USER or not RPC_PASS:
+    print("ERROR: RPC_USER and RPC_PASS are required")
+    print("Set them in one of these ways:")
+    print("  1. Environment variables:")
+    print("     export RPC_USER=your_rpc_username")
+    print("     export RPC_PASS=your_rpc_password")
+    print(f"  2. Config file: {CONFIG_FILE}")
+    exit(1)
+
+# Validate port is numeric
+try:
+    RPC_PORT = str(int(RPC_PORT))
+except ValueError:
+    print(f"ERROR: RPC_PORT must be numeric, got: {RPC_PORT}")
+    exit(1)
+
+# Validate network
+if NETWORK not in ["testnet", "mainnet", "regtest"]:
+    print(f"ERROR: Invalid NETWORK '{NETWORK}'. Must be: testnet, mainnet, or regtest")
+    exit(1)
+
+# Validate batch size (reduced max to avoid GPU memory issues)
+if BATCH_SIZE < 1 or BATCH_SIZE > 2**24:  # 16M max instead of 268M
+    print(f"ERROR: BATCH_SIZE must be between 1 and 16777216, got: {BATCH_SIZE}")
+    exit(1)
 
 # OpenCL kernel for SHA-512/256d
 # SHA-512/256 uses SHA-512 rounds but with different IVs and truncated output
@@ -202,19 +261,6 @@ __kernel void mine_sha512_256d(
     // Compare with target (little-endian comparison)
     // Hash needs to be less than target
     bool valid = false;
-    bool less = false;
-    for (int i = 31; i >= 0; i--) {
-        if (hash[i] < target[i]) {
-            less = true;
-            break;
-        } else if (hash[i] > target[i]) {
-            break;
-        }
-    }
-    valid = less || (hash[31] == target[31]);  // Equal at all bytes checked
-    
-    // Re-check properly: hash < target means valid
-    valid = false;
     for (int i = 31; i >= 0; i--) {
         if (hash[i] < target[i]) {
             valid = true;
@@ -237,27 +283,36 @@ __kernel void mine_sha512_256d(
 }
 """
 
-# --- CPU Hashing (fallback) --- #
-def sha512_256(data):
-    return hashlib.new('sha512_256', data).digest()
-
-def sha512_256d(data):
-    return sha512_256(sha512_256(data))
-
-def sha256d(data):
-    return hashlib.sha256(hashlib.sha256(data).digest()).digest()
-
-
 class GPUMiner:
     def __init__(self):
         self.running = True
+        self.shutdown_requested = False
         self.ctx = None
         self.queue = None
         self.program = None
-        self.batch_size = 2**22  # ~4M nonces per batch
+        self.batch_size = BATCH_SIZE
+        
+        # Set up signal handlers for graceful shutdown
+        signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGTERM, self._signal_handler)
         
         if GPU_AVAILABLE:
             self._init_opencl()
+    
+    def _signal_handler(self, signum, frame):
+        """Handle shutdown signals gracefully"""
+        print(f"\nReceived signal {signum}, shutting down gracefully...")
+        self.shutdown_requested = True
+        self.running = False
+    
+    def __del__(self):
+        """Cleanup OpenCL resources"""
+        if self.queue is not None:
+            try:
+                self.queue.finish()
+            except:
+                pass
+        # Context cleanup is automatic in pyopencl
     
     def _init_opencl(self):
         try:
@@ -297,25 +352,57 @@ class GPUMiner:
     
     def run(self):
         print("Radiant GPU Miner (SHA-512/256d) Started")
-        while self.running:
-            template = self._get_block_template()
-            if not template:
-                print("Failed to get block template, retrying in 5s...")
-                time.sleep(5)
-                continue
-            self._mine_block(template)
+        if GPU_AVAILABLE:
+            print("Using GPU acceleration")
+        else:
+            print("WARNING: GPU not available, using CPU fallback (very slow)")
+        print("Press Ctrl+C to stop mining gracefully")
+        
+        try:
+            while self.running and not self.shutdown_requested:
+                template = self._get_block_template()
+                if not template:
+                    if not self.shutdown_requested:
+                        print("Failed to get block template, retrying in 5s...")
+                        for _ in range(50):  # Check shutdown every 0.1s
+                            if self.shutdown_requested:
+                                break
+                            time.sleep(0.1)
+                    continue
+                self._mine_block(template)
+        except KeyboardInterrupt:
+            print("\nKeyboard interrupt received")
+        finally:
+            print("Mining stopped.")
 
     def _get_block_template(self):
+        """Get block template from node (credentials via stdin)"""
         try:
+            config_str = f"-rpcuser={RPC_USER}\n-rpcpassword={RPC_PASS}\n"
+            
             result = subprocess.run([
-                f"{PROJECT_DIR}/build/src/radiant-cli", f'-{NETWORK}',
-                f'-rpcuser={RPC_USER}', f'-rpcpassword={RPC_PASS}',
-                f'-rpcport={RPC_PORT}', 'getblocktemplate',
-                '{"rules": ["segwit"]}'
-            ], capture_output=True, text=True, cwd=PROJECT_DIR, check=True)
+                f"{PROJECT_DIR}/build/src/radiant-cli",
+                f'-{NETWORK}',
+                f'-rpcport={RPC_PORT}',
+                '-stdin',
+                'getblocktemplate'
+            ], input=config_str, capture_output=True, text=True, cwd=PROJECT_DIR, timeout=30)
+            
+            if result.returncode != 0:
+                if not self.shutdown_requested:
+                    print(f"Error getting block template: {result.stderr}")
+                return None
+            
             return json.loads(result.stdout)
-        except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
-            print(f"Error getting block template: {e}")
+        except subprocess.TimeoutExpired:
+            print("Timeout getting block template")
+            return None
+        except json.JSONDecodeError as e:
+            print(f"Error parsing block template JSON: {e}")
+            return None
+        except Exception as e:
+            if not self.shutdown_requested:
+                print(f"Unexpected error getting block template: {e}")
             return None
 
     def _mine_block(self, template):
@@ -372,7 +459,12 @@ class GPUMiner:
         
         print(f"GPU mining with batch size: {self.batch_size:,}")
         
-        while nonce < 2**32:
+        while nonce < 2**32 and not self.shutdown_requested:
+            # Check for shutdown
+            if self.shutdown_requested:
+                print("\nGPU mining interrupted by shutdown request")
+                return
+            
             # Reset found flag
             cl.enqueue_copy(self.queue, found_buf, np.array([0], dtype=np.uint32))
             
@@ -426,7 +518,7 @@ class GPUMiner:
         """Fallback CPU mining"""
         target = int(template['target'], 16)
         print(f"Target: {template['target']}")
-        print("WARNING: Using CPU fallback (slow)")
+        print("WARNING: Using CPU fallback (very slow)")
 
         bits_bytes = bytes.fromhex(template['bits'])
         bits_le = bits_bytes[::-1]
@@ -440,6 +532,11 @@ class GPUMiner:
 
         start_time = time.time()
         for nonce in range(2**32):
+            # Check for shutdown periodically
+            if self.shutdown_requested:
+                print("\nCPU mining interrupted by shutdown request")
+                return
+            
             header_with_nonce = header[:-4] + struct.pack('<I', nonce)
             block_hash = sha512_256d(header_with_nonce)
 
@@ -457,104 +554,90 @@ class GPUMiner:
                 hash_rate = nonce / elapsed if elapsed > 0 else 0
                 print(f"Checked {nonce:,} nonces @ {hash_rate:,.0f} H/s")
 
-        print("Failed to find a nonce in the given range.")
+        if not self.shutdown_requested:
+            print("Failed to find a nonce in the given range.")
 
     def _get_new_address(self):
+        """Get new mining address (credentials via stdin)"""
         try:
+            config_str = f"-rpcuser={RPC_USER}\n-rpcpassword={RPC_PASS}\n"
+            
             result = subprocess.run([
-                f"{PROJECT_DIR}/build/src/radiant-cli", f'-{NETWORK}',
+                f"{PROJECT_DIR}/build/src/radiant-cli",
+                f'-{NETWORK}',
                 '-rpcwallet=miner',
-                f'-rpcuser={RPC_USER}', f'-rpcpassword={RPC_PASS}',
-                f'-rpcport={RPC_PORT}', 'getnewaddress'
-            ], capture_output=True, text=True, cwd=PROJECT_DIR, check=True)
+                f'-rpcport={RPC_PORT}',
+                '-stdin',
+                'getnewaddress'
+            ], input=config_str, capture_output=True, text=True, cwd=PROJECT_DIR, timeout=10)
+            
+            if result.returncode != 0:
+                print(f"Error getting new address: {result.stderr}")
+                return None
+            
             return result.stdout.strip()
+        except subprocess.TimeoutExpired:
+            print("Timeout getting new address")
+            return None
         except Exception as e:
             print(f"Error getting new address: {e}")
             return None
 
     def _base58_decode(self, s):
-        b58_digits = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-        n = 0
-        for char in s:
-            n = n * 58 + b58_digits.index(char)
-        return n.to_bytes((n.bit_length() + 7) // 8, 'big')
+        """Decode Base58 string - using shared utility"""
+        return base58_decode(s)
 
     def _create_coinbase_tx(self, template):
+        """Create coinbase transaction using shared utility"""
         address = self._get_new_address()
         if not address:
             return None, None
         
-        decoded_address = self._base58_decode(address)
-        pubkeyhash = decoded_address[1:-4]
-
-        # BIP34 height encoding
-        height = template['height']
-        if height == 0:
-            coinbase_script_sig = b'\x00'  # OP_0
-        elif height <= 16:
-            coinbase_script_sig = bytes([0x50 + height])  # OP_1 through OP_16
-        elif height <= 0x7f:
-            coinbase_script_sig = bytes([0x01, height])  # 1-byte push
-        elif height <= 0x7fff:
-            coinbase_script_sig = b'\x02' + struct.pack('<H', height)  # 2-byte push
-        elif height <= 0x7fffff:
-            coinbase_script_sig = b'\x03' + struct.pack('<I', height)[:3]  # 3-byte push
-        else:
-            coinbase_script_sig = b'\x04' + struct.pack('<I', height)  # 4-byte push
-        coinbase_output_script = b'\x76\xa9\x14' + pubkeyhash + b'\x88\xac'
-
-        tx_data = struct.pack('<i', 1)
-        tx_data += struct.pack('<B', 1)
-        tx_data += b'\x00' * 32
-        tx_data += struct.pack('<I', 0xffffffff)
-        tx_data += struct.pack('<B', len(coinbase_script_sig)) + coinbase_script_sig
-        tx_data += struct.pack('<I', 0xffffffff)
-        tx_data += struct.pack('<B', 1)
-        tx_data += struct.pack('<q', template['coinbasevalue'])
-        tx_data += struct.pack('<B', len(coinbase_output_script)) + coinbase_output_script
-        tx_data += struct.pack('<I', 0)
-
-        return tx_data, address
+        try:
+            tx_data = create_coinbase_transaction(
+                height=template['height'],
+                coinbase_value=template['coinbasevalue'],
+                address=address
+            )
+            return tx_data, address
+        except Exception as e:
+            print(f"Error creating coinbase transaction: {e}")
+            return None, None
 
     def _calculate_merkle_root(self, txids):
-        if not txids:
-            return b'\x00' * 32
-
-        while len(txids) > 1:
-            if len(txids) % 2 != 0:
-                txids.append(txids[-1])
-            next_level = []
-            for i in range(0, len(txids), 2):
-                combined = txids[i] + txids[i+1]
-                next_level.append(sha256d(combined))
-            txids = next_level
-        return txids[0]
+        """Calculate merkle root using shared utility"""
+        return calculate_merkle_root(txids)
 
     def _serialize_varint(self, n):
-        if n < 0xfd:
-            return struct.pack('<B', n)
-        elif n <= 0xffff:
-            return b'\xfd' + struct.pack('<H', n)
-        elif n <= 0xffffffff:
-            return b'\xfe' + struct.pack('<I', n)
-        else:
-            return b'\xff' + struct.pack('<Q', n)
+        """Serialize varint using shared utility"""
+        return serialize_varint(n)
 
     def _submit_block(self, header, transactions):
+        """Submit block to node (credentials via stdin)"""
         block_hex = header.hex()
         block_hex += self._serialize_varint(len(transactions)).hex()
         for tx_data in transactions:
             block_hex += tx_data.hex()
         
         try:
+            config_str = f"-rpcuser={RPC_USER}\n-rpcpassword={RPC_PASS}\n"
+            
             result = subprocess.run([
-                f"{PROJECT_DIR}/build/src/radiant-cli", f'-{NETWORK}',
-                f'-rpcuser={RPC_USER}', f'-rpcpassword={RPC_PASS}',
-                f'-rpcport={RPC_PORT}', 'submitblock', block_hex
-            ], capture_output=True, text=True, cwd=PROJECT_DIR, check=True)
-            print(f"Block submitted: {result.stdout}")
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to submit block: {e.stderr}")
+                f"{PROJECT_DIR}/build/src/radiant-cli",
+                f'-{NETWORK}',
+                f'-rpcport={RPC_PORT}',
+                '-stdin',
+                'submitblock', block_hex
+            ], input=config_str, capture_output=True, text=True, cwd=PROJECT_DIR, timeout=30)
+            
+            if result.returncode == 0:
+                print(f"Block submitted successfully: {result.stdout}")
+            else:
+                print(f"Failed to submit block: {result.stderr}")
+        except subprocess.TimeoutExpired:
+            print("Timeout submitting block")
+        except Exception as e:
+            print(f"Unexpected error submitting block: {e}")
 
 
 if __name__ == "__main__":

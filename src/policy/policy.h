@@ -34,8 +34,15 @@ static constexpr int64_t DEFAULT_MAX_INITIAL_GBT_TIME = 0;
  * Legacy value (pre-Radiant Core 2.0): 1,000,000 satoshis/kB
  * New value (post-Radiant Core 2.0 at block 400,000): 10,000,000 satoshis/kB
  */
+<<<<<<< /Users/main/Downloads/Radiant-Core-main/src/policy/policy.h
 static constexpr Amount LEGACY_BLOCK_MIN_TX_FEE_PER_KB(1000000 * SATOSHI);
 static constexpr Amount DEFAULT_BLOCK_MIN_TX_FEE_PER_KB(10000000 * SATOSHI);
+=======
+static constexpr Amount LEGACY_MIN_RELAY_TX_FEE_PER_KB(1000000 * SATOSHI);
+static constexpr Amount DEFAULT_MIN_RELAY_TX_FEE_PER_KB(1000000 * SATOSHI);
+static constexpr Amount RADIANT_CORE_2_MIN_RELAY_TX_FEE_PER_KB(10000000 * SATOSHI);
+static constexpr int RADIANT_CORE_2_GRACE_BLOCKS = 5000; // ~1 week
+>>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-bbaa439e/src/policy/policy.h
 /**
  * Default for -gbtcheckvalidity, which determines whether we call
  * TestBlockValidity() on the generated block template.

@@ -46,6 +46,17 @@ This document tracks the modernization and upgrade efforts for the Radiant Node 
   - Prior to block height **400,000**, both networks use a **2-day** ASERT half-life.
   - Starting at block height **400,000**, both networks switch to a **12-hour** ASERT half-life.
   - Testnet remains at a **1-hour** half-life.
+- **Relay/Wallet Minimum Fee Policy (Grace Period)**:
+  - The transaction relay/mempool minimum fee (`minrelaytxfee`) and the wallet required fee floor are height-gated.
+  - A **5,000 block grace period** is applied after the Radiant Core 2.0 activation height.
+  - Effective schedule:
+    - **< 400,000**: `1,000,000 sat/kB` (`0.01 RXD/kB`)
+    - **400,000 - 404,999**: `1,000,000 sat/kB` (`0.01 RXD/kB`) (grace period)
+    - **>= 405,000**: `10,000,000 sat/kB` (`0.1 RXD/kB`)
+  - This improves pre-activation mempool compatibility while still enforcing the new fee policy after the grace period.
+  - Operational guidance:
+    - Node operators should generally avoid manually setting `-minrelaytxfee` unless intentionally running a restrictive relay policy.
+    - Wallet providers should ensure fee estimation meets the effective relay floor (wallet will clamp to the required minimum).
 - **Transaction Size Limit**:
   - Set `MAX_TX_SIZE` to **12 MB** in `src/consensus/consensus.h`.
   - Removed legacy `MAX_TX_SIZE_ENERGY` constant (not needed for this upgrade).

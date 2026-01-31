@@ -466,7 +466,12 @@ rpcallowip=127.0.0.1
 
 # Fee policy (amounts are in RXD/kB)
 # Defaults are tuned for RXD economics. Override only if you understand the tradeoffs.
-minrelaytxfee=0.1
+# Relay/mempool minimum fee is height-gated:
+# - < 400,000: 0.01 RXD/kB
+# - 400,000 - 404,999 (grace period): 0.01 RXD/kB
+# - >= 405,000: 0.1 RXD/kB
+# Avoid setting minrelaytxfee=0.1 prior to 405,000 unless you intentionally want to relay fewer transactions.
+minrelaytxfee=0.01
 incrementalrelayfee=0.01
 blockmintxfee=0.1
 fallbackfee=0.1
@@ -531,7 +536,8 @@ Avoid running with `-debug=net` unless you are actively debugging P2P behavior. 
 
 - **`txindex=1`** is useful for explorers/indexers and increases disk usage. Disable it if you do not need arbitrary transaction lookups.
 - If you see `Warning: -minrelaytxfee is set very high!` in logs, check your config/flags and remove or lower the override unless intentionally running a restrictive relay policy.
-- Fee-related configuration values are expressed in **RXD/kB** (e.g. `minrelaytxfee=0.1`).
+- Fee-related configuration values are expressed in **RXD/kB** (e.g. `minrelaytxfee=0.01`).
+- `minrelaytxfee` controls transaction relay/mempool acceptance. It should generally be left at default so the node can apply the network's height-gated fee policy (including the grace period).
 - `incrementalrelayfee` controls the minimum fee-rate increase used for mempool limiting / replacement behavior.
 
 Development & CI

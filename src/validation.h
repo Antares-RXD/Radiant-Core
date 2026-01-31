@@ -220,6 +220,13 @@ extern size_t nCoinCacheUsage;
  * transaction creation)
  */
 extern CFeeRate minRelayTxFee;
+
+/**
+ * Get the effective minimum relay fee based on the current height and upgrade parameters.
+ * Implements the 5000 block grace period after Radiant Core 2.0 activation.
+ */
+CFeeRate GetEffectiveMinRelayFee(int nHeight, const Consensus::Params& consensusParams);
+
 /**
  * Absolute maximum transaction fee (in satoshis) used by wallet and mempool
  * (rejects high fee in sendrawtransaction)

@@ -32,7 +32,18 @@ Amount GetMinimumFee(const CWallet &wallet, unsigned int nTxBytes,
 }
 
 CFeeRate GetRequiredFeeRate(const CWallet &wallet) {
+<<<<<<< /Users/main/Downloads/Radiant-Core-main/src/wallet/fees.cpp
+<<<<<<< /Users/main/Downloads/Radiant-Core-main/src/wallet/fees.cpp
     return std::max(wallet.m_min_fee, ::minRelayTxFee);
+=======
+=======
+>>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-f443262b/src/wallet/fees.cpp
+    int nHeight = ::ChainActive().Height();
+    const Consensus::Params &consensusParams = Params().GetConsensus();
+    CFeeRate effectiveMinRelayTxFee = GetEffectiveMinRelayFee(nHeight, consensusParams);
+
+    return std::max(wallet.m_min_fee, effectiveMinRelayTxFee);
+>>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-f443262b/src/wallet/fees.cpp
 }
 
 CFeeRate GetMinimumFeeRate(const CWallet &wallet,
