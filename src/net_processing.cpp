@@ -3997,7 +3997,7 @@ bool PeerLogicValidation::ProcessMessages(const Config &config, CNode *pfrom,
     msg.SetVersion(pfrom->GetRecvVersion());
 
     // Scan for message start
-    if (memcmp(std::begin(msg.hdr.pchMessageStart),
+    if (std::memcmp(std::begin(msg.hdr.pchMessageStart),
                std::begin(chainparams.NetMagic()),
                CMessageHeader::MESSAGE_START_SIZE) != 0) {
         LogPrint(BCLog::NET,
