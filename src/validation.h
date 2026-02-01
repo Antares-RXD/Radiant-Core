@@ -65,12 +65,6 @@ struct Params;
 #define MIN_TRANSACTION_SIZE                                                   \
     (::GetSerializeSize(CTransaction::null, PROTOCOL_VERSION))
 
-/** Default for -minrelaytxfee, minimum relay fee for transactions
- * Legacy value (pre-Radiant Core 2.0): 1,000,000 satoshis/kB
- * New value (post-Radiant Core 2.0 at block 400,000): 10,000,000 satoshis/kB
- */
-static constexpr Amount LEGACY_MIN_RELAY_TX_FEE_PER_KB(1000000 * SATOSHI);
-static constexpr Amount DEFAULT_MIN_RELAY_TX_FEE_PER_KB(10000000 * SATOSHI);
 /** Default for -excessutxocharge for transactions transactions */
 static constexpr Amount DEFAULT_UTXO_FEE = Amount::zero();
 //! -maxtxfee default

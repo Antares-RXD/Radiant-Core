@@ -254,3 +254,6 @@ mining/test_full_mining.py
 # Build artifacts and releases
 radiant-core-windows-x64/
 radiant-core-windows-x64.zip
+
+# Network monitoring script (local use only)
+network_monitor.py

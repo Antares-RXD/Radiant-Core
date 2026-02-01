@@ -142,12 +142,12 @@ BlockAssembler::CreateNewBlock(const CScript &scriptPubKeyIn, double timeLimitSe
     const Consensus::Params &consensusParams = chainparams.GetConsensus();
 
     // Enforce minimum fee rate based on Radiant Core 2.0 activation
-    // After block 400,000, the minimum fee is 10,000,000 sat/kB (0.1 RXD/kB)
-    // Before that, it's 1,000,000 sat/kB (0.01 RXD/kB)
+    // Post-upgrade: 10,000,000 sat/kB (0.1 RXD/kB)
+    // Pre-upgrade:   1,000,000 sat/kB (0.01 RXD/kB)
     if (!chainparams.MineBlocksOnDemand()) {
         if (IsRadiantCore2Enabled(consensusParams, pindexPrev)) {
-            if (blockMinFeeRate < CFeeRate(DEFAULT_BLOCK_MIN_TX_FEE_PER_KB)) {
-                blockMinFeeRate = CFeeRate(DEFAULT_BLOCK_MIN_TX_FEE_PER_KB);
+            if (blockMinFeeRate < CFeeRate(RADIANT_CORE_2_BLOCK_MIN_TX_FEE_PER_KB)) {
+                blockMinFeeRate = CFeeRate(RADIANT_CORE_2_BLOCK_MIN_TX_FEE_PER_KB);
             }
         } else {
             // Pre-upgrade: use legacy fee, but still cap at legacy maximum
