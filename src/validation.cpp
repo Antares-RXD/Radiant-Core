@@ -772,17 +772,10 @@ AcceptToMemoryPoolWorker(const Config &config, CTxMemPool &pool,
         // disconnected blocks.
         // Do not change this to use virtualsize without coordinating a network
         // policy upgrade.
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/src/validation.cpp
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/src/validation.cpp
-        if (!bypass_limits && nModifiedFees < minRelayTxFee.GetFee(nSize)) {
-=======
-=======
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-f443262b/src/validation.cpp
         int nHeight = ::ChainActive().Height();
         CFeeRate effectiveMinRelayTxFee = GetEffectiveMinRelayFee(nHeight, consensusParams);
 
         if (!bypass_limits && nModifiedFees < effectiveMinRelayTxFee.GetFee(nSize)) {
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-f443262b/src/validation.cpp
             return state.DoS(0, false, REJECT_INSUFFICIENTFEE,
                              "min relay fee not met");
         }
