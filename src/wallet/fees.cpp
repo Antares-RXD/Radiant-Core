@@ -6,6 +6,7 @@
 
 #include <wallet/fees.h>
 
+#include <chainparams.h>
 #include <config.h>
 #include <policy/policy.h>
 #include <txmempool.h>
