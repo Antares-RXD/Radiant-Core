@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
 Radiant Stratum Proxy
+Bridges ASIC/GPU miners to Radiant node via getblocktemplate
+Supports: Iceriver RXD ASICs, lolminer, srbminer, teamredminer, and other SHA-512/256d miners
 """
 
 import asyncio
@@ -9,530 +11,321 @@ import struct
 import hashlib
 import time
 import logging
-import signal
-import base64
-import secrets
+import subprocess
+import socket
 from typing import Dict, Optional, Tuple, Set
 import os
 
-# Try to import aiohttp for async HTTP, fallback to urllib
-try:
-    import aiohttp
-    AIOHTTP_AVAILABLE = True
-except ImportError:
-    import urllib.request
-    import urllib.error
-    AIOHTTP_AVAILABLE = False
-    logging.warning("aiohttp not available, using synchronous urllib (slower performance)")
-
-# Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-# Configuration - Required credentials (no defaults for security)
-RPC_USER = os.getenv("RPC_USER")
-RPC_PASS = os.getenv("RPC_PASS")
-RPC_PORT = os.getenv("RPC_PORT", "27332")
-RPC_HOST = os.getenv("RPC_HOST", "127.0.0.1")
-RPC_WALLET = os.getenv("RPC_WALLET", "miner")
-PROJECT_DIR = os.getenv("PROJECT_DIR", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Configuration
+RPC_USER = os.getenv("RPC_USER", "2d6b47f6ffd190cab44bfcd1ced86c4a")
+RPC_PASS = os.getenv("RPC_PASS", "69xs4Vp5P12jVKbx/FJ3G4CFCDIqCaCvOgo/qIHh8gY=")
+RPC_PORT = os.getenv("RPC_PORT", "17332")
+PROJECT_DIR = os.getenv("PROJECT_DIR", "/Users/main/Downloads/Radiant-Core-main")
+CLI_PATH = os.getenv("CLI_PATH", os.path.join(PROJECT_DIR, "build/src/radiant-cli"))
 NETWORK = os.getenv("NETWORK", "testnet")
 
-# Stratum configuration
 STRATUM_PORT = int(os.getenv("STRATUM_PORT", "3333"))
-STRATUM_DIFFICULTY = float(os.getenv("STRATUM_DIFFICULTY", "0.001"))
-MAX_JOBS = int(os.getenv("MAX_JOBS", "20"))
-JOB_POLL_INTERVAL = int(os.getenv("JOB_POLL_INTERVAL", "5"))
-MAX_NTIME_DRIFT = int(os.getenv("MAX_NTIME_DRIFT", "7200"))  # 2 hours
+DIFFICULTY = float(os.getenv("DIFFICULTY", "8.0"))
+DEBUG = os.getenv("DEBUG", "").lower() in ("1", "true", "yes")
 
-# Authentication - comma-separated list of allowed workers
-# SECURITY: Empty list now requires explicit configuration
-ALLOWED_WORKERS_STR = os.getenv("ALLOWED_WORKERS", "")
-ALLOWED_WORKERS = ALLOWED_WORKERS_STR.split(",") if ALLOWED_WORKERS_STR else []
-if not ALLOWED_WORKERS:
-    logger.warning("WARNING: No ALLOWED_WORKERS configured - any worker can connect!")
-    logger.warning("Set ALLOWED_WORKERS environment variable for production use")
-
-# Rate limiting
-MAX_SHARES_PER_MINUTE = int(os.getenv("MAX_SHARES_PER_MINUTE", "600"))
-MAX_AUTH_FAILURES = int(os.getenv("MAX_AUTH_FAILURES", "5"))
-AUTH_FAILURE_BAN_TIME = int(os.getenv("AUTH_FAILURE_BAN_TIME", "300"))  # 5 minutes
-
-
-def validate_config():
-    """Validate required configuration on startup"""
-    errors = []
-    
-    if not RPC_USER:
-        errors.append("RPC_USER environment variable is required")
-    if not RPC_PASS:
-        errors.append("RPC_PASS environment variable is required")
-    
-    # Validate port is numeric
-    try:
-        int(RPC_PORT)
-    except ValueError:
-        errors.append(f"RPC_PORT must be numeric, got: {RPC_PORT}")
-    
-    # Validate network
-    if NETWORK not in ["testnet", "mainnet", "regtest"]:
-        errors.append(f"Invalid NETWORK '{NETWORK}'. Must be: testnet, mainnet, or regtest")
-    
-    if errors:
-        for err in errors:
-            logger.error(f"Configuration error: {err}")
-        logger.error("Set required environment variables before running:")
-        logger.error("  export RPC_USER=your_rpc_username")
-        logger.error("  export RPC_PASS=your_rpc_password")
-        raise ValueError("Missing required configuration. See errors above.")
-
+log_level = logging.DEBUG if DEBUG else logging.INFO
+logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class RadiantStratumProxy:
     def __init__(self):
-        self.clients: Dict[str, dict] = {}
-        self.jobs: Dict[str, dict] = {}
-        self.current_job_id: Optional[str] = None
-        # Use random seed for extranonce1 to avoid collisions on restart
-        self.extranonce1_base = secrets.token_hex(8)  # Generate a unique base per proxy instance
-        self.extranonce1_counter = 0
-        self.rpc_host = RPC_HOST
-        self.rpc_port = RPC_PORT
-        self.rpc_user = RPC_USER
-        self.rpc_pass = RPC_PASS
-        self.rpc_wallet = RPC_WALLET
-        self.block_template: Optional[dict] = None
-        self.aiohttp_session: Optional[aiohttp.ClientSession] = None if AIOHTTP_AVAILABLE else None
-        self._shutdown_event = asyncio.Event()
-        # Share deduplication: {job_id: set of (extranonce2, nonce) tuples}
-        self.submitted_shares: Dict[str, Set[Tuple[str, str]]] = {}
-        # Rate limiting: {client_id: list of timestamps}
-        self.share_timestamps: Dict[str, list] = {}
-        # Auth failure tracking: {client_id: (failure_count, ban_until_timestamp)}
-        self.auth_failures: Dict[str, Tuple[int, float]] = {}
-        # Job cache lock for thread safety
-        self.job_lock = asyncio.Lock()
-
-    async def _ensure_session(self):
-        """Ensure aiohttp session exists"""
-        if AIOHTTP_AVAILABLE and self.aiohttp_session is None:
-            self.aiohttp_session = aiohttp.ClientSession()
-
-    async def _close_session(self):
-        """Close aiohttp session"""
-        if self.aiohttp_session:
-            await self.aiohttp_session.close()
-            self.aiohttp_session = None
-
-    async def _rpc_call_async(self, method: str, params: list, wallet: Optional[str] = None, timeout: int = 5):
-        """Async RPC call using aiohttp"""
-        await self._ensure_session()
+        self.clients = {}
+        self.current_job = None
+        self.valid_jobs = {}  # Track all valid jobs
+        self.job_counter = 0
+        self.submissions = {}  # Track submissions per job to prevent duplicates
+        self.rpc_url = f"http://{RPC_USER}:{RPC_PASS}@127.0.0.1:{RPC_PORT}"
         
-        base_url = f"http://{self.rpc_host}:{self.rpc_port}"
-        url = f"{base_url}/wallet/{wallet}" if wallet else f"{base_url}/"
-
-        payload = {
-            "jsonrpc": "1.0",
-            "id": "radiant-stratum-proxy",
-            "method": method,
-            "params": params,
-        }
-
-        auth = base64.b64encode(f"{self.rpc_user}:{self.rpc_pass}".encode()).decode()
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Basic {auth}",
-        }
-
-        try:
-            async with self.aiohttp_session.post(
-                url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=timeout)
-            ) as resp:
-                if resp.status != 200:
-                    body = await resp.text()
-                    raise RuntimeError(f"RPC HTTP {resp.status}: {body[:200]}")
-                data = await resp.json()
-        except aiohttp.ClientError as e:
-            raise RuntimeError(f"RPC connection error: {type(e).__name__}")
-
-        if data.get("error"):
-            err = data["error"]
-            raise RuntimeError(f"RPC error {err.get('code')}: {err.get('message')}")
-        return data.get("result")
-
-    def _rpc_call_sync(self, method: str, params: list, wallet: Optional[str] = None, timeout: int = 5):
-        """Synchronous RPC call fallback using urllib"""
-        base_url = f"http://{self.rpc_host}:{self.rpc_port}"
-        url = f"{base_url}/wallet/{wallet}" if wallet else f"{base_url}/"
-
-        payload = {
-            "jsonrpc": "1.0",
-            "id": "radiant-stratum-proxy",
-            "method": method,
-            "params": params,
-        }
-
-        auth = base64.b64encode(f"{self.rpc_user}:{self.rpc_pass}".encode()).decode()
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode(),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Basic {auth}",
-            },
-        )
-
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as r:
-                data = json.loads(r.read().decode())
-        except urllib.error.HTTPError as e:
-            body = e.read().decode(errors="ignore")
-            raise RuntimeError(f"RPC HTTP {e.code}: {body[:200]}")
-
-        if data.get("error"):
-            err = data["error"]
-            raise RuntimeError(f"RPC error {err.get('code')}: {err.get('message')}")
-        return data.get("result")
-
-    async def _rpc_call(self, method: str, params: list, wallet: Optional[str] = None, timeout: int = 5):
-        """RPC call - uses async if aiohttp available, otherwise runs sync in executor"""
-        if AIOHTTP_AVAILABLE:
-            return await self._rpc_call_async(method, params, wallet, timeout)
-        else:
-            logger.warning('Falling back to synchronous RPC call; consider installing aiohttp for better performance')
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None, self._rpc_call_sync, method, params, wallet, timeout)
+    def sha512_256(self, data: bytes) -> bytes:
+        """SHA-512/256 hash using proper initialization vectors"""
+        return hashlib.new('sha512_256', data).digest()
+    
+    def sha512_256d(self, data: bytes) -> bytes:
+        """SHA-512/256d hash (double SHA-512/256) - Radiant's algorithm"""
+        return self.sha512_256(self.sha512_256(data))
+    
+    def swap_endian_words(self, hex_str: str) -> str:
+        """Swap endianness of each 4-byte word in hex string for ASIC prevhash format.
         
+        ASICs expect prevhash with each 4-byte chunk byte-swapped.
+        Example: 'aabbccdd11223344' -> 'ddccbbaa44332211'
+        """
+        result = ''
+        for i in range(0, len(hex_str), 8):
+            word = hex_str[i:i+8]
+            # Reverse bytes within each 4-byte word
+            result += ''.join([word[j:j+2] for j in range(6, -1, -2)])
+        return result
+    
+    def bits_to_target(self, bits: str) -> int:
+        """Convert compact bits representation to target integer"""
+        bits_bytes = bytes.fromhex(bits)
+        exponent = bits_bytes[3]
+        coefficient = int.from_bytes(bits_bytes[:3], 'little')
+        target = coefficient * (256 ** (exponent - 3))
+        return target
+    
     async def get_block_template(self) -> Optional[dict]:
         """Get block template from Radiant node"""
         try:
-            # Radiant doesn't use segwit - use empty object
-            result = await self._rpc_call("getblocktemplate", [{}])
-            if not isinstance(result, dict):
-                raise RuntimeError("getblocktemplate returned non-object result")
-            return result
+            cmd = [
+                CLI_PATH,
+                f"-rpcuser={RPC_USER}", f"-rpcpassword={RPC_PASS}",
+                f"-rpcport={RPC_PORT}", "getblocktemplate",
+                '{"rules": ["segwit"]}'
+            ]
+            logger.info(f"Running command: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            template = json.loads(result.stdout)
+            logger.info(f"Raw prevhash from node: {template.get('previousblockhash')}")
+            return template
         except Exception as e:
             logger.error(f"Failed to get block template: {e}")
             return None
     
-    async def submit_block(self, block_hex: str) -> bool:
-        """Submit valid block to node"""
-        try:
-            result = await self._rpc_call("submitblock", [block_hex])
-            if result is None:
-                logger.info("Block accepted by node!")
-                return True
-            logger.warning(f"Block submission result: {result}")
-            return False
-        except Exception as e:
-            logger.error(f"Failed to submit block: {e}")
-            return False
-
-    # --- Hashing Helpers ---
-    def _base58_decode(self, s: str) -> bytes:
-        """Decode Base58 string to bytes with leading-zero preservation"""
-        b58_digits = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+    def calculate_merkle_root(self, coinbase_hash: bytes, tx_hashes: list) -> bytes:
+        """Calculate merkle root from coinbase and transaction hashes"""
+        # Start with coinbase hash
+        tree = [coinbase_hash]
         
+        # Add transaction hashes (reversed to little-endian)
+        for tx in tx_hashes:
+            if 'txid' in tx:
+                tree.append(bytes.fromhex(tx['txid'])[::-1])
+            elif 'hash' in tx:
+                tree.append(bytes.fromhex(tx['hash'])[::-1])
+        
+        # Build merkle tree
+        while len(tree) > 1:
+            if len(tree) % 2 == 1:
+                tree.append(tree[-1])
+            
+            new_tree = []
+            for i in range(0, len(tree), 2):
+                combined = tree[i] + tree[i+1]
+                # Use double SHA-256 for merkle tree (standard Bitcoin merkle)
+                hash_result = hashlib.sha256(hashlib.sha256(combined).digest()).digest()
+                new_tree.append(hash_result)
+            
+            tree = new_tree
+        
+        return tree[0]  # Already in correct format
+    
+    def base58_decode(self, s: str) -> bytes:
+        """Decode Base58 string to bytes"""
+        b58_digits = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
         n = 0
         for char in s:
             n = n * 58 + b58_digits.index(char)
-        
-        result = n.to_bytes((n.bit_length() + 7) // 8, 'big') if n > 0 else b''
-        
         leading_zeros = len(s) - len(s.lstrip('1'))
-        return b'\x00' * leading_zeros + result
-
-    def _hash256(self, data: bytes) -> bytes:
-        return hashlib.sha256(hashlib.sha256(data).digest()).digest()
-
-    def _base58check_decode(self, s: str) -> bytes:
-        raw = self._base58_decode(s)
-        if len(raw) < 5:
-            raise ValueError("Invalid Base58Check length")
-        payload, checksum = raw[:-4], raw[-4:]
-        if self._hash256(payload)[:4] != checksum:
-            raise ValueError("Invalid Base58Check checksum")
-        return payload
-
-    def sha512_256(self, data: bytes) -> bytes:
-        """SHA-512/256 hash"""
-        return hashlib.new('sha512_256', data).digest()
-
-    def sha512_256d(self, data: bytes) -> bytes:
-        """Double SHA-512/256 (Radiant PoW)"""
-        return self.sha512_256(self.sha512_256(data))
-
-    def get_target_from_difficulty(self, difficulty: float) -> int:
-        """Calculate target from stratum difficulty"""
-        # Diff 1 is 0x00000000ffff0000... 
-        diff1 = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
-        if difficulty == 0:
-            return int(diff1)
-        return int(diff1 / difficulty)
-
-    async def create_coinbase_parts(self, template: dict, extranonce1_size: int = 4, extranonce2_size: int = 4) -> Tuple[bytes, bytes]:
-        """Create coinbase transaction parts (coinbase1, coinbase2)
-        
-        Raises:
-            RuntimeError: If unable to get a valid payout address
-        """
-        # Get new address for rewards - MUST succeed, no silent fallbacks
-        address = None
-        try:
-            wallet = self.rpc_wallet
-            addr = await self._rpc_call("getnewaddress", [], wallet=wallet, timeout=5)
-            if addr:
-                address = str(addr).strip()
-        except Exception as e:
-            logger.error(f"Failed to get new address from wallet: {e}")
-            raise RuntimeError(f"Cannot create coinbase: failed to get mining address from wallet '{wallet}'. Ensure wallet exists and is loaded.")
-        
-        if not address:
-            raise RuntimeError("No payout address available - cannot create coinbase")
-        
-        # Create output script from address - MUST succeed
-        try:
-            payload = self._base58check_decode(address)
-            if len(payload) != 21:
-                raise ValueError(f"Invalid address payload length: {len(payload)} bytes (expected 21)")
-            pubkeyhash = payload[1:]
-            if len(pubkeyhash) != 20:
-                raise ValueError(f"Invalid pubkeyhash length: {len(pubkeyhash)} bytes (expected 20)")
-            coinbase_output_script = b'\x76\xa9\x14' + pubkeyhash + b'\x88\xac'
-        except Exception as e:
-            logger.error(f"Failed to decode address {address}: {e}")
-            raise RuntimeError(f"Cannot create coinbase output script: {e}")
-
-        # BIP34 height encoding
-        height = template['height']
-        if height == 0:
-            coinbase_script_sig = b'\x00'  # OP_0 for height 0
-        elif height <= 16:
-            coinbase_script_sig = bytes([0x50 + height])  # OP_1 through OP_16
+        if n == 0:
+            result = b''
         else:
-            coinbase_script_sig = b'\x03' + struct.pack('<I', height)[:3]
-            
-        # Calculate total script length including extranonces
-        # script = height_script + extranonce1 + extranonce2
-        total_script_len = len(coinbase_script_sig) + extranonce1_size + extranonce2_size
+            result = n.to_bytes((n.bit_length() + 7) // 8, 'big')
+        return b'\x00' * leading_zeros + result
+    
+    def address_to_pubkeyhash(self, address: str) -> bytes:
+        """Extract pubkeyhash from Base58Check address"""
+        raw = self.base58_decode(address)
+        # Remove version byte (1) and checksum (4)
+        return raw[1:-4]
+    
+    def create_coinbase_tx(self, template: dict, extranonce1: str) -> Tuple[bytes, bytes, bytes, str]:
+        """Create coinbase transaction for Radiant mining.
         
-        # Coinbase 1: Version -> Script Length -> Height Script
-        coinbase1 = struct.pack('<i', 1)  # Version
-        coinbase1 += struct.pack('<B', 1)  # 1 input
-        coinbase1 += b'\x00' * 32  # prevout hash
+        Standard stratum format:
+        - coinbase1: version + input + scriptsig_len + height + timestamp + push_8_opcode
+        - miner adds: extranonce1 (4 bytes) + extranonce2 (4 bytes)
+        - coinbase2: pool_message + sequence + outputs + locktime
+        
+        Key: coinbase1 does NOT include extranonce1!
+        """
+        # Try to get a mining address
+        try:
+            cmd = [
+                CLI_PATH,
+                "-rpcwallet=miner", f"-rpcuser={RPC_USER}",
+                f"-rpcpassword={RPC_PASS}", f"-rpcport={RPC_PORT}",
+                "getnewaddress", "", "legacy"
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            address = result.stdout.strip()
+        except Exception as e:
+            logger.warning(f"Could not get address: {e}, using default")
+            address = None
+        
+        # BIP34 height encoding (push opcode + height bytes)
+        height = template['height']
+        if height <= 0x7f:
+            height_script = bytes([0x01, height])
+        elif height <= 0x7fff:
+            height_script = b'\x02' + struct.pack('<H', height)
+        elif height <= 0x7fffff:
+            height_script = b'\x03' + struct.pack('<I', height)[:3]
+        else:
+            height_script = b'\x04' + struct.pack('<I', height)
+        
+        # Timestamp (4 bytes, push opcode + value)
+        timestamp_script = b'\x04' + bytes.fromhex('ab117c65')
+        
+        # Pool message for coinbase2
+        pool_message = b"radiant1.0.0.0-prxy"
+        pool_message_script = bytes([len(pool_message)]) + pool_message
+        
+        # Calculate total script sig length
+        # height_script + timestamp_script + push_8 + extranonce1(4) + extranonce2(4) + pool_message_script
+        script_sig_len = len(height_script) + len(timestamp_script) + 1 + 8 + len(pool_message_script)
+        
+        # Output script (P2PKH)
+        if address:
+            try:
+                pubkeyhash = self.address_to_pubkeyhash(address)
+                if len(pubkeyhash) == 20:
+                    coinbase_output_script = b'\x76\xa9\x14' + pubkeyhash + b'\x88\xac'
+                else:
+                    coinbase_output_script = b'\x51'  # OP_TRUE
+            except:
+                coinbase_output_script = b'\x51'  # OP_TRUE
+        else:
+            coinbase_output_script = b'\x51'  # OP_TRUE for testing
+        
+        # === COINBASE1: Everything up to (but NOT including) extranonce1 ===
+        coinbase1 = struct.pack('<I', 1)  # Version
+        coinbase1 += b'\x01'  # 1 input
+        coinbase1 += b'\x00' * 32  # prevout hash (null for coinbase)
         coinbase1 += struct.pack('<I', 0xffffffff)  # prevout index
-        coinbase1 += struct.pack('<B', total_script_len) + coinbase_script_sig
+        coinbase1 += bytes([script_sig_len])  # Script sig length
+        coinbase1 += height_script  # Height
+        coinbase1 += timestamp_script  # Timestamp
+        coinbase1 += b'\x08'  # Push 8 bytes opcode (for extranonce1 + extranonce2)
+        # NOTE: extranonce1 is NOT included here - miner adds it!
         
-        # Coinbase 2: Sequence -> Outputs -> Locktime
-        coinbase2 = struct.pack('<I', 0xffffffff)  # sequence
-        coinbase2 += struct.pack('<B', 1)  # 1 output
-        coinbase2 += struct.pack('<q', template['coinbasevalue'])  # value
-        coinbase2 += struct.pack('<B', len(coinbase_output_script)) + coinbase_output_script
+        # === COINBASE2: After extranonces -> end ===
+        coinbase2 = pool_message_script  # Pool message (part of script sig)
+        coinbase2 += struct.pack('<I', 0)  # sequence = 0
+        coinbase2 += b'\x01'  # 1 output
+        coinbase2 += struct.pack('<Q', template['coinbasevalue'])  # value
+        coinbase2 += bytes([len(coinbase_output_script)]) + coinbase_output_script
         coinbase2 += struct.pack('<I', 0)  # locktime
         
-        return coinbase1, coinbase2
-
-    def create_block_header_from_parts(self, version, prevhash, merkle_root, time_val, bits) -> bytes:
-        """Create block header from components"""
-        # prevhash is usually hex string, need bytes little endian
-        if isinstance(prevhash, str):
-            prevhash_bytes = bytes.fromhex(prevhash)[::-1]
-        else:
-            prevhash_bytes = prevhash
-            
-        if isinstance(bits, str):
-            bits_bytes = bytes.fromhex(bits)[::-1]
-        else:
-            bits_bytes = bits
-            
-        header = struct.pack('<i', version) \
-               + prevhash_bytes \
-               + merkle_root[::-1] \
-               + struct.pack('<I', time_val) \
-               + bits_bytes \
-               + b'\x00\x00\x00\x00'  # Nonce placeholder (0)
+        logger.info(f"Coinbase1 len={len(coinbase1)} (excludes extranonce1), Coinbase2 len={len(coinbase2)}")
+        logger.info(f"Height={height}, extranonce1={extranonce1}")
+        
+        return coinbase1, coinbase2, height_script, address or ""
+    
+    def create_block_header(self, template: dict, merkle_root: bytes, ntime: int, nonce: bytes) -> bytes:
+        """Create block header for mining"""
+        # Radiant block header format (80 bytes)
+        header = struct.pack('<I', template['version'])
+        header += bytes.fromhex(template['previousblockhash'])[::-1]
+        header += merkle_root
+        header += struct.pack('<I', ntime)
+        header += bytes.fromhex(template['bits'])[::-1]
+        header += nonce
+        
         return header
-
-    def get_merkle_branch(self, template_txs: list) -> list:
-        """Calculate merkle branch for the coinbase (index 0)
+    
+    def create_stratum_job(self, template: dict, extranonce1: str) -> dict:
+        """Create stratum job from block template for Iceriver RXD miners"""
+        self.job_counter += 1
+        job_id = format(self.job_counter, '04x')  # 4-char hex job ID
         
-        Properly tracks the coinbase position through each level to find correct siblings.
-        This is critical for ASIC compatibility - incorrect merkle branches will cause all shares to be rejected.
-        """
-        if not template_txs:
-            return []
-
-        tx_hashes = []
-        for tx in template_txs:
-            if isinstance(tx, dict):
-                h = tx.get('hash') or tx.get('txid')
-                if not h:
-                    raise ValueError("Transaction missing hash/txid field")
-                tx_hashes.append(bytes.fromhex(h)[::-1])
-            elif isinstance(tx, str):
-                tx_hashes.append(bytes.fromhex(tx)[::-1])
-
-        branch = []
-        current_level = [b'\x00' * 32] + tx_hashes
-        current_index = 0
-
-        while len(current_level) > 1:
-            if len(current_level) % 2 == 1:
-                current_level.append(current_level[-1])
-
-            sibling_index = current_index ^ 1
-            branch.append(current_level[sibling_index][::-1].hex())
-
-            next_level = []
-            for i in range(0, len(current_level), 2):
-                combined = current_level[i] + current_level[i + 1]
-                next_level.append(self._hash256(combined))
-
-            current_index //= 2
-            current_level = next_level
-
-        return branch
-
-    async def create_stratum_job(self, template: dict) -> dict:
-        """Create stratum job from block template"""
-        coinbase1, coinbase2 = await self.create_coinbase_parts(template)
+        # Create coinbase transaction parts
+        coinbase1, coinbase2, coinbase_script, address = self.create_coinbase_tx(template, extranonce1)
         
-        # Calculate merkle branch
-        merkle_branch = self.get_merkle_branch(template['transactions'])
-        
-        # Convert to mining job format
-        job_id = hex(int(time.time() * 1000))[2:] # Unique hex ID
-        
-        # Save job details for validation
-        self.jobs[job_id] = {
-            'template': template,
-            'coinbase1': coinbase1,
-            'coinbase2': coinbase2,
-            'merkle_branch': merkle_branch,
-            'target': template['target']
-        }
-        
-        # Initialize share tracking for this job
-        self.submitted_shares[job_id] = set()
-        
-        # Prune old jobs to keep only MAX_JOBS most recent (with lock for thread safety)
-        async with self.job_lock:
-            if len(self.jobs) > MAX_JOBS:
-                sorted_jobs = sorted(self.jobs.keys(), key=lambda k: self.jobs[k]['template']['curtime'])
-                while len(sorted_jobs) > MAX_JOBS:
-                    oldest_key = sorted_jobs.pop(0)
-                    del self.jobs[oldest_key]
-                    # Fix memory leak: clean up share tracking for old jobs
-                    self.submitted_shares.pop(oldest_key, None)
+        # Calculate merkle branch (steps to reach root)
+        merkle_branch = []
+        if 'transactions' in template and len(template['transactions']) > 0:
+            # Build merkle steps from transactions
+            tx_hashes = []
+            for tx in template['transactions']:
+                if 'txid' in tx:
+                    tx_hashes.append(bytes.fromhex(tx['txid'])[::-1])
+                elif 'hash' in tx:
+                    tx_hashes.append(bytes.fromhex(tx['hash'])[::-1])
             
-        return {
+            # Calculate merkle branch steps
+            if tx_hashes:
+                    merkle_branch = self.get_merkle_steps(tx_hashes)
+        
+        # Swap bytes within each 4-byte word of prevhash (required for stratum/ASIC compatibility)
+        prevhash_bytes = bytes.fromhex(template['previousblockhash'])
+        prevhash_swapped = b''.join(
+            prevhash_bytes[i:i+4][::-1] for i in range(0, 32, 4)
+        )
+        prevhash_stratum = prevhash_swapped.hex()
+        logger.info(f"Prevhash: template={template['previousblockhash'][:16]}... -> stratum={prevhash_stratum[:16]}...")
+        
+        job_data = {
             'job_id': job_id,
-            'prevhash': template['previousblockhash'],
+            'prevhash': prevhash_stratum,
             'coinbase1': coinbase1.hex(),
             'coinbase2': coinbase2.hex(),
             'merkle_branch': merkle_branch,
-            'version': hex(template['version'])[2:],
+            'version': struct.pack('>I', template['version']).hex(),  # Big-endian for stratum
             'nbits': template['bits'],
-            'ntime': hex(template['curtime'])[2:],
-            'clean_jobs': True
+            'ntime': struct.pack('>I', template['curtime']).hex(),  # Big-endian for stratum
+            'clean_jobs': True,
+            'template': template,
+            'target': self.bits_to_target(template['bits']),
+            'extranonce1': extranonce1  # Store for validation
         }
+        
+        # Store job for validation
+        self.valid_jobs[job_id] = job_data
+        self.submissions[job_id] = set()
+        
+        return job_data
     
-    # Helper to calculate full merkle root from stratum style branch
-    def calculate_merkle_root_from_branch(self, coinbase_hash_bin: bytes, branch: list) -> bytes:
-        current = coinbase_hash_bin
-        for branch_hash_hex in branch:
-            branch_hash = bytes.fromhex(branch_hash_hex)[::-1] # Little endian
-            # Stratum merkle branch handling (double sha256 of concat)
-            # Typically coinbase is left, branch is right
-            combined = current + branch_hash
-            current = hashlib.sha256(hashlib.sha256(combined).digest()).digest()
-        return current
+    def get_merkle_steps(self, tx_hashes: list) -> list:
+        """Calculate merkle branch steps (coinbase path)"""
+        branches = []
+        if not tx_hashes:
+            return branches
 
-    def _check_rate_limit(self, client_id: str) -> bool:
-        """Check if client is within rate limit. Returns True if allowed."""
-        now = time.time()
-        if client_id not in self.share_timestamps:
-            self.share_timestamps[client_id] = []
-        
-        # Remove timestamps older than 1 minute
-        self.share_timestamps[client_id] = [
-            ts for ts in self.share_timestamps[client_id] if now - ts < 60
-        ]
-        
-        if len(self.share_timestamps[client_id]) >= MAX_SHARES_PER_MINUTE:
-            return False
-        
-        self.share_timestamps[client_id].append(now)
-        return True
+        layer = tx_hashes[:]
+        index = 0  # Coinbase tx index
 
-    def _is_duplicate_share(self, job_id: str, extranonce2: str, nonce: str) -> bool:
-        """Check if share has already been submitted. Returns True if duplicate."""
-        if job_id not in self.submitted_shares:
-            return False
-        
-        share_key = (extranonce2, nonce)
-        if share_key in self.submitted_shares[job_id]:
-            return True
-        
-        self.submitted_shares[job_id].add(share_key)
-        return False
-    
-    def _check_auth_ban(self, client_id: str) -> bool:
-        """Check if client is banned due to auth failures. Returns True if banned."""
-        if client_id in self.auth_failures:
-            failures, ban_until = self.auth_failures[client_id]
-            if time.time() < ban_until:
-                return True
-            # Ban expired, reset
-            del self.auth_failures[client_id]
-        return False
-    
-    def _record_auth_failure(self, client_id: str):
-        """Record authentication failure and apply ban if threshold exceeded."""
-        now = time.time()
-        if client_id in self.auth_failures:
-            failures, _ = self.auth_failures[client_id]
-            failures += 1
-        else:
-            failures = 1
-        
-        if failures >= MAX_AUTH_FAILURES:
-            ban_until = now + AUTH_FAILURE_BAN_TIME
-            self.auth_failures[client_id] = (failures, ban_until)
-            logger.warning(f"Client {client_id} banned for {AUTH_FAILURE_BAN_TIME}s due to {failures} auth failures")
-        else:
-            self.auth_failures[client_id] = (failures, now)
-    
-    def _validate_hex_param(self, param: str, expected_length: int, param_name: str) -> bool:
-        """Validate hex parameter format and length."""
-        if len(param) != expected_length:
-            return False
-        try:
-            int(param, 16)
-            return True
-        except ValueError:
-            return False
+        while len(layer) > 1:
+            if len(layer) % 2 == 1:
+                layer.append(layer[-1])
 
+            sibling_index = index ^ 1
+            branches.append(layer[sibling_index].hex())
+
+            next_layer = []
+            for i in range(0, len(layer), 2):
+                combined = layer[i] + layer[i + 1]
+                hashed = hashlib.sha256(hashlib.sha256(combined).digest()).digest()
+                next_layer.append(hashed)
+
+            layer = next_layer
+            index //= 2
+
+        return branches
+    
     async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         """Handle stratum client connection"""
         client_id = f"{writer.get_extra_info('peername')}"
-        logger.info(f"New client connected: {client_id}")
+        logger.info(f"New miner connected: {client_id}")
         
-        # Generate unique extranonce1 per client using base and counter
-        extranonce1 = (self.extranonce1_base + hex(self.extranonce1_counter)[2:].zfill(8)).zfill(8)
-        self.extranonce1_counter += 1
+        # Generate unique extranonce1 for this client (4 bytes = 8 hex chars)
+        extranonce1 = format(hash(client_id) & 0xffffffff, '08x')
         
+        # Store client connection
         self.clients[client_id] = {
-            'authorized': False,
+            'writer': writer,
             'extranonce1': extranonce1,
-            'worker': 'unknown',
-            'writer': writer
+            'authorized': False,
+            'worker': None
         }
         
         try:
-            # Send mining.notify subscription
-            # Note: Typically we wait for subscribe, but some miners expect immediate notify
-            # We'll wait for them to subscribe first properly
-            
             # Handle client messages
             while True:
                 line = await reader.readline()
@@ -541,7 +334,8 @@ class RadiantStratumProxy:
                 
                 try:
                     message = json.loads(line.strip().decode())
-                    await self.handle_stratum_message(writer, message, client_id)
+                    logger.info(f"<<< RECV from {client_id}: {message}")
+                    await self.handle_stratum_message(writer, message, client_id, extranonce1)
                 except json.JSONDecodeError:
                     logger.error(f"Invalid JSON from {client_id}: {line}")
                 except Exception as e:
@@ -550,103 +344,44 @@ class RadiantStratumProxy:
         except Exception as e:
             logger.error(f"Client error {client_id}: {e}")
         finally:
-            writer.close()
-            await writer.wait_closed()
             if client_id in self.clients:
                 del self.clients[client_id]
-            # Clean up all client data structures
-            self.share_timestamps.pop(client_id, None)
-            self.auth_failures.pop(client_id, None)
+            writer.close()
+            await writer.wait_closed()
             logger.info(f"Client disconnected: {client_id}")
     
-    async def handle_stratum_message(self, writer: asyncio.StreamWriter, message: dict, client_id: str):
+    async def handle_stratum_message(self, writer: asyncio.StreamWriter, message: dict, client_id: str, extranonce1: str):
         """Handle stratum protocol messages"""
         method = message.get('method')
         params = message.get('params', [])
         msg_id = message.get('id')
         
         if method == 'mining.subscribe':
-            # Handle subscription
-            extranonce1 = self.clients[client_id]['extranonce1']
+            # Handle subscription - send extranonce info
+            subscription_id = format(int(time.time()) & 0xffffffff, '08x')
             
             await self.send_stratum_message(writer, {
                 "id": msg_id,
                 "result": [
                     [
-                        ["mining.notify", "ae681f6b"],
-                        ["mining.set_difficulty", "b4b66939"]
+                        ["mining.set_difficulty", subscription_id],
+                        ["mining.notify", subscription_id]
                     ],
-                    extranonce1,
-                    4 # extranonce2_size
+                    extranonce1,  # extranonce1 (4 bytes)
+                    4  # extranonce2 size (4 bytes)
                 ],
                 "error": None
             })
-
-            # Send difficulty immediately
-            await self.send_stratum_message(writer, {
-                "id": None,
-                "method": "mining.set_difficulty",
-                "params": [STRATUM_DIFFICULTY]
-            })
-            
-            # Send first job immediately after subscribe
-            if self.jobs:
-                # Send latest job
-                latest_job_id = list(self.jobs.keys())[-1]
-                job = self.jobs[latest_job_id]
-                # Re-construct params for notify
-                params = [
-                    latest_job_id,
-                    job['template']['previousblockhash'],
-                    job['coinbase1'].hex(),
-                    job['coinbase2'].hex(),
-                    job['merkle_branch'],
-                    hex(job['template']['version'])[2:],
-                    job['template']['bits'],
-                    hex(job['template']['curtime'])[2:],
-                    True
-                ]
-                await self.send_stratum_message(writer, {
-                    "id": None,
-                    "method": "mining.notify",
-                    "params": params
-                })
+            logger.info(f"Miner subscribed with extranonce1: {extranonce1}")
             
         elif method == 'mining.authorize':
             # Handle worker authorization
             worker_name = params[0] if params else "unknown"
-            
-            # Check if client is banned
-            if self._check_auth_ban(client_id):
-                logger.warning(f"Rejected banned client: {client_id}")
-                await self.send_stratum_message(writer, {
-                    "id": msg_id,
-                    "result": False,
-                    "error": [24, "Temporarily banned due to auth failures", None]
-                })
-                return
-            
-            # Check if worker is in allowed list (if configured)
-            if ALLOWED_WORKERS:
-                # Extract base worker name (before any dot)
-                base_worker = worker_name.split('.')[0] if '.' in worker_name else worker_name
-                if base_worker not in ALLOWED_WORKERS and worker_name not in ALLOWED_WORKERS:
-                    logger.warning(f"Rejected unauthorized worker: {worker_name} ({client_id})")
-                    self._record_auth_failure(client_id)
-                    await self.send_stratum_message(writer, {
-                        "id": msg_id,
-                        "result": False,
-                        "error": [24, "Unauthorized worker", None]
-                    })
-                    return
+            worker_pass = params[1] if len(params) > 1 else ""
             
             self.clients[client_id]['worker'] = worker_name
             self.clients[client_id]['authorized'] = True
-            logger.info(f"Authorized worker: {worker_name} ({client_id})")
-            
-            # Clear any auth failures on successful auth
-            if client_id in self.auth_failures:
-                del self.auth_failures[client_id]
+            logger.info(f"Authorized worker: {worker_name}")
             
             await self.send_stratum_message(writer, {
                 "id": msg_id,
@@ -654,19 +389,108 @@ class RadiantStratumProxy:
                 "error": None
             })
             
+            # Send initial difficulty
+            await self.send_stratum_message(writer, {
+                "id": None,
+                "method": "mining.set_difficulty",
+                "params": [DIFFICULTY]
+            })
+            
+            # Send initial job - always create fresh job with current template
+            template = await self.get_block_template()
+            if template:
+                job = self.create_stratum_job(template, extranonce1)
+                self.current_job = job
+                self.valid_jobs[job['job_id']] = job
+                await self.send_job_to_client(writer, job, True)
+                logger.info(f"Created and sent initial job {job['job_id']} to {worker_name}")
+            
+        elif method == 'mining.configure':
+            # Handle version rolling configuration
+            logger.info(f"ASIC requesting configure: {params}")
+            # Support version rolling with mask 1fffe000
+            await self.send_stratum_message(writer, {
+                "id": msg_id,
+                "result": {
+                    "version-rolling": True,
+                    "version-rolling.mask": "1fffe000"
+                },
+                "error": None
+            })
+            
         elif method == 'mining.submit':
             # Handle share submission
             await self.handle_share_submission(writer, message, client_id)
+        
+        elif method == 'mining.extranonce.subscribe':
+            # Some miners request extranonce subscription
+            await self.send_stratum_message(writer, {
+                "id": msg_id,
+                "result": True,
+                "error": None
+            })
+        
+        elif method == 'mining.configure':
+            # Handle version rolling and other extensions
+            extensions = params[0] if params else []
+            extension_params = params[1] if len(params) > 1 else {}
+            
+            result = {}
+            # Support version-rolling if requested
+            if 'version-rolling' in extensions:
+                # Allow version rolling with mask 0x1fffe000 (standard BIP320)
+                result['version-rolling'] = True
+                result['version-rolling.mask'] = '1fffe000'
+                logger.info(f"Enabled version-rolling with mask 1fffe000")
+            
+            await self.send_stratum_message(writer, {
+                "id": msg_id,
+                "result": result,
+                "error": None
+            })
+            logger.info(f"Handled mining.configure: extensions={extensions}, result={result}")
             
         else:
             logger.warning(f"Unknown method: {method}")
     
+    async def send_job_to_client(self, writer: asyncio.StreamWriter, job: dict, clean_jobs: bool):
+        """Send mining job to client"""
+        logger.info(f"=== Sending Job {job['job_id']} ===")
+        logger.info(f"  prevhash:    {job['prevhash']} (len={len(job['prevhash'])})")
+        logger.info(f"  coinbase1:   {job['coinbase1']} (len={len(job['coinbase1'])})")
+        logger.info(f"  coinbase2:   {job['coinbase2']} (len={len(job['coinbase2'])})")
+        logger.info(f"  merkle_branch: {job['merkle_branch']}")
+        logger.info(f"  version:     {job['version']} (len={len(job['version'])})")
+        logger.info(f"  nbits:       {job['nbits']} (len={len(job['nbits'])})")
+        logger.info(f"  ntime:       {job['ntime']} (len={len(job['ntime'])})")
+        logger.info(f"  extranonce1: {job['extranonce1']} (len={len(job['extranonce1'])})")
+        
+        await self.send_stratum_message(writer, {
+            "id": None,
+            "method": "mining.notify",
+            "params": [
+                job['job_id'],
+                job['prevhash'],
+                job['coinbase1'],
+                job['coinbase2'],
+                job['merkle_branch'],
+                job['version'],
+                job['nbits'],
+                job['ntime'],
+                clean_jobs
+            ]
+        })
+    
     async def handle_share_submission(self, writer: asyncio.StreamWriter, message: dict, client_id: str):
-        """Handle submitted share"""
+        """Handle submitted share with full validation"""
         params = message.get('params', [])
         msg_id = message.get('id')
         
+        logger.info(f"=== Share Submission from {client_id} ===")
+        logger.info(f"  Raw params: {params}")
+        
         if len(params) < 5:
+            logger.warning(f"Invalid params length: {len(params)}")
             await self.send_stratum_message(writer, {
                 "id": msg_id,
                 "result": False,
@@ -674,265 +498,267 @@ class RadiantStratumProxy:
             })
             return
         
-        # Rate limiting check
-        if not self._check_rate_limit(client_id):
-            logger.warning(f"Rate limit exceeded for {client_id}")
-            await self.send_stratum_message(writer, {
-                "id": msg_id,
-                "result": False,
-                "error": [25, "Rate limit exceeded", None]
-            })
-            return
-        
         # Extract submission data
         worker_name = params[0]
         job_id = params[1]
-        extra_nonce2 = params[2]
+        extranonce2 = params[2]
         ntime = params[3]
         nonce = params[4]
         
-        # Validate hex parameters format and length
-        if not self._validate_hex_param(extra_nonce2, 8, "extranonce2"):
+        logger.info(f"  worker: {worker_name}")
+        logger.info(f"  job_id: {job_id}")
+        logger.info(f"  extranonce2: {extranonce2}")
+        logger.info(f"  ntime: {ntime}")
+        logger.info(f"  nonce: {nonce}")
+        
+        # Validate submission
+        error = self.validate_share(job_id, extranonce2, ntime, nonce, worker_name)
+        
+        if error:
+            logger.warning(f"Share rejected from {worker_name}: {error[1]}")
             await self.send_stratum_message(writer, {
                 "id": msg_id,
                 "result": False,
-                "error": [22, "Invalid extranonce2 format or size (expected 8 hex chars)", None]
+                "error": error
             })
             return
         
-        if not self._validate_hex_param(nonce, 8, "nonce"):
-            await self.send_stratum_message(writer, {
-                "id": msg_id,
-                "result": False,
-                "error": [22, "Invalid nonce format (expected 8 hex chars)", None]
-            })
+        logger.info(f"Valid share from {worker_name}: job={job_id}, nonce={nonce}")
+        
+        # Accept share
+        await self.send_stratum_message(writer, {
+            "id": msg_id,
+            "result": True,
+            "error": None
+        })
+        
+        # Check if this is a valid block and submit to node
+        await self.check_block_solution(job_id, extranonce2, ntime, nonce)
+    
+    def validate_share(self, job_id: str, extranonce2: str, ntime: str, nonce: str, worker: str) -> Optional[list]:
+        """Validate submitted share"""
+        # Check job exists
+        if job_id not in self.valid_jobs:
+            return [21, "job not found", None]
+        
+        job = self.valid_jobs[job_id]
+        template = job['template']
+        
+        # Validate extranonce2 length (should be 4 bytes = 8 hex chars)
+        if len(extranonce2) != 8:
+            return [20, "incorrect size of extranonce2", None]
+        
+        # Validate ntime length
+        if len(ntime) != 8:
+            return [20, "incorrect size of ntime", None]
+        
+        # Validate nonce length
+        if len(nonce) != 8:
+            return [20, "incorrect size of nonce", None]
+        
+        # Check for duplicate submission
+        submission_key = f"{extranonce2}:{ntime}:{nonce}:{worker}"
+        if submission_key in self.submissions[job_id]:
+            return [22, "duplicate share", None]
+        
+        # Validate ntime range
+        ntime_int = int(ntime, 16)
+        current_time = int(time.time())
+        if ntime_int < template['curtime'] or ntime_int > current_time + 7200:
+            return [20, "ntime out of range", None]
+        
+        # Build complete coinbase: coinbase1 + extranonce1 + extranonce2 + coinbase2
+        # Note: coinbase1 does NOT include extranonce1 - miner adds both extranonces
+        coinbase1 = bytes.fromhex(job['coinbase1'])
+        coinbase2 = bytes.fromhex(job['coinbase2'])
+        extranonce1_bytes = bytes.fromhex(job['extranonce1'])
+        extranonce2_bytes = bytes.fromhex(extranonce2)
+        coinbase = coinbase1 + extranonce1_bytes + extranonce2_bytes + coinbase2
+        
+        logger.debug(f"Coinbase length: {len(coinbase)} bytes")
+        logger.debug(f"Coinbase hex: {coinbase.hex()[:100]}...")
+        
+        # Calculate coinbase hash (double SHA-256 for txid)
+        coinbase_hash = hashlib.sha256(hashlib.sha256(coinbase).digest()).digest()
+        logger.debug(f"Coinbase hash: {coinbase_hash[::-1].hex()}")  # Display as txid (reversed)
+        
+        # Calculate merkle root
+        merkle_root = coinbase_hash
+        for branch in job['merkle_branch']:
+            merkle_root = hashlib.sha256(hashlib.sha256(
+                merkle_root + bytes.fromhex(branch)
+            ).digest()).digest()
+        
+        logger.debug(f"Merkle root: {merkle_root.hex()}")
+        
+        # Nonce from ASIC - try both byte orders to find valid one
+        nonce_bytes = bytes.fromhex(nonce)
+        nonce_le = nonce_bytes[::-1]  # Reverse for little-endian
+        nonce_be = nonce_bytes  # Keep as big-endian
+        
+        # Build block header with little-endian nonce first (standard)
+        header = self.create_block_header(
+            template,
+            merkle_root,
+            ntime_int,
+            nonce_le
+        )
+        
+        logger.debug(f"Header length: {len(header)} bytes")
+        logger.debug(f"Header hex: {header.hex()}")
+        
+        # Hash block header with SHA-512/256d
+        block_hash = self.sha512_256d(header)
+        hash_int = int.from_bytes(block_hash, 'little')
+        
+        logger.debug(f"Block hash (LE nonce): {block_hash[::-1].hex()}")
+        
+        # Also try big-endian nonce in case ASIC sends it differently
+        header_be = self.create_block_header(template, merkle_root, ntime_int, nonce_be)
+        block_hash_be = self.sha512_256d(header_be)
+        hash_int_be = int.from_bytes(block_hash_be, 'little')
+        
+        logger.debug(f"Block hash (BE nonce): {block_hash_be[::-1].hex()}")
+        
+        # Calculate share difficulty for both
+        max_target = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
+        share_diff_le = max_target / hash_int if hash_int > 0 else 0
+        share_diff_be = max_target / hash_int_be if hash_int_be > 0 else 0
+        
+        logger.info(f"Share diff (LE nonce): {share_diff_le:.6f}, (BE nonce): {share_diff_be:.6f}")
+        
+        # Use whichever nonce interpretation gives better difficulty
+        if share_diff_be > share_diff_le:
+            share_diff = share_diff_be
+            block_hash = block_hash_be
+            hash_int = hash_int_be
+            logger.info("Using big-endian nonce interpretation")
+        else:
+            share_diff = share_diff_le
+            logger.info("Using little-endian nonce interpretation")
+        
+        logger.debug(f"  block hash: {block_hash[::-1].hex()}")  # Display in big-endian
+        logger.debug(f"  share difficulty: {share_diff:.4f}, required: {DIFFICULTY}")
+        
+        # Check if share meets minimum difficulty
+        if share_diff < DIFFICULTY * 0.99:  # 0.99 for rounding tolerance
+            logger.warning(f"Share difficulty {share_diff:.6f} below required {DIFFICULTY}")
+            return [23, f"low difficulty share of {share_diff:.6f}", None]
+        
+        # Mark submission as seen
+        self.submissions[job_id].add(submission_key)
+        
+        # Check if this is a valid block (meets network target)
+        if hash_int <= job['target']:
+            logger.info(f"*** BLOCK FOUND *** Hash: {block_hash.hex()}")
+        
+        return None
+    
+    async def check_block_solution(self, job_id: str, extranonce2: str, ntime: str, nonce: str):
+        """Check if share is a valid block and submit to node"""
+        if job_id not in self.valid_jobs:
             return
         
-        if not self._validate_hex_param(ntime, 8, "ntime"):
-            await self.send_stratum_message(writer, {
-                "id": msg_id,
-                "result": False,
-                "error": [22, "Invalid ntime format (expected 8 hex chars)", None]
-            })
-            return
+        job = self.valid_jobs[job_id]
+        template = job['template']
         
-        if job_id not in self.jobs:
-            await self.send_stratum_message(writer, {
-                "id": msg_id,
-                "result": False,
-                "error": [21, "Job not found", None]
-            })
-            return
+        # Rebuild full block: coinbase1 + extranonce1 + extranonce2 + coinbase2
+        coinbase1 = bytes.fromhex(job['coinbase1'])
+        coinbase2 = bytes.fromhex(job['coinbase2'])
+        extranonce1_bytes = bytes.fromhex(job['extranonce1'])
+        extranonce2_bytes = bytes.fromhex(extranonce2)
+        coinbase = coinbase1 + extranonce1_bytes + extranonce2_bytes + coinbase2
         
-        # Check for duplicate share
-        if self._is_duplicate_share(job_id, extra_nonce2, nonce):
-            logger.warning(f"Duplicate share from {worker_name}: job={job_id}")
-            await self.send_stratum_message(writer, {
-                "id": msg_id,
-                "result": False,
-                "error": [22, "Duplicate share", None]
-            })
-            return
-            
-        job = self.jobs[job_id]
+        # Calculate merkle root
+        coinbase_hash = hashlib.sha256(hashlib.sha256(coinbase).digest()).digest()
+        merkle_root = coinbase_hash
+        for branch in job['merkle_branch']:
+            merkle_root = hashlib.sha256(hashlib.sha256(
+                merkle_root + bytes.fromhex(branch)
+            ).digest()).digest()
         
-        # Validate share
+        # Build header - try both nonce interpretations
+        ntime_int = int(ntime, 16)
+        nonce_bytes = bytes.fromhex(nonce)
+        
+        # Try little-endian nonce
+        header_le = self.create_block_header(template, merkle_root, ntime_int, nonce_bytes[::-1])
+        block_hash_le = self.sha512_256d(header_le)
+        hash_int_le = int.from_bytes(block_hash_le, 'little')
+        
+        # Try big-endian nonce
+        header_be = self.create_block_header(template, merkle_root, ntime_int, nonce_bytes)
+        block_hash_be = self.sha512_256d(header_be)
+        hash_int_be = int.from_bytes(block_hash_be, 'little')
+        
+        # Use whichever meets target (or has lower hash)
+        if hash_int_be < hash_int_le:
+            header = header_be
+            block_hash = block_hash_be
+            hash_int = hash_int_be
+        else:
+            header = header_le
+            block_hash = block_hash_le
+            hash_int = hash_int_le
+        
+        if hash_int <= job['target']:
+            # Build full block for submission
+            block_hex = self.build_block_submission(header, coinbase, template)
+            await self.submit_block(block_hex)
+    
+    def build_block_submission(self, header: bytes, coinbase: bytes, template: dict) -> str:
+        """Build complete block for submission"""
+        # Block = header + transaction count + coinbase + transactions
+        tx_count = 1 + len(template.get('transactions', []))
+        
+        block = header
+        block += self.var_int(tx_count)
+        block += coinbase
+        
+        # Add all transactions
+        for tx in template.get('transactions', []):
+            block += bytes.fromhex(tx['data'])
+        
+        return block.hex()
+    
+    def var_int(self, n: int) -> bytes:
+        """Encode variable length integer"""
+        if n < 0xfd:
+            return bytes([n])
+        elif n <= 0xffff:
+            return b'\xfd' + struct.pack('<H', n)
+        elif n <= 0xffffffff:
+            return b'\xfe' + struct.pack('<I', n)
+        else:
+            return b'\xff' + struct.pack('<Q', n)
+    
+    async def submit_block(self, block_hex: str):
+        """Submit block to Radiant node"""
         try:
-            # 1. Reconstruct Coinbase
-            extranonce1 = self.clients[client_id]['extranonce1']
-            coinbase_tx = job['coinbase1'] + bytes.fromhex(extranonce1) + bytes.fromhex(extra_nonce2) + job['coinbase2']
-            coinbase_hash_bin = hashlib.sha256(hashlib.sha256(coinbase_tx).digest()).digest()
-            
-            # 2. Calculate Merkle Root
-            merkle_root = self.calculate_merkle_root_from_branch(coinbase_hash_bin, job['merkle_branch'])
-            
-            # 3. Construct Header
-            # ntime is hex string, convert to int
-            ntime_val = int(ntime, 16)
-            nonce_val = int(nonce, 16)
-            
-            # Validate ntime is within acceptable range
-            template_time = job['template']['curtime']
-            min_time = job['template'].get('mintime', template_time - MAX_NTIME_DRIFT)
-            max_time = template_time + MAX_NTIME_DRIFT
-            if ntime_val < min_time or ntime_val > max_time:
-                logger.warning(f"Invalid ntime from {worker_name}: {ntime_val} not in [{min_time}, {max_time}]")
-                await self.send_stratum_message(writer, {
-                    "id": msg_id,
-                    "result": False,
-                    "error": [20, "Invalid ntime", None]
-                })
-                return
-            # nonce bytes (4 bytes)
-            nonce_bytes = struct.pack('<I', nonce_val)
-            
-            header = self.create_block_header_from_parts(
-                job['template']['version'],
-                job['template']['previousblockhash'],
-                merkle_root,
-                ntime_val,
-                job['template']['bits']
-            )
-            # Update nonce in header (last 4 bytes)
-            header = header[:-4] + nonce_bytes
-            
-            # 4. Hash Header (SHA512/256d for Radiant)
-            block_hash_bin = self.sha512_256d(header)
-            block_hash_hex = block_hash_bin[::-1].hex()
-            block_hash_int = int(block_hash_hex, 16)
-            
-            # 5. Check Difficulty
-            # Job target is the network target
-            job_target = int(job['target'], 16)
-            
-            # Share target is based on current stratum difficulty
-            share_target = self.get_target_from_difficulty(STRATUM_DIFFICULTY)
-            
-            if block_hash_int <= job_target:
-                logger.info(f"BLOCK FOUND! Hash: {block_hash_hex}")
-                # Submit block
-                block_hex = (header + bytes([0]) + coinbase_tx).hex() # Simplified block hex
-                # Wait, block hex is Header + txn_count + coinbasetx + other_txs
-                
-                # We need to reconstruct full block hex
-                # Header (80 bytes)
-                # Tx Count (VarInt)
-                # Coinbase
-                # Other Txs
-                
-                # VarInt for tx count
-                num_txs = 1 + len(job['template']['transactions'])
-                if num_txs < 0xfd:
-                    tx_count = bytes([num_txs])
-                elif num_txs <= 0xffff:
-                    tx_count = b'\xfd' + struct.pack('<H', num_txs)
-                else:
-                    tx_count = b'\xfe' + struct.pack('<I', num_txs)
-                    
-                full_block = header + tx_count + coinbase_tx
-                
-                for tx in job['template']['transactions']:
-                    if isinstance(tx, dict):
-                        if 'data' not in tx:
-                            logger.error(f"Transaction missing 'data' field: {tx.get('txid', 'unknown')}")
-                            logger.error("Block submission aborted: getblocktemplate must include transaction data")
-                            await self.send_stratum_message(writer, {
-                                "id": msg_id,
-                                "result": False,
-                                "error": [20, "Template missing tx data", None]
-                            })
-                            return
-                        full_block += bytes.fromhex(tx['data'])
-                    else:
-                        logger.error(f"Invalid transaction format: expected dict with 'data', got {type(tx)}")
-                        logger.error("Block submission aborted: malformed template")
-                        await self.send_stratum_message(writer, {
-                            "id": msg_id,
-                            "result": False,
-                            "error": [20, "Malformed template", None]
-                        })
-                        return
-                
-                if await self.submit_block(full_block.hex()):
-                    logger.info(f"Block submitted successfully: {block_hash_hex}")
-                else:
-                    logger.error(f"Block submission failed: {block_hash_hex}")
-                     
-            elif block_hash_int <= share_target:
-                logger.debug(f"Valid share accepted: {block_hash_hex}")
+            cmd = [
+                CLI_PATH,
+                f"-rpcuser={RPC_USER}", f"-rpcpassword={RPC_PASS}",
+                f"-rpcport={RPC_PORT}", "submitblock", block_hex
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0 and not result.stdout.strip():
+                logger.info("*** BLOCK ACCEPTED BY NODE ***")
             else:
-                logger.warning(f"Invalid share from {worker_name}: {block_hash_hex} > {hex(share_target)}")
-                await self.send_stratum_message(writer, {
-                    "id": msg_id,
-                    "result": False,
-                    "error": [23, "Low difficulty share", None]
-                })
-                return
-
-            # Accept share
-            await self.send_stratum_message(writer, {
-                "id": msg_id,
-                "result": True,
-                "error": None
-            })
-            
+                logger.error(f"Block submission failed: {result.stdout.strip()}")
         except Exception as e:
-            import traceback
-            logger.error(f"Share validation failed: {e}")
-            logger.debug(traceback.format_exc())
-            await self.send_stratum_message(writer, {
-                "id": msg_id,
-                "result": False,
-                "error": [20, f"Validation failed: {str(e)}", None]
-            })
+            logger.error(f"Failed to submit block: {e}")
     
     async def send_stratum_message(self, writer: asyncio.StreamWriter, message: dict):
         """Send stratum message to client"""
         try:
             line = json.dumps(message) + "\n"
+            if message.get('method') == 'mining.notify':
+                logger.info(f">>> SENDING TO ASIC: {line.strip()}")
             writer.write(line.encode())
             await writer.drain()
         except Exception as e:
             logger.error(f"Failed to send message: {e}")
     
-    async def broadcast_new_job(self, job: dict):
-        """Broadcast new job to all clients"""
-        params = [
-            job['job_id'],
-            job['prevhash'],
-            job['coinbase1'],
-            job['coinbase2'],
-            job['merkle_branch'],
-            job['version'],
-            job['nbits'],
-            job['ntime'],
-            True
-        ]
-        
-        message = {
-            "id": None,
-            "method": "mining.notify",
-            "params": params
-        }
-        
-        # Iterate over copy of keys to avoid modification issues
-        for client_id in list(self.clients.keys()):
-            try:
-                client = self.clients.get(client_id)
-                if client and 'writer' in client:
-                    await self.send_stratum_message(client['writer'], message)
-            except Exception as e:
-                logger.error(f"Failed to broadcast to {client_id}: {e}")
-
-    async def update_job_loop(self):
-        """Periodically update block template"""
-        logger.info("Starting job update loop...")
-        while not self._shutdown_event.is_set():
-            try:
-                template = await self.get_block_template()
-                if template:
-                    # Check if new work
-                    current_prevhash = None
-                    if self.jobs:
-                        latest_id = list(self.jobs.keys())[-1]
-                        current_prevhash = self.jobs[latest_id]['template']['previousblockhash']
-                    
-                    if current_prevhash != template['previousblockhash']:
-                        logger.info(f"New block detected: {template['height']}")
-                        job = await self.create_stratum_job(template)
-                        await self.broadcast_new_job(job)
-            except Exception as e:
-                logger.error(f"Error updating job: {e}")
-            
-            # Use configurable poll interval
-            try:
-                await asyncio.wait_for(
-                    self._shutdown_event.wait(),
-                    timeout=JOB_POLL_INTERVAL
-                )
-            except asyncio.TimeoutError:
-                pass  # Normal timeout, continue polling
-
     async def start_server(self):
         """Start stratum server"""
         server = await asyncio.start_server(
@@ -942,39 +768,80 @@ class RadiantStratumProxy:
         )
         
         logger.info(f"Stratum proxy listening on port {STRATUM_PORT}")
-        logger.info(f"Connect ASICs to: stratum+tcp://<YOUR_IP>:{STRATUM_PORT}")
+        logger.info(f"Connect miners (ASIC/GPU) to: stratum+tcp://<YOUR_IP>:{STRATUM_PORT}")
         
         async with server:
-            await self._shutdown_event.wait()
-            logger.info("Shutdown signal received, stopping server...")
-        
-        # Close all client connections
-        for client_id, client in list(self.clients.items()):
+            await server.serve_forever()
+    
+    async def poll_block_template(self):
+        """Poll for new block templates and broadcast to miners"""
+        logger.info("Starting block template polling task...")
+        poll_count = 0
+        while True:
             try:
-                if 'writer' in client:
-                    client['writer'].close()
-                    await client['writer'].wait_closed()
-            except Exception:
-                pass
+                poll_count += 1
+                template = await self.get_block_template()
+                if template:
+                    logger.debug(f"Poll #{poll_count}: height={template['height']}, prevhash={template['previousblockhash'][:16]}...")
+                    
+                    # Check if new block (only on previousblockhash change, NOT curtime)
+                    is_new = False
+                    if not self.current_job:
+                        is_new = True
+                        logger.info(f"No current job, creating initial job for height {template['height']}")
+                    elif template.get('previousblockhash') != self.current_job.get('template', {}).get('previousblockhash'):
+                        is_new = True
+                        logger.info(f"New block detected at height {template['height']}")
+                    
+                    if is_new:
+                        # Broadcast to all connected miners
+                        await self.broadcast_new_job(template)
+                else:
+                    logger.warning(f"Poll #{poll_count}: Failed to get template from node")
+                
+                # Poll every 5 seconds for new blocks
+                await asyncio.sleep(5)
+            except Exception as e:
+                logger.error(f"Error polling block template: {e}")
+                import traceback
+                traceback.print_exc()
+                await asyncio.sleep(5)
+    
+    async def broadcast_new_job(self, template: dict):
+        """Create and broadcast new job to all connected miners"""
+        # Create jobs for each connected client (each gets unique extranonce1)
+        disconnected = []
         
-        # Close HTTP session
-        await self._close_session()
-        logger.info("Stratum server stopped")
-
-    def shutdown(self):
-        """Signal the proxy to shut down gracefully"""
-        self._shutdown_event.set()
+        for client_id, client_info in self.clients.items():
+            if not client_info.get('authorized'):
+                continue
+            
+            try:
+                extranonce1 = client_info['extranonce1']
+                job = self.create_stratum_job(template, extranonce1)
+                
+                # Update current job for this extranonce1
+                if not self.current_job:
+                    self.current_job = job
+                else:
+                    # Keep reference to latest job
+                    self.current_job = job
+                
+                writer = client_info['writer']
+                await self.send_job_to_client(writer, job, True)
+                
+                logger.info(f"Sent job {job['job_id']} to {client_info['worker']}")
+            except Exception as e:
+                logger.error(f"Failed to send job to {client_id}: {e}")
+                disconnected.append(client_id)
+        
+        # Clean up disconnected clients
+        for client_id in disconnected:
+            if client_id in self.clients:
+                del self.clients[client_id]
 
 async def main():
-    # Validate configuration before starting
-    validate_config()
-    
     proxy = RadiantStratumProxy()
-    
-    # Set up signal handlers for graceful shutdown
-    loop = asyncio.get_event_loop()
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(sig, proxy.shutdown)
     
     # Test node connection
     logger.info("Testing node connection...")
@@ -985,27 +852,12 @@ async def main():
     
     logger.info(f"Connected to node (height: {template.get('height', 'unknown')})")
     
-    # Create initial job
-    try:
-        initial_job = await proxy.create_stratum_job(template)
-        logger.info(f"Initial job created: {initial_job['job_id']}")
-    except Exception as e:
-        logger.error(f"Failed to create initial job: {e}")
-        return
-    
-    # Start job update loop
-    update_task = asyncio.create_task(proxy.update_job_loop())
+    # Start polling task before server
+    polling_task = asyncio.create_task(proxy.poll_block_template())
+    logger.info("Polling task started successfully")
     
     # Start stratum server
-    try:
-        await proxy.start_server()
-    finally:
-        update_task.cancel()
-        try:
-            await update_task
-        except asyncio.CancelledError:
-            pass
-        logger.info("Stratum proxy shutdown complete")
+    await proxy.start_server()
 
 if __name__ == "__main__":
     asyncio.run(main())

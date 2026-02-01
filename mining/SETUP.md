@@ -130,9 +130,6 @@ export RPC_WALLET="miner"  # Your wallet name
 ./mining/start_stratum_proxy.sh
 ```
 
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/mining/SETUP.md
-**Step 3: Configure your ASIC**
-=======
 **Stratum Security Options:**
 ```bash
 export MAX_SHARES_PER_MINUTE="600"   # Rate limit per client (default: 600)
@@ -141,10 +138,6 @@ export AUTH_FAILURE_BAN_TIME="300"   # Ban duration in seconds (default: 300)
 ```
 
 **Step 4: Configure your ASIC**
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/mining/SETUP.md
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-876c998e/mining/SETUP.md
-=======
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-876c998e/mining/SETUP.md
 
 The proxy will display connection details:
 ```
@@ -230,21 +223,6 @@ For **remote access** (not recommended without VPN):
 
 ```bash
 # Allow only necessary ports
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/mining/SETUP.md
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/mining/SETUP.md
-# RPC: 27332 (testnet) or 8332 (mainnet)
-# Stratum: 3333 (for ASIC mining)
-# P2P: 17333 (testnet) or 7333 (mainnet)
-
-# Example: ufw
-sudo ufw allow 27332/tcp  # RPC (localhost only recommended)
-sudo ufw allow 3333/tcp   # Stratum proxy
-sudo ufw allow 17333/tcp  # P2P
-```
-
-=======
-=======
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-876c998e/mining/SETUP.md
 # RPC: 27332 (testnet) or 8332 (mainnet) - localhost only
 # Stratum: 3333 (for ASIC mining) - LAN if needed
 # P2P: 17333 (testnet) or 7333 (mainnet)
@@ -266,7 +244,7 @@ export ALLOWED_WORKERS=asic1,asic2,gpu_rig1
 # Leave empty only for testing (security risk)
 ```
 
-### 4. Stratum Proxy Security
+### 5. Stratum Proxy Security
 
 For production ASIC mining:
 
@@ -285,8 +263,6 @@ export AUTH_FAILURE_BAN_TIME="300"  # 5 minute ban
 - **Rate Limiting**: Prevents share flooding (600/min default)
 - **Auth Failure Bans**: Temporary IP bans after failed auths
 - **Hex Validation**: All parameters validated before processing
-
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-876c998e/mining/SETUP.md
 ## Troubleshooting
 
 ### "RPC connection failed"
@@ -307,8 +283,6 @@ export AUTH_FAILURE_BAN_TIME="300"  # 5 minute ban
 - **GPU Mining**: Adjust BATCH_SIZE environment variable
 - **CPU Mining**: Expected (~700K H/s), GPU is 50-100x faster
 - **ASIC Mining**: Check stratum proxy connection on port 3333
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/mining/SETUP.md
-=======
 
 ### Stratum proxy issues
 - **"Worker not authorized"**: Add worker to ALLOWED_WORKERS
@@ -319,30 +293,12 @@ export AUTH_FAILURE_BAN_TIME="300"  # 5 minute ban
 - **CPU/GPU Miners**: Press Ctrl+C to exit cleanly
 - **Stratum Proxy**: Press Ctrl+C to stop accepting connections
 - **Node**: Use `radiant-cli stop` command
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-876c998e/mining/SETUP.md
 
-### Stratum proxy issues
-- **"Worker not authorized"**: Add worker to ALLOWED_WORKERS
-- **"Connection refused"**: Check proxy is running on port 3333
-- **"Temporarily banned"**: Too many auth failures, wait 5 minutes
-
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/mining/SETUP.md
-### Graceful shutdown
-- **CPU/GPU Miners**: Press Ctrl+C to exit cleanly
-- **Stratum Proxy**: Press Ctrl+C to stop accepting connections
-- **Node**: Use `radiant-cli stop` command
-
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/mining/SETUP.md
 ### Permission denied
 ```bash
 # Make scripts executable
 chmod +x mining/*.sh
 ```
-=======
-### "Temporarily banned" error
-- Too many authentication failures from your IP
-- Wait for ban to expire (default 5 minutes)
-- Check worker name is in ALLOWED_WORKERS list
 
 ## Environment Variables Reference
 
@@ -360,38 +316,11 @@ chmod +x mining/*.sh
 | `ALLOWED_WORKERS` | Comma-separated worker names | (empty) | Recommended |
 | `PROJECT_DIR` | Path to radiant-core | Auto-detected | No |
 | `CONFIG_FILE` | Path to config.json | ~/.radiant_mining/config.json | No |
-| `ALLOWED_WORKERS` | Comma-separated worker names | (all allowed) | Recommended |
 | `MAX_SHARES_PER_MINUTE` | Rate limit per client | 600 | No |
 | `MAX_AUTH_FAILURES` | Auth failures before ban | 5 | No |
 | `AUTH_FAILURE_BAN_TIME` | Ban duration (seconds) | 300 | No |
 
 *Can be set via config file `~/.radiant_mining/config.json` instead
-
-=======
-## Environment Variables Reference
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `RPC_USER` | RPC username | - | ✅ Yes* |
-| `RPC_PASS` | RPC password | - | ✅ Yes* |
-| `RPC_PORT` | RPC port | 27332 (testnet) | No |
-| `RPC_HOST` | RPC host | 127.0.0.1 | No |
-| `RPC_WALLET` | Wallet name for rewards | miner | No |
-| `NETWORK` | Network (testnet/mainnet/regtest) | testnet | No |
-| `BATCH_SIZE` | GPU batch size (max 16777216) | 4194304 | No |
-| `STRATUM_PORT` | Stratum proxy port | 3333 | No |
-| `DIFFICULTY` | Initial stratum difficulty | 0.001 | No |
-| `ALLOWED_WORKERS` | Comma-separated worker names | (empty) | Recommended |
-| `PROJECT_DIR` | Path to radiant-core | Auto-detected | No |
-| `CONFIG_FILE` | Path to config.json | ~/.radiant_mining/config.json | No |
-| `ALLOWED_WORKERS` | Comma-separated worker names | (all allowed) | Recommended |
-| `MAX_SHARES_PER_MINUTE` | Rate limit per client | 600 | No |
-| `MAX_AUTH_FAILURES` | Auth failures before ban | 5 | No |
-| `AUTH_FAILURE_BAN_TIME` | Ban duration (seconds) | 300 | No |
-
-*Can be set via config file `~/.radiant_mining/config.json` instead
-
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-876c998e/mining/SETUP.md
 ## New Features (2024 Audit)
 
 ### Graceful Shutdown
@@ -426,10 +355,6 @@ For issues or questions:
 3. Review this guide and `FIXES.md`
 4. Visit Radiant Discord/Community channels
 5. Check GitHub issues
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/mining/SETUP.md
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-876c998e/mining/SETUP.md
-=======
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-876c998e/mining/SETUP.md
 
 ## Monitoring
 
@@ -449,27 +374,6 @@ For issues or questions:
 - Node logs: `~/.radiant_testnet/debug.log`
 - Mining output: Check terminal where miner is running
 
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/mining/SETUP.md
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/mining/SETUP.md
-## Environment Variables Reference
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `RPC_USER` | RPC username | - | ✅ Yes |
-| `RPC_PASS` | RPC password | - | ✅ Yes |
-| `RPC_PORT` | RPC port | 27332 (testnet) | No |
-| `RPC_HOST` | RPC host | 127.0.0.1 | No |
-| `RPC_WALLET` | Wallet name for rewards | miner | No |
-| `NETWORK` | Network (testnet/mainnet/regtest) | testnet | No |
-| `BATCH_SIZE` | GPU batch size | 4194304 | No |
-| `STRATUM_PORT` | Stratum proxy port | 3333 | No |
-| `DIFFICULTY` | Initial stratum difficulty | 0.001 | No |
-| `PROJECT_DIR` | Path to radiant-core | Auto-detected | No |
-
-=======
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-876c998e/mining/SETUP.md
-=======
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-876c998e/mining/SETUP.md
 ## Example: Complete Setup (Testnet)
 
 ```bash
@@ -493,18 +397,6 @@ export RPC_PASS="$(openssl rand -base64 32)"
 ./mining/start_mining.sh
 ```
 
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/mining/SETUP.md
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/mining/SETUP.md
-## Support
-
-For issues or questions:
-1. Check logs: `tail -f ~/.radiant_testnet/debug.log`
-2. Review this guide
-3. Visit Radiant Discord/Community channels
-4. Check GitHub issues
-=======
-=======
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-876c998e/mining/SETUP.md
 ## Config File Reference
 
 Location: `~/.radiant_mining/config.json`
@@ -526,7 +418,3 @@ Location: `~/.radiant_mining/config.json`
 ```
 
 Environment variables always override config file values.
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/mining/SETUP.md
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-876c998e/mining/SETUP.md
-=======
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-876c998e/mining/SETUP.md

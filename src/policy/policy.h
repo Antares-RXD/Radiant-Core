@@ -29,15 +29,20 @@ static constexpr int64_t DEFAULT_MAX_GBT_TIME = 0;
  */
 static constexpr int64_t DEFAULT_MAX_INITIAL_GBT_TIME = 0;
 /**
- * Default for -blockmintxfee, which sets the minimum feerate for a transaction
- * in blocks created by mining code.
+ * Fee policy constants for relay and mining.
+ * 
  * Legacy value (pre-Radiant Core 2.0): 1,000,000 satoshis/kB
- * New value (post-Radiant Core 2.0 at block 400,000): 10,000,000 satoshis/kB
+ * New value (post-Radiant Core 2.0): 10,000,000 satoshis/kB
+ * 
+ * Grace period of 5000 blocks (~1 week) after activation allows nodes
+ * to upgrade before the higher fee is enforced.
  */
 static constexpr Amount LEGACY_MIN_RELAY_TX_FEE_PER_KB(1000000 * SATOSHI);
 static constexpr Amount DEFAULT_MIN_RELAY_TX_FEE_PER_KB(1000000 * SATOSHI);
 static constexpr Amount RADIANT_CORE_2_MIN_RELAY_TX_FEE_PER_KB(10000000 * SATOSHI);
-static constexpr int RADIANT_CORE_2_GRACE_BLOCKS = 5000; // ~1 week
+static constexpr int RADIANT_CORE_2_GRACE_BLOCKS = 5000; // ~1 week grace period
+static constexpr Amount LEGACY_BLOCK_MIN_TX_FEE_PER_KB(1000000 * SATOSHI);
+static constexpr Amount DEFAULT_BLOCK_MIN_TX_FEE_PER_KB(10000000 * SATOSHI);
 /**
  * Default for -gbtcheckvalidity, which determines whether we call
  * TestBlockValidity() on the generated block template.

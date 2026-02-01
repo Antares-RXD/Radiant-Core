@@ -222,59 +222,93 @@ Radiant uses SHA-512/256d algorithm. While theoretically compatible with SHA-256
 ASIC Miner → Stratum Proxy → Radiant Node
 ```
 
-### Quick Setup (Recommended)
+### Quick Setup - Mine to Your Own Node
 
-#### 1. Set Credentials
+This setup allows you to run your own stratum server and mine directly to your Radiant Core node - no third-party pools needed!
+
+#### 1. Set Environment Variables
 ```bash
-export RPC_USER="your_username"
-export RPC_PASS="your_password"
-export RPC_WALLET="miner"  # Your wallet name
+# Required credentials (use your node's RPC settings)
+export RPC_USER="your_rpc_username"
+export RPC_PASS="your_rpc_password"
+export RPC_PORT="7332"           # 7332 for mainnet, 17332 for testnet
+export RPC_WALLET="miner"        # Wallet name for rewards
+export STRATUM_PORT="3333"       # Port ASICs connect to
+export STRATUM_DIFFICULTY="8"    # Starting difficulty
 ```
 
-#### 2. Start Radiant Node
+#### 2. Create Mining Wallet (if not exists)
 ```bash
-./mining/start_mining_node.sh
+./build/src/radiant-cli createwallet "miner"
+./build/src/radiant-cli -rpcwallet=miner getnewaddress
+# Save this address - your mining rewards go here!
 ```
 
-#### 3. Start Stratum Proxy
+#### 3. Start Radiant Node
 ```bash
-# Start proxy for testnet
-./mining/start_stratum_proxy.sh
+# Using helper script
+./mining/start_mining_node.sh --mainnet
 
-# For mainnet
+# Or manually
+./build/src/radiantd -server -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS
+```
+
+#### 4. Start Stratum Proxy
+```bash
+# Using helper script
 ./mining/start_stratum_proxy.sh --mainnet
 
-# Custom port
-./mining/start_stratum_proxy.sh --port=3333
+# Or manually
+cd mining && python3 stratum_proxy.py
 ```
 
-The proxy will show connection details like:
+You'll see:
 ```
-ASIC Connection Details:
-  URL: stratum+tcp://192.168.1.100:3333
-  Worker: radiant.YOUR_WORKER_NAME
-  Password: (any value or leave blank)
+Connected to node (height: XXXXXX)
+Stratum proxy listening on port 3333
+Connect ASICs to: stratum+tcp://<YOUR_IP>:3333
 ```
 
-#### 4. Configure ASIC Miner
+#### 5. Configure Your ASIC Miner
 
-**For Antminer (Web Interface):**
-1. Navigate to Miner Configuration → Pool Settings
-2. Pool URL: `stratum+tcp://YOUR_IP:3333`
-3. Worker: `radiant.ASIC_01`
-4. Password: Leave blank or use `x`
-5. Save and restart miner
+**For Iceriver RX0 / DragonBall A11:**
+1. Access miner web interface
+2. Go to Pool Settings
+3. Configure:
+   - **Pool URL**: `stratum+tcp://YOUR_NODE_IP:3333`
+   - **Worker**: `your_wallet_address.worker1` 
+   - **Password**: `x` (or blank)
+4. Save and Apply
 
-**For WhatsMiner:**
-1. Pool URL: `stratum+tcp://YOUR_IP:3333`
-2. Worker: `radiant.ASIC_01`
-3. Password: (leave blank)
+**Example ASIC Configuration:**
+```
+Pool 1: stratum+tcp://192.168.1.100:3333
+Worker: 1YourRadiantWalletAddress.ASIC01
+Password: x
+```
 
-**For cgminer/sgminer:**
+**For GPU miners (lolminer, srbminer, etc):**
 ```bash
-cgminer --url stratum+tcp://YOUR_IP:3333 \
-        --user radiant.ASIC_01 \
-        --pass x
+# SRBMiner example
+SRBMiner-MULTI --algorithm sha512_256d_radiant \
+  --pool stratum+tcp://YOUR_IP:3333 \
+  --wallet YOUR_WALLET.gpu1
+
+# lolminer example  
+lolminer --algo SHA512_256D \
+  --pool stratum+tcp://YOUR_IP:3333 \
+  --user YOUR_WALLET.gpu1
+```
+
+#### 6. Verify Mining
+```bash
+# Check proxy logs for:
+# - "Authorized worker: ..." - Miner connected
+# - "Share accepted..." - Valid shares
+# - "BLOCK FOUND!" - You found a block!
+
+# Check wallet balance
+./build/src/radiant-cli -rpcwallet=miner getbalance
 ```
 
 ### Manual Setup

@@ -4976,24 +4976,13 @@ bool PeerLogicValidation::SendMessages(const Config &config, CNode *pto,
                 CFeeRate(DEFAULT_MIN_RELAY_TX_FEE_PER_KB);
             static FeeFilterRounder filterRounder(default_feerate);
             Amount filterToSend = filterRounder.round(currentFilter);
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/src/net_processing.cpp
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/src/net_processing.cpp
-            filterToSend = std::max(filterToSend, GetNetworkMinRelayTxFee(::ChainActive().Tip()).GetFeePerK());
-=======
-=======
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-f443262b/src/net_processing.cpp
-            // We need to use the effective min fee based on our chain tip
-            // so we don't advertise a low fee if we are enforcing a higher one,
-            // or vice versa.
+            // Use the effective min fee based on current chain tip
+            // so we don't advertise a low fee if we are enforcing a higher one
             int nHeight = ::ChainActive().Height();
             const Consensus::Params &consensusParams = ::ChainActive().GetConsensus();
             CFeeRate effectiveMinRelayFee = GetEffectiveMinRelayFee(nHeight, consensusParams);
             
             filterToSend = std::max(filterToSend, effectiveMinRelayFee.GetFeePerK());
-<<<<<<< /Users/main/Downloads/Radiant-Core-main/src/net_processing.cpp
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-f443262b/src/net_processing.cpp
-=======
->>>>>>> /Users/main/.windsurf/worktrees/Radiant-Core-main/Radiant-Core-main-f443262b/src/net_processing.cpp
 
             if (filterToSend != pto->lastSentFeeFilter) {
                 connman->PushMessage(
