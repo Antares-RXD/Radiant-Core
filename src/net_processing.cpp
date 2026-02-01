@@ -44,6 +44,7 @@
 #include <validationinterface.h>
 #include <chrono>
 #include <cmath>
+#include <cstring>
 #include <deque>
 #include <memory>
 #include <stdexcept>
@@ -4979,7 +4980,7 @@ bool PeerLogicValidation::SendMessages(const Config &config, CNode *pto,
             // Use the effective min fee based on current chain tip
             // so we don't advertise a low fee if we are enforcing a higher one
             int nHeight = ::ChainActive().Height();
-            const Consensus::Params &consensusParams = ::ChainActive().GetConsensus();
+            const Consensus::Params &consensusParams = Params().GetConsensus();
             CFeeRate effectiveMinRelayFee = GetEffectiveMinRelayFee(nHeight, consensusParams);
             
             filterToSend = std::max(filterToSend, effectiveMinRelayFee.GetFeePerK());
