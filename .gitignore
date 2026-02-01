@@ -241,3 +241,16 @@ gui/binaries/*/libs/
 
 # Trash
 src/crypto/common.hb.pyQ.cmakeke
+
+# Local blockchain data and configs
+radiant-mainnet-data/
+radiant-mainnet.conf
+radiant.conf
+
+# Local test scripts and temporary files
+mining/test_asic.py
+mining/test_full_mining.py
+
+# Build artifacts and releases
+radiant-core-windows-x64/
+radiant-core-windows-x64.zip
