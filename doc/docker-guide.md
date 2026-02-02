@@ -2,147 +2,224 @@
 
 This document explains the different Dockerfiles available for Radiant Core and their intended use cases.
 
-## Quick Start with Pre-built Release
+## Quick Start with Docker Compose (Recommended)
 
-The fastest way to run Radiant Core via Docker:
+The easiest way to run Radiant Core via Docker:
 
 ```bash
-# Load the pre-built image from releases/Docker/
-docker load < releases/Docker/radiant-core-docker-v2.0.0.tar.gz
+# Start the node using docker-compose
+docker-compose up -d
 
-# Run the node
+# Check status
+docker-compose exec radiant-node radiant-cli getblockchaininfo
+
+# View logs
+docker-compose logs -f radiant-node
+
+# Stop the node
+docker-compose down
+```
+
+## Dockerfiles Overview
+
+All production Dockerfiles now build from the **GitHub repository** for reproducible, verifiable builds.
+
+### Production Dockerfiles (Build from GitHub)
+
+#### `docker/Dockerfile.release` (⭐ Recommended for Production)
+**Multi-stage build optimized for production deployments - Builds from GitHub**
+
+- **Source**: Clones from https://github.com/Radiant-Core/Radiant-Core.git
+- **Base**: Ubuntu 24.04 (multi-stage: builder + runtime)
+- **Size**: Optimized minimal runtime image (~200MB)
+- **Features**: 
+  - Multi-stage build (smaller final image)
+  - Non-root user execution (security)
+  - Health checks included
+  - Configurable via build args (GIT_TAG, BUILD_TYPE)
+  - Production-ready configuration
+- **Use Case**: Production deployments, Docker Hub releases
+- **Build Args**:
+  - `GIT_TAG`: Git branch/tag to build (default: `main`)
+  - `BUILD_TYPE`: CMake build type (default: `Release`)
+- **Build**: 
+  ```bash
+  docker build -f docker/Dockerfile.release -t radiant-core:latest .
+  # Or with specific version:
+  docker build -f docker/Dockerfile.release --build-arg GIT_TAG=v2.0.0 -t radiant-core:v2.0.0 .
+  ```
+
+#### `docker/Dockerfile.seeder` (DNS Seeder)
+**DNS seed node for network discovery - Builds from GitHub**
+
+- **Source**: Clones from GitHub repository
+- **Base**: Ubuntu 24.04
+- **Features**:
+  - Builds only the seeder component
+  - Exposes DNS port (53/udp)
+  - Minimal footprint
+  - Configurable via build args (GIT_TAG)
+- **Use Case**: Network infrastructure, DNS seeding
+- **Build**: 
+  ```bash
+  docker build -f docker/Dockerfile.seeder -t radiant-seeder .
+  ```
+
+#### `Dockerfile.linux-release` (Linux Build Container)
+**Linux x64 release build container - Builds from GitHub**
+
+- **Source**: Clones from GitHub repository
+- **Base**: Ubuntu 22.04
+- **Features**:
+  - Builds with wallet support
+  - Creates release tarball
+  - Configurable via build args
+- **Use Case**: Creating Linux release packages
+- **Build**: 
+  ```bash
+  docker build -f Dockerfile.linux-release -t radiant-linux-builder .
+  ```
+
+#### `releases/Dockerfile` (Full-Featured Release)
+**Multi-stage production build with wallet and ZMQ - Builds from GitHub**
+
+- **Source**: Clones from GitHub repository
+- **Base**: Ubuntu 22.04 (multi-stage)
+- **Features**:
+  - Wallet support enabled
+  - ZMQ support enabled
+  - Multi-stage for minimal runtime
+  - Configurable build options
+- **Use Case**: Production deployments requiring wallet functionality
+- **Build**: 
+  ```bash
+  docker build -f releases/Dockerfile -t radiant-core-wallet .
+  ```
+
+### Development Dockerfiles (Build from Local Source)
+
+⚠️ **These Dockerfiles are for development/testing only and build from local source code.**
+
+#### `Dockerfile.test` (Local Testing)
+**Development/testing build from local source**
+
+- **Source**: ⚠️ Copies local source tree (COPY . .)
+- **Base**: Ubuntu 22.04
+- **Features**:
+  - Quick local builds for testing
+  - No wallet or QT
+  - Suitable for uncommitted changes
+- **Use Case**: **Development and testing only**
+- **Build**: `docker build -f Dockerfile.test -t radiant-test .`
+
+#### `docker/Dockerfile.testnet` (Local Testnet)
+**Testnet deployment from pre-built local binaries**
+
+- **Source**: ⚠️ Expects pre-built binaries in `build/src/`
+- **Base**: Ubuntu 24.04
+- **Features**:
+  - Testnet configuration pre-loaded
+  - Testnet ports exposed (27332, 27333)
+  - Runtime-only (requires local build first)
+- **Use Case**: **Development/testing testnet deployments**
+- **Requires**: Build locally first: `cmake -B build && cmake --build build`
+- **Build**: `docker build -f docker/Dockerfile.testnet -t radiant-testnet .`
+
+## Usage Examples
+
+### Docker Compose (Recommended)
+
+The easiest way to deploy Radiant Core:
+
+```bash
+# Start the node (builds from GitHub automatically)
+docker-compose up -d
+
+# Check blockchain status
+docker-compose exec radiant-node radiant-cli getblockchaininfo
+
+# View logs
+docker-compose logs -f radiant-node
+
+# Stop the node
+docker-compose down
+
+# Stop and remove volumes
+docker-compose down -v
+```
+
+**Optional: Run with Seeder**
+```bash
+# Start both node and seeder
+docker-compose --profile seeder up -d
+
+# Check seeder status
+docker-compose logs radiant-seeder
+```
+
+**Environment Configuration**
+
+Create a `.env` file for custom settings:
+```bash
+RPC_USER=myuser
+RPC_PASSWORD=mypassword
+GIT_TAG=v2.0.0
+```
+
+### Production Deployment (Standalone)
+
+```bash
+# Build from GitHub (specific version)
+docker build -f docker/Dockerfile.release \
+  --build-arg GIT_TAG=v2.0.0 \
+  -t radiant-core:v2.0.0 .
+
+# Run with persistent data
 docker run -d --name radiant-node \
   -p 7332:7332 -p 7333:7333 \
   -v radiant-data:/home/radiant/.radiant \
+  -e RPC_USER=myuser \
+  -e RPC_PASSWORD=mypassword \
   radiant-core:v2.0.0
 
 # Check status
 docker exec radiant-node radiant-cli getblockchaininfo
 ```
 
-## Dockerfiles Overview
+### Development with Local Changes
 
-### Production Dockerfiles
-
-#### `docker/Dockerfile.release` (Recommended for Production)
-**Multi-stage build optimized for production deployments**
-
-- **Base**: Ubuntu 24.04 (multi-stage: builder + runtime)
-- **Size**: Optimized minimal runtime image
-- **Features**: 
-  - Multi-stage build (smaller final image)
-  - Non-root user execution
-  - Health checks included
-  - Production-ready configuration
-- **Use Case**: Production deployments, Docker Hub releases
-- **Build**: `docker build -f docker/Dockerfile.release -t radiant-core:latest .`
-
-#### `docker/Dockerfile.base` (Legacy Production)
-**Full production image with Node.js and mining support**
-
-- **Base**: Ubuntu 24.04
-- **Features**: 
-  - Includes Node.js 20 (for ElectrumX/RXinDexer)
-  - GPU mining support (OpenCL)
-  - Builds from GitHub source
-- **Use Case**: Legacy production, mining operations
-- **Note**: Consider using `docker/Dockerfile.release` for standard deployments
-
-### Development Dockerfiles
-
-#### `docker/Dockerfile.core` (Local Development)
-**Build from local source tree**
-
-- **Base**: Ubuntu 24.04
-- **Features**:
-  - Builds from current directory source
-  - Development-friendly configuration
-  - Debug logging enabled
-- **Use Case**: Local development and testing
-- **Build**: `docker build -f docker/Dockerfile.core -t radiant-core-local .`
-
-#### `docker/Dockerfile.ci` (Continuous Integration)
-**Complete CI/CD build environment**
-
-- **Base**: Ubuntu 24.04
-- **Features**:
-  - Full build tools and dependencies
-  - Cross-compilation support (Windows, ARM, AArch64)
-  - Documentation tools (Doxygen)
-  - Python testing dependencies
-- **Use Case**: CI/CD pipelines, automated testing
-- **Build**: `docker build -f docker/Dockerfile.ci -t radiant-core-ci .`
-
-### Specialized Dockerfiles
-
-#### `docker/Dockerfile.testnet` (Testnet Node)
-**Pre-configured for Radiant testnet**
-
-- **Base**: Ubuntu 24.04
-- **Features**:
-  - Testnet configuration pre-loaded
-  - Testnet ports exposed (27332, 27333)
-  - Runtime-only (no build tools)
-- **Use Case**: Testnet deployments
-- **Build**: `docker build -f docker/Dockerfile.testnet -t radiant-core-testnet .`
-
-#### `docker/Dockerfile.seeder` (DNS Seeder)
-**DNS seed node for network discovery**
-
-- **Base**: Ubuntu 24.04
-- **Features**:
-  - Builds only the seeder component
-  - Exposes DNS port (53/udp)
-  - Minimal footprint
-- **Use Case**: Network infrastructure, DNS seeding
-- **Build**: `docker build -f docker/Dockerfile.seeder -t radiant-seeder .`
-
-#### `docker/Dockerfile.orbstack` (macOS Development)
-**OrbStack-specific configuration for macOS users**
-
-- **Base**: Ubuntu 24.04
-- **Features**:
-  - Mining support (GPU/OpenCL)
-  - Testnet configuration
-  - Optimized for OrbStack on macOS
-- **Use Case**: macOS development with OrbStack
-- **Build**: `docker build -f docker/Dockerfile.orbstack -t radiant-orbstack .`
-
-## Usage Examples
-
-### Production Deployment
 ```bash
-# Build and run production image
-docker build -f docker/Dockerfile.release -t radiant-core:latest .
-docker run -d --name radiant-node \
-  -p 7332:7332 -p 7333:7333 \
-  -v radiant-data:/home/radiant/.radiant \
-  radiant-core:latest
-```
+# Test local changes (builds from current directory)
+docker build -f Dockerfile.test -t radiant-test .
+docker run --rm -it -p 7332:7332 -p 7333:7333 radiant-test
 
-### Local Development
-```bash
-# Build from local source
-docker build -f docker/Dockerfile.core -t radiant-core-local .
-docker run --rm -it -p 7332:7332 -p 7333:7333 radiant-core-local
-```
+# For testnet with local binaries
+# 1. Build locally first
+cmake -B build && cmake --build build
 
-### Testnet Deployment
-```bash
-# Build and run testnet node
+# 2. Build Docker image
 docker build -f docker/Dockerfile.testnet -t radiant-testnet .
+
+# 3. Run testnet node
 docker run -d --name radiant-testnet \
   -p 27332:27332 -p 27333:27333 \
   -v testnet-data:/home/radiant/.radiant \
   radiant-testnet
 ```
 
-### CI/CD Build
+### DNS Seeder Deployment
+
 ```bash
-# Build CI environment
-docker build -f docker/Dockerfile.ci -t radiant-core-ci .
-docker run --rm -v $PWD:/source radiant-core-ci \
-  bash -c "cd /source && mkdir build && cd build && cmake .. && ninja"
+# Build seeder from GitHub
+docker build -f docker/Dockerfile.seeder -t radiant-seeder .
+
+# Run seeder
+docker run -d --name radiant-seeder \
+  -p 5353:53/udp \
+  radiant-seeder \
+  -host=dnsseed.example.com \
+  -ns=vps.example.com \
+  -mbox=admin@example.com
 ```
 
 ## Configuration
@@ -169,26 +246,49 @@ docker run --rm -v $PWD:/source radiant-core-ci \
 3. **RPC Security**: Avoid exposing RPC ports publicly without authentication
 4. **Health Checks**: Production images include health checks for monitoring
 
+## Docker Build Sources Summary
+
+### Production Builds (GitHub Source) ✅
+All production Dockerfiles now clone from the GitHub repository for **reproducible, verifiable builds**:
+
+| Dockerfile | Source | Use Case |
+|------------|--------|----------|
+| `docker/Dockerfile.release` | ✅ GitHub | **Recommended for production** |
+| `docker/Dockerfile.seeder` | ✅ GitHub | DNS seeder deployments |
+| `Dockerfile.linux-release` | ✅ GitHub | Linux release packages |
+| `releases/Dockerfile` | ✅ GitHub | Production with wallet support |
+
+### Development Builds (Local Source) ⚠️
+These are for development/testing only:
+
+| Dockerfile | Source | Use Case |
+|------------|--------|----------|
+| `Dockerfile.test` | ⚠️ Local (COPY) | Quick local testing |
+| `docker/Dockerfile.testnet` | ⚠️ Local binaries | Testnet with pre-built binaries |
+
 ## Migration Guide
 
-### From Legacy Dockerfile to Release Dockerfile
-If you're currently using the main `docker/Dockerfile.base`, consider migrating to `docker/Dockerfile.release`:
+### From Local-Source Dockerfiles to GitHub-Based Builds
+
+If you were previously using Dockerfiles that built from local source, migrate to GitHub-based builds:
 
 ```bash
-# Old way
-docker build -t radiant-core .
-docker run radiant-core radiantd -server
+# OLD WAY (local source - not recommended for production)
+docker build -f Dockerfile.test -t radiant-core .
 
-# New way
+# NEW WAY (GitHub source - recommended for production)
 docker build -f docker/Dockerfile.release -t radiant-core:latest .
-docker run radiant-core:latest
+# Or use docker-compose:
+docker-compose up -d
 ```
 
-Benefits:
-- Smaller image size
-- Better security (non-root user)
-- Health checks included
-- Production-ready defaults
+**Benefits of GitHub-based builds:**
+- ✅ **Reproducible**: Anyone can verify the build matches the source code
+- ✅ **No local dependencies**: Don't need source code locally
+- ✅ **Version pinning**: Use specific tags/commits via `GIT_TAG` build arg
+- ✅ **Smaller images**: Multi-stage builds reduce final image size
+- ✅ **Better security**: Non-root user, minimal runtime dependencies
+- ✅ **CI/CD friendly**: Automated deployments without source checkout
 
 ## Troubleshooting
 

@@ -82,6 +82,7 @@
 #endif
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <memory>
 
 #ifdef ENABLE_WALLET
@@ -135,7 +136,7 @@ static fs::path GetPidFile() {
     } else {
         return InitError(strprintf(_("Unable to create the PID file '%s': %s"),
                                    GetPidFile().string(),
-                                   std::strerror(errno)));
+                                   strerror(errno)));
     }
 }
 
@@ -1935,7 +1936,7 @@ bool AppInitParameterInteraction(Config &config) {
     // TODO: Harmonize which arguments need sanity checking and where that
     // happens.
     // Note: The actual fee policy enforcement (including height-based activation
-    // at block 400,000) is done dynamically in miner.cpp CreateNewBlock().
+    // at block 410,000) is done dynamically in miner.cpp CreateNewBlock().
     // This check only validates the argument is parseable.
     if (gArgs.IsArgSet("-blockmintxfee")) {
         Amount n = Amount::zero();
@@ -1945,7 +1946,7 @@ bool AppInitParameterInteraction(Config &config) {
         }
         // Log info about fee policy - actual enforcement is height-based in miner.cpp
         LogPrintf("Info: -blockmintxfee=%s specified. Fee policy will be enforced "
-                  "based on block height (Radiant Core 2.0 activates at block 400,000).\n",
+                  "based on block height (Radiant Core 2.0 activates at block 410,000).\n",
                   gArgs.GetArg("-blockmintxfee", ""));
     }
 

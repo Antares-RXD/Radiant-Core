@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  radiant-node:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.release
+      args:
+        GIT_TAG: main
+        BUILD_TYPE: Release
+    image: radiant-core:latest
+    container_name: radiant-node
+    restart: unless-stopped
+    ports:
+      - "7332:7332"  # P2P
+      - "7333:7333"  # RPC
+      - "29000:29000"  # ZMQ (if enabled)
+    volumes:
+      - radiant-data:/home/radiant/.radiant
+    environment:
+      # Override these in a .env file or docker-compose.override.yml
+      - RPC_USER=${RPC_USER:-radiant}
+      - RPC_PASSWORD=${RPC_PASSWORD:-changeme}
+    command: >
+      -server
+      -rest
+      -txindex=1
+      -rpcuser=${RPC_USER:-radiant}
+      -rpcpassword=${RPC_PASSWORD:-changeme}
+      -rpcallowip=0.0.0.0/0
+      -rpcbind=0.0.0.0
+    healthcheck:
+      test: ["CMD", "radiant-cli", "getblockchaininfo"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - radiant-network
+
+  # Optional: Radiant Seeder
+  radiant-seeder:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.seeder
+      args:
+        GIT_TAG: main
+    image: radiant-seeder:latest
+    container_name: radiant-seeder
+    restart: unless-stopped
+    ports:
+      - "5353:53/udp"
+    command: >
+      -host=dnsseed.example.com
+      -ns=vps.example.com
+      -mbox=admin@example.com
+    networks:
+      - radiant-network
+    profiles:
+      - seeder  # Only starts when explicitly enabled
+
+volumes:
+  radiant-data:
+    driver: local
+
+networks:
+  radiant-network:
+    driver: bridge

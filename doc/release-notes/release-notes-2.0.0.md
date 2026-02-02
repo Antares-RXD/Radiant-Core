@@ -1,24 +1,24 @@
 # Radiant Core 2.0.0 (Phoenix) Release Notes
 
 **Release Date**: December 2024  
-**Hard Fork Activation**: Block 400,000 (~Late January 2026)
+**Hard Fork Activation**: Block 410,000 (~Late February 2026)
 
 ---
 
 ## Overview
 
-Radiant Core 2.0.0 is a **mandatory upgrade** that includes consensus changes activating at block height **400,000**. All node operators, miners, exchanges, and wallet providers **must upgrade before block 400,000** to remain on the main chain.
+Radiant Core 2.0.0 is a **mandatory upgrade** that includes consensus changes activating at block height **410,000**. All node operators, miners, exchanges, and wallet providers **must upgrade before block 410,000** to remain on the main chain.
 
 ### Current Network Status
 - **Current Block Height**: ~385,830 (as of December 12, 2025)
-- **Blocks Until Activation**: ~14,170
-- **Estimated Activation Date**: Late January / Early February 2026
+- **Blocks Until Activation**: ~24,170
+- **Estimated Activation Date**: Late February / Early March 2026
 
 ---
 
 ## ⚠️ IMPORTANT: Upgrade Deadline
 
-**All participants MUST upgrade before block 400,000.**
+**All participants MUST upgrade before block 410,000.**
 
 | Participant | Urgency | Impact of Not Upgrading |
 |-------------|---------|-------------------------|
@@ -29,7 +29,7 @@ Radiant Core 2.0.0 is a **mandatory upgrade** that includes consensus changes ac
 
 ---
 
-## Consensus Changes (Activate at Block 400,000)
+## Consensus Changes (Activate at Block 410,000)
 
 ### 1. ASERT Difficulty Adjustment Half-Life Tuning
 
@@ -43,7 +43,7 @@ The ASERT (Absolutely Scheduled Exponentially Rising Targets) difficulty adjustm
 **Technical Details**:
 - Pre-upgrade: `nASERTHalfLife = 172,800 seconds` (2 days)
 - Post-upgrade: `nASERTHalfLife = 43,200 seconds` (12 hours)
-- Activation: Height-based at block 400,000
+- Activation: Height-based at block 410,000
 
 ### 2. Minimum Fee Policy Enforcement
 
@@ -52,9 +52,9 @@ A new minimum transaction fee policy is enforced at the consensus level to prote
 **Fee Schedule**:
 | Block Height | Minimum Fee | RXD/kB |
 |--------------|-------------|--------|
-| < 400,000 | 1,000,000 sat/kB | 0.01 RXD/kB |
-| 400,000 - 404,999 | 1,000,000 sat/kB | 0.01 RXD/kB |
-| ≥ 405,000 | 10,000,000 sat/kB | 0.1 RXD/kB |
+| < 410,000 | 1,000,000 sat/kB | 0.01 RXD/kB |
+| 410,000 - 414,999 | 1,000,000 sat/kB | 0.01 RXD/kB |
+| ≥ 415,000 | 10,000,000 sat/kB | 0.1 RXD/kB |
 
 **Impact**:
 - Miners cannot set `-blockmintxfee` above the maximum for their height
@@ -62,7 +62,7 @@ A new minimum transaction fee policy is enforced at the consensus level to prote
 - Ensures minimum economic viability for miners
 
 **Note**:
-- The relay/mempool minimum fee (`minrelaytxfee`) and wallet required fee floor follow the same schedule, with a **5,000 block grace period** after 400,000. This improves pre-activation mempool compatibility.
+- The relay/mempool minimum fee (`minrelaytxfee`) and wallet required fee floor follow the same schedule, with a **5,000 block grace period** after 410,000. This improves pre-activation mempool compatibility.
 - `minrelaytxfee` is a *policy/relay* setting (mempool admission and propagation), not a consensus rule.
 
 **Credit**: Empty Block Miner vulnerability reported by **iotapi from Vipor.net**.
@@ -167,7 +167,7 @@ tar xzf radiant-core-2.0.0-linux64.tar.gz
 
 ### For Miners
 
-1. Upgrade to Radiant Core 2.0.0 **before block 400,000**
+1. Upgrade to Radiant Core 2.0.0 **before block 410,000**
 2. No configuration changes required
 3. The fee policy will automatically adjust at activation
 
@@ -189,7 +189,7 @@ tar xzf radiant-core-2.0.0-linux64.tar.gz
 
 ### Testnet
 
-Testnet also activates at block 400,000. Use testnet to verify your integration before mainnet activation.
+Testnet activates at block **1,000** for faster testing. Use testnet to verify your integration before mainnet activation.
 
 ```bash
 ./radiantd -testnet
@@ -237,4 +237,4 @@ Thank you to all contributors to this release, with special thanks to:
 
 ---
 
-*This is a mandatory upgrade. Please upgrade before block 400,000 to remain on the Radiant main chain.*
+*This is a mandatory upgrade. Please upgrade before block 410,000 to remain on the Radiant main chain.*

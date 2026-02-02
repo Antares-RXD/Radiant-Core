@@ -1,11 +1,24 @@
 # Radiant Testnet Docker Configuration
+# ============================================================================
+# DEVELOPMENT/TESTING ONLY - Requires pre-built LOCAL binaries
+# ============================================================================
+# This Dockerfile expects binaries to be already built locally in build/src/
+# It does NOT build from source or clone from GitHub.
+#
+# Usage:
+#   1. Build the project first: cmake -B build && cmake --build build
+#   2. Then build this image: docker build -f docker/Dockerfile.testnet -t radiant-testnet .
+#
+# For production builds, use: docker/Dockerfile.release
+# ============================================================================
 # Uses -testnet flag for the public Radiant testnet network
 # P2P Port: 27333, RPC Port: 27332
+# ============================================================================
 
 FROM ubuntu:24.04
 
 LABEL maintainer="info@radiantfoundation.org"
-LABEL description="Radiant Core Node - Testnet Configuration"
+LABEL description="Radiant Core Node - Testnet Configuration (LOCAL BUILD)"
 
 # Install runtime dependencies
 ENV DEBIAN_FRONTEND=noninteractive
@@ -30,7 +43,7 @@ RUN useradd -m -s /bin/bash radiant
 # Set working directory
 WORKDIR /home/radiant
 
-# Copy Radiant Core binaries and configuration
+# Copy pre-built local binaries and configuration (DEVELOPMENT ONLY)
 COPY build/src/radiantd /usr/local/bin/
 COPY build/src/radiant-cli /usr/local/bin/
 COPY build/src/radiant-wallet /usr/local/bin/

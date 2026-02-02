@@ -20,6 +20,6 @@ bool IsUAHFenabled(const Consensus::Params &params,
 bool IsASERTEnabled(const Consensus::Params &params,
                     const CBlockIndex *pindexPrev);
 
-/** Check if Radiant Core 2.0 upgrade has activated (block 400,000 on mainnet). */
+/** Check if Radiant Core 2.0 upgrade has activated (block 410,000 on mainnet). */
 bool IsRadiantCore2Enabled(const Consensus::Params &params,
                            const CBlockIndex *pindexPrev);

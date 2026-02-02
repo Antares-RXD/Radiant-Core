@@ -1,4 +1,13 @@
 # Radiant Node - Test build with verificationprogress fix
+# ============================================================================
+# DEVELOPMENT/TESTING ONLY - Builds from LOCAL source code
+# ============================================================================
+# This Dockerfile is intended for local development and testing with 
+# uncommitted changes or patches. It copies the local source tree.
+#
+# For production builds, use: docker/Dockerfile.release
+# ============================================================================
+
 FROM ubuntu:22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -22,7 +31,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /build/radiant
 
-# Copy local source with fixes
+# Copy local source with fixes (DEVELOPMENT ONLY)
 COPY . .
 
 # Build radiantd

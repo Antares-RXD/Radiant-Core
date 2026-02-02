@@ -1,9 +1,12 @@
 # Dockerfile for Radiant Core with wallet support
 # Multi-stage build for smaller final image
+# Builds from GitHub repository for reproducible builds
 
 # Stage 1: Build
 FROM ubuntu:22.04 AS builder
 
+ARG GIT_TAG=main
+ARG BUILD_TYPE=Release
 ARG BUILD_RADIANT_WALLET=ON
 ARG BUILD_RADIANT_ZMQ=ON
 
@@ -12,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     git \
+    ca-certificates \
     libboost-all-dev \
     libevent-dev \
     libssl-dev \
@@ -21,14 +25,17 @@ RUN apt-get update && apt-get install -y \
     libqrencode-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy source
 WORKDIR /build
-COPY . .
+
+# Clone from GitHub repository
+RUN git clone --depth 1 --branch ${GIT_TAG} https://github.com/Radiant-Core/Radiant-Core.git radiant-core
+
+WORKDIR /build/radiant-core
 
 # Build with wallet support (skip man pages)
 RUN mkdir -p build && cd build && \
     cmake \
-        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
         -DBUILD_RADIANT_WALLET=${BUILD_RADIANT_WALLET} \
         -DBUILD_RADIANT_DAEMON=ON \
         -DBUILD_RADIANT_CLI=ON \
@@ -42,9 +49,9 @@ RUN mkdir -p build && cd build && \
     make -j$(nproc) radiantd radiant-cli radiant-tx
 
 # Strip binaries
-RUN strip /build/build/src/radiantd \
-    /build/build/src/radiant-cli \
-    /build/build/src/radiant-tx
+RUN strip /build/radiant-core/build/src/radiantd \
+    /build/radiant-core/build/src/radiant-cli \
+    /build/radiant-core/build/src/radiant-tx
 
 # Stage 2: Runtime
 FROM ubuntu:22.04
@@ -66,9 +73,9 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -s /bin/bash radiant
 
 # Copy binaries from builder
-COPY --from=builder /build/build/src/radiantd /usr/local/bin/
-COPY --from=builder /build/build/src/radiant-cli /usr/local/bin/
-COPY --from=builder /build/build/src/radiant-tx /usr/local/bin/
+COPY --from=builder /build/radiant-core/build/src/radiantd /usr/local/bin/
+COPY --from=builder /build/radiant-core/build/src/radiant-cli /usr/local/bin/
+COPY --from=builder /build/radiant-core/build/src/radiant-tx /usr/local/bin/
 
 # Create data directory
 RUN mkdir -p /home/radiant/.radiant && \

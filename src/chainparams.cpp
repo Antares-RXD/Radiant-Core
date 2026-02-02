@@ -100,7 +100,7 @@ public:
         consensus.CSVHeight = 102;
         consensus.ERHeight = 62000;
         consensus.PushTXStateHeight = 214555;
-        consensus.radiantCore2UpgradeHeight = 400000;
+        consensus.radiantCore2UpgradeHeight = 410000;
         consensus.powLimit = uint256S(
             "00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         // one week
@@ -113,7 +113,7 @@ public:
         // difficulty is cut in half. Doubled if blocks are ahead of schedule.
         // Two days before the ASERT half-life tuning upgrade, then 12 hours after
         consensus.nASERTHalfLife = 2 * 24 * 60 * 60;
-        consensus.asertHalfLifeUpgradeHeight = 400000;
+        consensus.asertHalfLifeUpgradeHeight = 410000;
 
         // Sat Jul 09 2022 22:00:00 GMT+0000 ASERT DAA enabled
         consensus.asertActivationTime = 1657404000;
@@ -197,7 +197,7 @@ public:
             {10543, BlockHash::fromHex("0000000000389e57f64aeda459b441613dedb49b050ef0df1e25e4f325957dcf")}, 
             {18206, BlockHash::fromHex("000000000002b08f7be7bce01d53c4ab2f7b3420955866b88b3e6e087f941e07")}, // When ASERT went live
             {19068, BlockHash::fromHex("0000000000021a9928656e3b386b2e352e054fb2344ec0474e003cfabcdf0eff")}
-            // Note: No checkpoint after block 19068 until after block 400,000 upgrade
+            // Note: No checkpoint after block 19068 until after block 410,000 upgrade
         }};
 
         // Data as of block
@@ -236,7 +236,7 @@ public:
         consensus.CSVHeight = 5;
         consensus.ERHeight = 10;
         consensus.PushTXStateHeight = 20;
-        consensus.radiantCore2UpgradeHeight = 400000;
+        consensus.radiantCore2UpgradeHeight = 1000;
         consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         // one weeks
         consensus.nPowTargetTimespan = 7 * 24 * 60 * 60;
@@ -335,7 +335,7 @@ public:
         consensus.CSVHeight = 5;
         consensus.ERHeight = 10;
         consensus.PushTXStateHeight = 20;
-        consensus.radiantCore2UpgradeHeight = 400000;
+        consensus.radiantCore2UpgradeHeight = 410000;
         consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         // one weeks
         consensus.nPowTargetTimespan = 7 * 24 * 60 * 60;
@@ -347,7 +347,7 @@ public:
         // difficulty is cut in half. Doubled if blocks are ahead of schedule.
         // Two days before the ASERT half-life tuning upgrade, then 12 hours after
         consensus.nASERTHalfLife = 2 * 24 * 60 * 60;
-        consensus.asertHalfLifeUpgradeHeight = 400000;
+        consensus.asertHalfLifeUpgradeHeight = 410000;
 
         // Sat Jul 09 2022 22:00:00 GMT+0000 ASERT DAA enabled
         consensus.asertActivationTime = 1657404000;

@@ -1,14 +1,18 @@
-# Build and run the Radiant Seeder from the local source tree
+# Build and run the Radiant Seeder from GitHub repository
 # Usage:
-#   docker build -f Dockerfile.seeder -t radiant-seeder-local .
-#   docker run --rm -it -p 5353:53/udp radiant-seeder-local -host=dnsseed.example.com -ns=vps.example.com
+#   docker build -f docker/Dockerfile.seeder -t radiant-seeder --build-arg GIT_TAG=main .
+#   docker run --rm -it -p 5353:53/udp radiant-seeder -host=dnsseed.example.com -ns=vps.example.com
 
 FROM ubuntu:24.04
 
-LABEL maintainer="local-dev"
-LABEL description="Radiant Seeder built from local source tree"
+LABEL maintainer="info@radiantfoundation.org"
+LABEL description="Radiant Seeder built from GitHub repository"
 
 ENV DEBIAN_FRONTEND=noninteractive
+
+# Build arguments
+ARG GIT_TAG=main
+ARG BUILD_TYPE=Release
 
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -29,18 +33,21 @@ RUN apt-get update && apt-get install -y \
     libdb++-dev \
     python3 \
     git \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt
+
+# Clone from GitHub repository
+RUN git clone --depth 1 --branch ${GIT_TAG} https://github.com/Radiant-Core/Radiant-Core.git radiant-seeder
 
 WORKDIR /opt/radiant-seeder
 
-# Copy the local source tree into the image
-COPY . .
-
 # Configure and build: Enable Seeder, Disable everything else
-RUN rm -rf build \
- && mkdir -p build \
+RUN mkdir -p build \
  && cd build \
  && cmake -GNinja .. \
+    -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
     -DBUILD_RADIANT_SEEDER=ON \
     -DBUILD_RADIANT_DAEMON=OFF \
     -DBUILD_RADIANT_WALLET=OFF \
@@ -48,7 +55,7 @@ RUN rm -rf build \
     -DBUILD_RADIANT_CLI=OFF \
     -DBUILD_RADIANT_TX=OFF \
     -DBUILD_RADIANT_ZMQ=OFF \
- && ninja -j 2 radiant-seeder
+ && ninja radiant-seeder
 
 WORKDIR /opt/radiant-seeder/build/src/seeder
 

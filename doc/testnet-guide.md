@@ -332,21 +332,20 @@ rmdir /s /q data-regtest
 
 ---
 
-## Public Testnet Strategy for ASERT Block 400000 Testing
+## Public Testnet Strategy for ASERT Upgrade Testing
 
-### The Critical Test: `radiantCore2UpgradeHeight = 400000`
+### The Critical Test: `radiantCore2UpgradeHeight`
 
-The ASERT half-life tuning change activates at block 400000 on all networks:
+The ASERT half-life tuning change activates at different heights per network:
 
 | Network   | radiantCore2UpgradeHeight | Current Status |
-|-----------|---------------------------|----------------|
-| Mainnet   | 400,000                   | Production     |
-| Testnet3  | 400,000                   | May be past it |
-| Testnet  | 400,000                   | Likely < 400k  |
-| Scalenet  | 400,000                   | Variable       |
+|-----------|---------------------------|-----------------|
+| Mainnet   | 410,000                   | Production     |
+| Testnet   | **1,000**                 | Fast testing   |
+| Scalenet  | 410,000                   | Variable       |
 | Regtest   | **200**                   | Easy to test   |
 
-### Options for Testing Block 400000 ASERT Change
+### Options for Testing ASERT Change
 
 #### Option A: Use Regtest (Fastest)
 
@@ -358,11 +357,11 @@ radiant-cli -regtest generatetoaddress 201 "ADDRESS"
 
 #### Option B: Fresh Testnet (Recommended for Community Proof)
 
-Testnet is designed to be lightweight and restartable. Since block 400000 is the target:
+Testnet is designed to be lightweight and restartable. Since block 1000 is the target:
 
 1. **Check current testnet height** (if running)
-2. **If testnet < 400,000 blocks:** Continue mining to reach 400k
-3. **If testnet > 400,000 blocks:** Either use existing chain or reset
+2. **If testnet < 1,000 blocks:** Continue mining to reach 1k
+3. **If testnet > 1,000 blocks:** Upgrade already active
 
 **To reset testnet (if needed):**
 - Invalidate a block and checkpoint a new one
@@ -374,7 +373,7 @@ For faster testing, modify `chainparams.cpp` to set a lower upgrade height:
 
 ```cpp
 // In CTestNetParams constructor:
-consensus.radiantCore2UpgradeHeight = 100;  // Instead of 400000
+consensus.radiantCore2UpgradeHeight = 100;  // Instead of 1000
 ```
 
 Then rebuild and run a private testnet.
@@ -412,7 +411,7 @@ nslookup node-testnet.radiantblockchain.org
 1. **Fix the libevent build bug first** (critical)
 2. **Test on regtest** - verify ASERT changes work at height 200+
 3. **Run functional tests** - `test/functional/` has existing tests
-4. **Deploy to testnet** - mine/sync to block 400k
+4. **Deploy to testnet** - mine/sync to block 1k
 5. **Document results** for community
 
 ---
@@ -422,8 +421,8 @@ nslookup node-testnet.radiantblockchain.org
 - [ ] **FIX:** Rebuild with real libevent library
 - [ ] **TEST:** Run regtest to height 201+ to verify ASERT upgrade
 - [ ] **CHECK:** Query testnet DNS seeds to see if network is active
-- [ ] **MINE:** If testnet is below 400k, mine to reach upgrade height
-- [ ] **VERIFY:** Confirm ASERT behavior change at block 400000
+- [ ] **MINE:** If testnet is below 1k, mine to reach upgrade height
+- [ ] **VERIFY:** Confirm ASERT behavior change at block 1000
 
 ---
 

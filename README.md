@@ -147,17 +147,37 @@ docker run -d --name radiant-node \
 
 ### 🐳 Docker Quick Start
 
+**Recommended: Use Docker Compose** (builds from GitHub automatically)
 ```bash
-# Pull and run official image
+# Start node
+docker-compose up -d
+
+# Check status
+docker-compose exec radiant-node radiant-cli getblockchaininfo
+
+# View logs
+docker-compose logs -f radiant-node
+
+# Stop node
+docker-compose down
+```
+
+**Alternative: Standalone Docker** (builds from GitHub)
+```bash
+# Build from GitHub
+docker build -f docker/Dockerfile.release -t radiant-core:latest .
+
+# Run
 docker run -d --name radiant-node \
-  -p 7332:7333 -p 7333:7333 \
+  -p 7332:7332 -p 7333:7333 \
   -v radiant-data:/home/radiant/.radiant \
-  radiant-core:latest \
-  -rpcuser=dockeruser -rpcpassword=dockerpass
+  radiant-core:latest
 
 # Check status
 docker exec radiant-node radiant-cli getblockchaininfo
 ```
+
+**See [doc/docker-guide.md](doc/docker-guide.md) for complete Docker documentation.**
 
 ### ⚡ Quick Test (After Installation)
 
@@ -467,10 +487,10 @@ rpcallowip=127.0.0.1
 # Fee policy (amounts are in RXD/kB)
 # Defaults are tuned for RXD economics. Override only if you understand the tradeoffs.
 # Relay/mempool minimum fee is height-gated:
-# - < 400,000: 0.01 RXD/kB
-# - 400,000 - 404,999 (grace period): 0.01 RXD/kB
-# - >= 405,000: 0.1 RXD/kB
-# Avoid setting minrelaytxfee=0.1 prior to 405,000 unless you intentionally want to relay fewer transactions.
+# - < 410,000: 0.01 RXD/kB
+# - 410,000 - 414,999 (grace period): 0.01 RXD/kB
+# - >= 415,000: 0.1 RXD/kB
+# Avoid setting minrelaytxfee=0.1 prior to 415,000 unless you intentionally want to relay fewer transactions.
 minrelaytxfee=0.01
 incrementalrelayfee=0.01
 blockmintxfee=0.1

@@ -1,7 +1,10 @@
 # Radiant Core - Linux x64 Release Build
+# Builds from GitHub repository for reproducible builds
 FROM ubuntu:22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
+ARG GIT_TAG=main
+ARG BUILD_TYPE=Release
 
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -19,15 +22,20 @@ RUN apt-get update && apt-get install -y \
     cmake \
     ninja-build \
     python3 \
+    git \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Clone from GitHub repository
+RUN git clone --depth 1 --branch ${GIT_TAG} https://github.com/Radiant-Core/Radiant-Core.git radiant
 
 WORKDIR /build/radiant
 
-COPY . .
-
 # Build with wallet support
 RUN cmake -B build -G Ninja \
-    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
     -DBUILD_RADIANT_WALLET=ON \
     -DBUILD_RADIANT_DAEMON=ON \
     -DBUILD_RADIANT_CLI=ON \
