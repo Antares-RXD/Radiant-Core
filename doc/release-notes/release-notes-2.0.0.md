@@ -1,7 +1,8 @@
 # Radiant Core 2.0.0 (Phoenix) Release Notes
 
-**Release Date**: December 2024  
-**Hard Fork Activation**: Block 410,000 (~Late February 2026)
+**Release Date**: February 2, 2026  
+**Hard Fork Activation**: Block 410,000 (~Late February 2026)  
+**Git Tag**: v2.0.0
 
 ---
 
@@ -150,6 +151,15 @@ Radiant maintains **strong replay protection** via `SIGHASH_FORKID`:
 
 ## Upgrade Instructions
 
+### Download Links
+
+| Platform | File | Size | SHA256 |
+|----------|------|------|--------|
+| **Linux x64** | `radiant-core-linux-x64-v2.0.0.tar.gz` | 4.0 MB | `932baccba23fa1b8c3ec2068e352d4c52ef68b1c56a9e4ec8a584c593d1cbf03` |
+| **macOS ARM64** | `Radiant-Core-2.0.0-arm64.dmg` | 3.2 MB | `788173b6721a139041fc6990a185c7842397f01579be3bd8fd8a336762dc6147` |
+| **macOS ARM64** | `radiant-core-macos-arm64-v2.0.0.tar.gz` | 2.8 MB | `960662ae7dd9ad0d8a515944586e32bc9010b20635e9a782ee8f8446957ecdb6` |
+| **Docker** | `radiant-core-docker-2.0.0.tar.gz` | 40 MB | `9bfda51edc65b7a35276ca3b6992b95dbd32adb55b1aabd8af584da5618546cc` |
+
 ### For Node Operators
 
 ```bash
@@ -157,12 +167,33 @@ Radiant maintains **strong replay protection** via `SIGHASH_FORKID`:
 radiant-cli stop
 
 # Download and install Radiant Core 2.0.0
-# (Replace with actual download URL)
-wget https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-2.0.0-linux64.tar.gz
-tar xzf radiant-core-2.0.0-linux64.tar.gz
+# Linux x64
+wget https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-linux-x64-v2.0.0.tar.gz
+tar xzf radiant-core-linux-x64-v2.0.0.tar.gz
+cd radiant-core-linux-x64
+
+# Verify checksum
+sha256sum radiant-core-linux-x64-v2.0.0.tar.gz
+# Expected: 932baccba23fa1b8c3ec2068e352d4c52ef68b1c56a9e4ec8a584c593d1cbf03
 
 # Start new node
 ./radiantd
+```
+
+### Docker Deployment
+
+```bash
+# Load image
+docker load < radiant-core-docker-2.0.0.tar.gz
+
+# Run
+docker run -d --name radiant-node \
+  -p 7332:7332 -p 7333:7333 \
+  -v radiant-data:/home/radiant/.radiant \
+  radiant-core:2.0.0
+
+# Check status
+docker exec radiant-node radiant-cli getblockchaininfo
 ```
 
 ### For Miners
