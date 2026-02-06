@@ -1,6 +1,11 @@
 *.tar.gz
 
 *.exe
+
+# Allow release binaries and archives to be committed
+!releases/**/*.exe
+!releases/**/*.zip
+!releases/**/*.tar.gz
 src/radiant
 src/radiantd
 src/radiant-cli
@@ -251,7 +256,6 @@ mining/test_full_mining.py
 
 # Build artifacts and releases
 radiant-core-windows-x64/
-radiant-core-windows-x64.zip
 
 # Network monitoring script (local use only)
 network_monitor.py
