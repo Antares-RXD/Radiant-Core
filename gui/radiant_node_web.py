@@ -135,8 +135,16 @@ class DownloadManager:
         if platform_key not in RELEASE_ASSETS:
             return False
         folder = RELEASE_ASSETS[platform_key]["folder"]
-        binary_path = self.binaries_path / folder / "radiantd"
-        return binary_path.exists()
+        binary_name = "radiantd.exe" if platform.system() == "Windows" else "radiantd"
+        binary_path = self.binaries_path / folder / binary_name
+        if binary_path.exists():
+            return True
+        # Also check next to the running executable (release folder layout)
+        if getattr(sys, 'frozen', False):
+            exe_dir = Path(sys.executable).parent
+            if (exe_dir / binary_name).exists():
+                return True
+        return False
     
     def get_binary_path(self, platform_key=None):
         """Get the path to installed binaries."""
@@ -325,14 +333,28 @@ MAX_LOG_LINES = 500
 
 class NodeManager:
     def __init__(self):
-        self.base_path = Path(__file__).parent.parent
-        self.config_file = self.base_path / "gui" / "node_settings.json"
+        if getattr(sys, 'frozen', False):
+            # Running as PyInstaller exe - use exe's directory for binaries
+            self.exe_dir = Path(sys.executable).parent
+            self.base_path = self.exe_dir
+            # Use AppData for persistent settings
+            appdata = Path(os.environ.get("APPDATA", "")) if platform.system() == "Windows" else Path.home()
+            self.config_dir = appdata / "RadiantCore"
+            self.config_dir.mkdir(parents=True, exist_ok=True)
+            self.config_file = self.config_dir / "node_settings.json"
+            # Use exe directory for download manager (downloads go next to exe)
+            self.download_manager = DownloadManager(self.exe_dir)
+        else:
+            # Running as script - use source tree paths
+            self.base_path = Path(__file__).parent.parent
+            self.exe_dir = None
+            self.config_file = self.base_path / "gui" / "node_settings.json"
+            self.download_manager = DownloadManager(self.base_path / "gui")
         self.settings = self._load_settings()
         self.process = None
         self.output_lines = []
         self.is_running = False
         self.log_thread = None
-        self.download_manager = DownloadManager(self.base_path / "gui")
         self._check_initial_state()
         
     def _get_default_datadir(self):
@@ -413,6 +435,11 @@ class NodeManager:
         
         paths = []
         
+        # Check next to running executable first (release folder layout on Windows)
+        if getattr(sys, 'frozen', False):
+            exe_dir = Path(sys.executable).parent
+            paths.append(exe_dir / name)
+        
         # Check app bundle Resources first (for frozen macOS app)
         if getattr(sys, 'frozen', False) and platform.system() == 'Darwin':
             # Running as macOS app bundle
@@ -432,19 +459,25 @@ class NodeManager:
             # User's Downloads folder
             home / "Downloads" / "radiant-core-macos-arm64" / name,
             home / "Downloads" / "radiant-core-linux-x64" / name,
+            home / "Downloads" / "radiant-core-windows-x64" / name,
             # Desktop
             home / "Desktop" / "radiant-core-macos-arm64" / name,
             home / "Desktop" / "radiant-core-linux-x64" / name,
+            home / "Desktop" / "radiant-core-windows-x64" / name,
         ])
         
         paths.extend([
             self.base_path / "build" / "src" / name,
             self.base_path / "src" / name,
             self.base_path / name,
-            # Release binaries
+            # Release binaries (v2.0.1)
+            self.base_path / "releases" / "v2.0.1" / "Windows" / name,
+            self.base_path / "releases" / "v2.0.1" / "Windows" / "radiant-core-windows-x64" / name,
+            # Release binaries (legacy paths)
             self.base_path / "releases" / "Mac - Apple Silicon" / "radiant-core-macos-arm64" / name,
             self.base_path / "releases" / "Mac - Intel" / "radiant-core-macos-x64" / name,
             self.base_path / "releases" / "Linux" / "radiant-core-linux-x64" / name,
+            self.base_path / "releases" / "Windows" / name,
             self.base_path / "releases" / "Windows" / "radiant-core-windows-x64" / name,
             Path("/usr/local/bin") / name,
             Path("/usr/bin") / name,
@@ -603,13 +636,19 @@ class NodeManager:
                 env["DYLD_LIBRARY_PATH"] = f"{libs_dir}:{existing_path}" if existing_path else libs_dir
                 self._log(f"Using bundled libraries from: {libs_dir}")
             
+            # On Windows, add binary directory to PATH for DLL resolution
+            if platform.system() == "Windows":
+                existing_path = env.get("PATH", "")
+                env["PATH"] = f"{binary_dir};{existing_path}"
+            
             self.process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1,
-                env=env
+                env=env,
+                cwd=binary_dir,
             )
             self.is_running = True
             self._log("Node started successfully")

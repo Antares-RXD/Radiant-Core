@@ -1,13 +1,17 @@
-Radiant Core v2.0.0 Release
-===========================
+Radiant Core Releases
+=====================
 
-Release artifacts for Radiant Core v2.0.0.
+Release artifacts for Radiant Core.
 
-Available Releases:
-------------------
+Latest Release: v2.0.1
+----------------------
+- v2.0.1/Windows/      - Windows x86_64 binaries + GUI (built from GitHub source)
+
+v2.0.0 Releases:
+-----------------
 - Linux/                - Linux x86_64 binaries
 - Mac - Apple Silicon/  - macOS ARM64 (Apple Silicon) binaries
-- Windows/              - Windows x86_64 binaries + GUI
+- Windows/              - Windows x86_64 binaries + GUI (v2.0.0)
 - Docker/               - Docker image tarball
 - Radiant-Core-GUI-2.0.0.dmg - macOS GUI Application (node + wallet)
 
@@ -104,33 +108,41 @@ Docker:
   # View wallet commands
   docker exec radiant-node radiant-cli help | grep -A50 "== Wallet =="
 
-Windows (x86_64):
------------------
-  cd Windows
+Windows v2.0.1 (x86_64):
+------------------------
+  cd v2.0.1/Windows
   .\radiantd.exe --version
   .\radiantd.exe -server -txindex=1
 
   Files included:
-  - radiantd.exe          - Node daemon
+  - radiantd.exe          - Node daemon (v2.0.1-bc76dbc)
   - radiant-cli.exe       - Command-line interface
+  - radiant-tx.exe        - Transaction utility
   - RadiantCore.exe       - GUI application (optional)
-  - Required DLLs:
-    - libcrypto-3-x64.dll, libssl-3-x64.dll (OpenSSL)
+  - radiant-core-windows-x64.zip - All-in-one archive
+  - Required DLLs (statically linked OpenSSL, libevent, ZeroMQ, Boost):
     - libdb_cxx-6.2.dll (BerkeleyDB)
-    - libevent-7.dll, libevent_core-7.dll, libevent_extra-7.dll, libevent_openssl-7.dll
-    - libzmq.dll, libsodium-26.dll (ZeroMQ)
     - libgcc_s_seh-1.dll, libstdc++-6.dll, libwinpthread-1.dll (MinGW runtime)
-    - libqrencode.dll, zlib1.dll
+
+  Build: MSYS2 MinGW64, GCC 15.2.0, CMake, Ninja
+  Source: https://github.com/Radiant-Core/Radiant-Core (main branch)
+
+Windows v2.0.0 (x86_64):
+------------------------
+  cd Windows
+  (See v2.0.0 files - 14 DLLs, dynamically linked)
 
 Windows (Native GUI):
 ---------------------
-  For end users, we provide a native Windows GUI application in the Windows/ folder:
+  For end users, we provide a native Windows GUI application:
   
-  1. Double-click RadiantCore.exe (in the Windows/ folder)
+  1. Double-click RadiantCore.exe (in the v2.0.1/Windows/ folder)
   
   2. The GUI will automatically launch in your browser at http://127.0.0.1:8765
   
   3. All required DLLs and node binaries are included in the same folder
+  
+  Or use radiant-core-windows-x64.zip for distribution
 
 Windows (via WSL2 - for developers):
 ------------------------------------

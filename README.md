@@ -65,7 +65,7 @@ Download official releases from [GitHub Releases](https://github.com/Radiant-Cor
 | **Linux x86_64** | [radiant-core-linux-x86_64.tar.gz] | 23 MB | *(Available on release page)* |
 | **macOS Universal** | [radiant-core-macos-universal.tar.gz] | 28 MB | *(Available on release page)* |
 | **Docker Image** | `radiant-core:latest` | 150 MB | *(Verified by Docker Hub)* |
-| **Windows x64 (GUI)** | [RadiantCore.exe + radiant-core-windows-x64.zip](gui/dist/) | ~22 MB | *(Available in gui/dist/)* |
+| **Windows x64** | [radiant-core-windows-x64.zip](releases/v2.0.1/Windows/) | ~25 MB | `04b32a45...8fafc6` |
 
 **🔐 Security Verification:**
 ```bash
@@ -74,6 +74,10 @@ sha256sum radiant-core-linux-x86_64.tar.gz
 
 # Verify macOS release
 shasum -a 256 radiant-core-macos-universal.tar.gz
+
+# Verify Windows release
+# Compare against releases/v2.0.1/Windows/radiant-core-windows-x64.sha256
+Get-FileHash radiant-core-windows-x64.zip -Algorithm SHA256
 ```
 
 ### 🛠️ Build from Source
