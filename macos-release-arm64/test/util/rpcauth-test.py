@@ -1,1 +1,0 @@
-/Users/main/Downloads/Radiant-Core-main/test/util/rpcauth-test.py

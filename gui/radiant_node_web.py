@@ -17,7 +17,6 @@ import webbrowser
 import tarfile
 import zipfile
 import hashlib
-import zipfile
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen, Request
@@ -45,7 +44,7 @@ except ImportError:
     VALID_WORD_COUNTS = (12, 15, 18, 21, 24)
 
 # GitHub release configuration
-GITHUB_RELEASE_URL = "https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0"
+GITHUB_RELEASE_URL = "https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1"
 RELEASE_ASSETS = {
     "darwin_arm64": {
         "filename": "radiant-core-macos-arm64.zip",
@@ -414,12 +413,13 @@ class NodeManager:
         
         paths = []
         
-        # Check app bundle Resources/binaries first (for frozen macOS app)
+        # Check app bundle Resources first (for frozen macOS app)
         if getattr(sys, 'frozen', False) and platform.system() == 'Darwin':
             # Running as macOS app bundle
             bundle_dir = Path(sys.executable).parent.parent  # Contents/MacOS -> Contents
-            resources_binaries = bundle_dir / "Resources" / "binaries" / name
-            paths.append(resources_binaries)
+            # Check both Resources/ and Resources/binaries/
+            paths.append(bundle_dir / "Resources" / name)
+            paths.append(bundle_dir / "Resources" / "binaries" / name)
         
         # Check downloaded binaries
         downloaded_path = self.download_manager.get_binary_path()
@@ -1622,7 +1622,7 @@ HTML_PAGE = '''<!DOCTYPE html>
                 </div>
                 <div class="download-status" id="downloadStatus"></div>
                 <div class="manual-download">
-                    <small>Or download manually from <a href="https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.0.0" target="_blank">GitHub Releases</a></small>
+                    <small>Or download manually from <a href="https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.0.1" target="_blank">GitHub Releases</a></small>
                 </div>
             </div>
             
@@ -2785,7 +2785,5 @@ Examples:
         run_browser_mode(args.port)
 
 
-if __name__ == "__main__":
-    main()
 if __name__ == "__main__":
     main()

@@ -231,6 +231,7 @@ release/
 build-release/
 build-debug/
 macos-release/
+macos-release-arm64/
 native/
 
 # Bundled libraries (created by fix-macos-dylibs.sh)
@@ -238,9 +239,6 @@ gui/binaries/*/libs/
 
 # py2app artifacts
 *.egg-info/
-
-# Trash
-src/crypto/common.hb.pyQ.cmakeke
 
 # Local blockchain data and configs
 radiant-mainnet-data/

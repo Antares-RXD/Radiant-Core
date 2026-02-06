@@ -25,8 +25,8 @@ network based on the original Bitcoin design. RXD is the native token of Radiant
 
 | Platform | Download | Description |
 |----------|----------|-------------|
-| **macOS** | [Radiant-Core-GUI-2.0.0.dmg](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/Radiant-Core-GUI-2.0.0.dmg) | Native app with node + wallet |
-| **Linux** | [radiant-core-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz) | GUI package |
+| **macOS** | [Radiant-Core-GUI-2.0.1.dmg](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/Radiant-Core-GUI-2.0.1.dmg) | Native app with node + wallet |
+| **Linux** | [radiant-core-gui-linux-x64-v2.0.1.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-gui-linux-x64-v2.0.1.tar.gz) | GUI package |
 
 ### Features
 - **One-click node**: Start and stop your node with a single click
@@ -58,7 +58,7 @@ We provide comprehensive release build scripts for all platforms with automated 
 
 Download official releases from [GitHub Releases](https://github.com/Radiant-Core/Radiant-Core/releases) with verified checksums:
 
-#### Latest Release: v2.0.0-7cfb963
+#### Latest Release: v2.0.1
 
 | Platform | Download | Size | Checksum (SHA256) |
 |----------|----------|------|------------------|
@@ -264,8 +264,8 @@ All official releases include SHA256 checksums for security verification:
 
 ```bash
 # Example: Verify Windows release
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-windows-x64.zip
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-windows-x64.zip.sha256
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-windows-x64.zip
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-windows-x64.zip.sha256
 
 sha256sum -c radiant-core-windows-x64.zip.sha256
 # Should output: radiant-core-windows-x64.zip: OK
@@ -504,21 +504,6 @@ swapindex=1
 
 # Optional: Prometheus metrics
 prometheusmetrics=1
-
-### Running Tests
-
-```bash
-# Unit tests
-./build/src/test/test_bitcoin
-
-# Qt GUI tests
-./build/src/qt/test/test_bitcoin-qt
-
-# Functional tests
-./build/test/functional/test_runner.py
-
-# Specific test suite
-./build/src/test/test_bitcoin --run_test=txvalidation_tests
 ```
 
 ### Docker / Container Setup (Persistence, RPC safety, logging)

@@ -1,0 +1,53 @@
+# Radiant Core - Linux x64 Release Build (Local Source)
+FROM ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG BUILD_TYPE=Release
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libtool \
+    autotools-dev \
+    automake \
+    pkg-config \
+    libssl-dev \
+    libevent-dev \
+    bsdmainutils \
+    libboost-all-dev \
+    libzmq3-dev \
+    libminiupnpc-dev \
+    libdb++-dev \
+    cmake \
+    ninja-build \
+    python3 \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build/radiant
+
+# Copy local source
+COPY . .
+
+# Build with wallet support
+RUN cmake -B build -G Ninja \
+    -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+    -DBUILD_RADIANT_WALLET=ON \
+    -DBUILD_RADIANT_DAEMON=ON \
+    -DBUILD_RADIANT_CLI=ON \
+    -DBUILD_RADIANT_TX=ON \
+    -DBUILD_RADIANT_ZMQ=OFF \
+    -DBUILD_RADIANT_QT=OFF \
+    -DENABLE_HARDENING=ON
+
+RUN cmake --build build --target radiantd radiant-cli radiant-tx -j$(nproc)
+
+# Strip and prepare release
+RUN mkdir -p /release/radiant-core-linux-x64 && \
+    cp build/src/radiantd /release/radiant-core-linux-x64/ && \
+    cp build/src/radiant-cli /release/radiant-core-linux-x64/ && \
+    cp build/src/radiant-tx /release/radiant-core-linux-x64/ && \
+    strip /release/radiant-core-linux-x64/*
+
+WORKDIR /release
+RUN tar -czf radiant-core-linux-x64-v2.0.1.tar.gz radiant-core-linux-x64

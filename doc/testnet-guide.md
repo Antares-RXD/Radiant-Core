@@ -428,4 +428,4 @@ nslookup node-testnet.radiantblockchain.org
 
 *Last updated: January 8, 2026*
 *Based on Radiant Core source code analysis*
-*Build tested: v2.0.0-7cfb963*
+*Build tested: v2.0.1*

@@ -5,8 +5,8 @@ This document describes how to create official Radiant Core releases.
 ## Quick Start
 
 ```bash
-# Build release for version 2.0.0
-./contrib/release/build-release.sh 2.0.0
+# Build release for version 2.0.1
+./contrib/release/build-release.sh 2.0.1
 
 # Or auto-detect version from CMakeLists.txt
 ./contrib/release/build-release.sh
@@ -25,7 +25,7 @@ This document describes how to create official Radiant Core releases.
 ### 2. Build Release Artifacts
 
 ```bash
-./contrib/release/build-release.sh 2.0.0
+./contrib/release/build-release.sh 2.0.1
 ```
 
 This script will:
@@ -40,13 +40,13 @@ This script will:
 
 ```bash
 # Create signed tag
-git tag -s v2.0.0 -m "Radiant Core 2.0.0"
+git tag -s v2.0.1 -m "Radiant Core 2.0.1"
 
 # Verify the signature
-git tag -v v2.0.0
+git tag -v v2.0.1
 
 # Push the tag
-git push origin v2.0.0
+git push origin v2.0.1
 ```
 
 ### 4. Push Docker Images (Optional)
@@ -58,10 +58,10 @@ If using a container registry:
 export DOCKER_REGISTRY=ghcr.io/radiantblockchain
 
 # Re-run build to tag for registry
-./contrib/release/build-release.sh 2.0.0
+./contrib/release/build-release.sh 2.0.1
 
 # Push images
-docker push ghcr.io/radiantblockchain/radiant-core:2.0.0
+docker push ghcr.io/radiantblockchain/radiant-core:2.0.1
 docker push ghcr.io/radiantblockchain/radiant-core:latest
 ```
 

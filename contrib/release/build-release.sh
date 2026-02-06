@@ -6,7 +6,7 @@
 #   ./contrib/release/build-release.sh [version]
 #
 # Examples:
-#   ./contrib/release/build-release.sh 2.0.0
+#   ./contrib/release/build-release.sh 2.0.1
 #   ./contrib/release/build-release.sh          # Uses version from configure.ac
 
 set -e

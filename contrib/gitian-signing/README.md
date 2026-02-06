@@ -43,9 +43,9 @@ gpg --keyserver keyserver.ubuntu.com --recv-keys <KEY_ID>
 
 ```bash
 # Download the release and signature files
-wget https://github.com/radiantblockchain/radiant-node/releases/download/v2.0.0/radiant-core-2.0.0-linux-x86_64.tar.gz
-wget https://github.com/radiantblockchain/radiant-node/releases/download/v2.0.0/SHA256SUMS
-wget https://github.com/radiantblockchain/radiant-node/releases/download/v2.0.0/SHA256SUMS.asc
+wget https://github.com/radiantblockchain/radiant-node/releases/download/v2.0.1/radiant-core-2.0.1-linux-x86_64.tar.gz
+wget https://github.com/radiantblockchain/radiant-node/releases/download/v2.0.1/SHA256SUMS
+wget https://github.com/radiantblockchain/radiant-node/releases/download/v2.0.1/SHA256SUMS.asc
 
 # Verify the signature on SHA256SUMS
 gpg --verify SHA256SUMS.asc SHA256SUMS
@@ -57,7 +57,7 @@ sha256sum -c SHA256SUMS --ignore-missing
 Expected output:
 ```
 gpg: Good signature from "Art <art@radiantfoundation.org>"
-radiant-core-2.0.0-linux-x86_64.tar.gz: OK
+radiant-core-2.0.1-linux-x86_64.tar.gz: OK
 ```
 
 ### 3. Verify Git Tags
@@ -67,7 +67,7 @@ radiant-core-2.0.0-linux-x86_64.tar.gz: OK
 git fetch --tags
 
 # Verify a signed tag
-git tag -v v2.0.0
+git tag -v v2.0.1
 ```
 
 ## For Maintainers: Signing Releases
@@ -98,10 +98,10 @@ sha256sum radiant-core-*.tar.gz radiant-core-*.zip > SHA256SUMS
 gpg --armor --detach-sign SHA256SUMS
 
 # 3. Create a signed git tag
-git tag -s v2.0.0 -m "Radiant Core 2.0.0"
+git tag -s v2.0.1 -m "Radiant Core 2.0.1"
 
 # 4. Push the signed tag
-git push origin v2.0.0
+git push origin v2.0.1
 ```
 
 ### Release Checklist
@@ -120,7 +120,7 @@ For maximum security, releases should be built using Gitian to ensure reproducib
 ```bash
 # See contrib/gitian-descriptors/ for build descriptors
 ./contrib/gitian-build.py --setup
-./contrib/gitian-build.py --build v2.0.0
+./contrib/gitian-build.py --build v2.0.1
 ```
 
 Multiple maintainers can independently build and compare checksums to verify no tampering occurred.

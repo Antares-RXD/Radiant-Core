@@ -10,9 +10,9 @@ Download the standalone macOS application - no dependencies required:
 
 | Platform | Download | Size |
 |----------|----------|------|
-| **macOS (Apple Silicon/Intel)** | [Radiant-Core-GUI-2.0.0.dmg](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/Radiant-Core-GUI-2.0.0.dmg) | ~19 MB |
+| **macOS (Apple Silicon/Intel)** | [Radiant-Core-GUI-2.0.1.dmg](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/Radiant-Core-GUI-2.0.1.dmg) | ~19 MB |
 | **Windows (x64)** | [releases/Windows/](../releases/Windows/) | ~46 MB |
-| **Linux (x86_64)** | [radiant-core-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz) | ~15 MB |
+| **Linux (x86_64)** | [radiant-core-gui-linux-x64-v2.0.1.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-gui-linux-x64-v2.0.1.tar.gz) | ~15 MB |
 
 **Quick Install (macOS DMG):**
 1. Download the DMG file
@@ -38,15 +38,15 @@ For users who prefer a portable installation or Linux:
 
 | Platform | Download | Size |
 |----------|----------|------|
-| **macOS (Apple Silicon)** | [radiant-core-gui-macos-arm64-v2.0.0.zip](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-arm64-v2.0.0.zip) | ~15 MB |
-| **Linux (x86_64)** | [radiant-core-gui-linux-x64-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz) | ~15 MB |
+| **macOS (Apple Silicon)** | [radiant-core-gui-macos-arm64-v2.0.1.zip](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-gui-macos-arm64-v2.0.1.zip) | ~15 MB |
+| **Linux (x86_64)** | [radiant-core-gui-linux-x64-v2.0.1.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-gui-linux-x64-v2.0.1.tar.gz) | ~15 MB |
 
 **macOS Portable:**
 ```bash
 # Download and extract
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-macos-arm64-v2.0.0.zip
-unzip radiant-core-gui-macos-arm64-v2.0.0.zip
-cd radiant-core-gui-macos-arm64-v2.0.0
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-gui-macos-arm64-v2.0.1.zip
+unzip radiant-core-gui-macos-arm64-v2.0.1.zip
+cd radiant-core-gui-macos-arm64-v2.0.1
 
 # Remove quarantine (required for downloaded apps)
 xattr -rd com.apple.quarantine .
@@ -57,9 +57,9 @@ xattr -rd com.apple.quarantine .
 
 **Linux:**
 ```bash
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-gui-linux-x64-v2.0.0.tar.gz
-tar xzf radiant-core-gui-linux-x64-v2.0.0.tar.gz
-cd radiant-core-gui-linux-x64-v2.0.0
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-gui-linux-x64-v2.0.1.tar.gz
+tar xzf radiant-core-gui-linux-x64-v2.0.1.tar.gz
+cd radiant-core-gui-linux-x64-v2.0.1
 ./start-gui.sh
 ```
 
@@ -127,18 +127,18 @@ make -j$(nproc)
 
 **Option 2: Use pre-built binaries with wallet support**
 
-Download wallet-enabled binaries from the [GitHub Releases page](https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.0.0):
+Download wallet-enabled binaries from the [GitHub Releases page](https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.0.1):
 
 | Platform | Download |
 |----------|----------|
-| macOS (Apple Silicon) | [radiant-core-macos-arm64.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-macos-arm64.tar.gz) |
-| Linux (x86_64) | [radiant-core-linux-x64.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-linux-x64.tar.gz) |
-| Docker (x86_64) | [radiant-core-docker-v2.0.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-docker-v2.0.0.tar.gz) |
+| macOS (Apple Silicon) | [radiant-core-macos-arm64.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-macos-arm64.tar.gz) |
+| Linux (x86_64) | [radiant-core-linux-x64.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-linux-x64.tar.gz) |
+| Docker (x86_64) | [radiant-core-docker-v2.0.1.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-docker-v2.0.1.tar.gz) |
 
 **Quick setup (macOS):**
 ```bash
 # Download and extract
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-macos-arm64.tar.gz
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-macos-arm64.tar.gz
 tar xzf radiant-core-macos-arm64.tar.gz
 
 # Remove quarantine (required for downloaded binaries)
@@ -151,7 +151,7 @@ python3 ../gui/radiant_node_web.py
 
 **Quick setup (Linux):**
 ```bash
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.0/radiant-core-linux-x64.tar.gz
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-linux-x64.tar.gz
 tar xzf radiant-core-linux-x64.tar.gz
 cd radiant-core-linux-x64
 ./radiantd -server -txindex=1
@@ -304,7 +304,7 @@ The GUI looks for the node binary in these locations:
 
 **Solutions:**
 - Build the node from source: See [INSTALL.md](../INSTALL.md)
-- Or download pre-built binaries from [GitHub Releases](https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.0.0)
+- Or download pre-built binaries from [GitHub Releases](https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.0.1)
 - Or use the GUI's built-in **Download Binaries** feature (auto-detects your platform)
 
 ### Node won't start
@@ -327,7 +327,7 @@ The GUI uses your system's native theme. Appearance may vary between:
 
 The GUI can automatically download the correct binaries for your platform. Just click **Download Binaries** when prompted.
 
-Or download manually from [GitHub Releases](https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.0.0).
+Or download manually from [GitHub Releases](https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.0.1).
 
 ### Option 2: Build from Source
 
