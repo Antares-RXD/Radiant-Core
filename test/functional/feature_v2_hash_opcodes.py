@@ -19,6 +19,13 @@ Test cases:
  10. OP_2DIV divides by 2 correctly (10 / 2 = 5)
  11. OP_2DIV truncates toward zero (7 / 2 = 3)
  12. OP_2MUL then OP_2DIV round-trip (3 * 2 / 2 = 3)
+ 13. OP_2DIV(-3) == -1 (negative truncation toward zero)
+ 14. OP_2MUL(INT64_MAX) overflows → script error (expect disconnect)
+
+Note: Pre-activation height rejection cannot be tested here because
+SCRIPT_ENHANCED_REFERENCES is gated on ERHeight (=10 in regtest),
+and coinbase maturity (100 blocks) prevents spending below that height.
+A pre-activation test would require custom chainparams or a dedicated test.
 
 Uses P2SH funding+spending pattern from feature_int64_cscriptnum.py.
 """
@@ -69,6 +76,9 @@ from test_framework.script import (
 )
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_equal
+
+# INT64_MAX as a CScriptNum: 0x7fffffffffffffff in little-endian = ff ff ff ff ff ff ff 7f
+INT64_MAX_SCRIPTNUM = CScriptNum(0x7fffffffffffffff)
 
 
 # Known test vectors (verified against b3sum and pycryptodome KangarooTwelve)
@@ -191,6 +201,7 @@ class V2HashOpcodesTest(BitcoinTestFramework):
             ("OP_2DIV(10) == 5", [CScriptNum(10)], [OP_2DIV, CScriptNum(5), OP_EQUALVERIFY]),
             ("OP_2DIV(7) == 3 (truncation)", [CScriptNum(7)], [OP_2DIV, CScriptNum(3), OP_EQUALVERIFY]),
             ("OP_2MUL then OP_2DIV round-trip", [CScriptNum(3)], [OP_2MUL, OP_2DIV, CScriptNum(3), OP_EQUALVERIFY]),
+            ("OP_2DIV(-3) == -1 (negative truncation)", [CScriptNum(-3)], [OP_2DIV, CScriptNum(-1), OP_EQUALVERIFY]),
         ]
 
         for i, (desc, ssextra, rsextra) in enumerate(test_cases, 1):
@@ -214,6 +225,29 @@ class V2HashOpcodesTest(BitcoinTestFramework):
             self.log.info(f"  Test {i} PASSED")
 
         self.log.info(f"All {len(test_cases)} V2 opcode tests passed!")
+
+        # --- Edge case: OP_2MUL overflow (INT64_MAX * 2) should fail ---
+        overflow_test_num = len(test_cases) + 1
+        self.log.info(f"Test {overflow_test_num}: OP_2MUL(INT64_MAX) overflow → script error")
+        ssextra_overflow = [INT64_MAX_SCRIPTNUM]
+        rsextra_overflow = [OP_2MUL, OP_DROP]
+        tx0_overflow, tx_overflow = create_fund_and_spend_tx(ssextra_overflow, rsextra_overflow)
+
+        # Fund the overflow test via RPC (avoids P2P connection issues)
+        node.sendrawtransaction(tx0_overflow.serialize().hex())
+        self.generatetoaddress(node, 1, node.get_deterministic_priv_key().address)
+        assert_equal(node.getrawmempool(), [])
+        self.log.info("  Funding tx mined")
+
+        # Re-establish P2P connection for the failure test
+        node.disconnect_p2ps()
+        self.bootstrap_p2p()
+
+        node.p2p.send_txs_and_test(
+            [tx_overflow], node, success=False, expect_disconnect=True,
+            reject_reason='mandatory-script-verify-flag-failed')
+        self.log.info("  OP_2MUL overflow correctly rejected (peer disconnected)")
+        self.log.info(f"  Test {overflow_test_num} PASSED")
 
 
 if __name__ == '__main__':
