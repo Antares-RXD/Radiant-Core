@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE(min_relay_fee_upgrade_test) {
     BOOST_CHECK(GetEffectiveMinRelayFee(upgradeHeight + 5000, params) == CFeeRate(RADIANT_CORE_2_MIN_RELAY_TX_FEE_PER_KB));
 
     // Case 2: User sets higher fee manually
-    ::minRelayTxFee = CFeeRate(RADIANT_CORE_2_MIN_RELAY_TX_FEE_PER_KB * 2);
+    ::minRelayTxFee = CFeeRate(2 * RADIANT_CORE_2_MIN_RELAY_TX_FEE_PER_KB);
     
     // Should respect the higher manual fee even before upgrade
     BOOST_CHECK(GetEffectiveMinRelayFee(upgradeHeight - 1, params) == ::minRelayTxFee);

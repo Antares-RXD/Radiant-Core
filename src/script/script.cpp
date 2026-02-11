@@ -361,6 +361,11 @@ const char *GetOpName(opcodetype opcode) {
         case OP_PUSH_TX_STATE:
             return "OP_PUSH_TX_STATE";
 
+        case OP_BLAKE3:
+            return "OP_BLAKE3";
+        case OP_K12:
+            return "OP_K12";
+
         default:
             return "OP_UNKNOWN";
     }

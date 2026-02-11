@@ -5,9 +5,11 @@ project(crypto)
 # The library
 add_library(crypto
 	aes.cpp
+	blake3.cpp
 	chacha20.cpp
 	hmac_sha256.cpp
 	hmac_sha512.cpp
+	k12.cpp
 	ripemd160.cpp
 	sha1.cpp
 	sha256.cpp

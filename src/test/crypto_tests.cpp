@@ -4,9 +4,11 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <crypto/aes.h>
+#include <crypto/blake3.h>
 #include <crypto/chacha20.h>
 #include <crypto/hmac_sha256.h>
 #include <crypto/hmac_sha512.h>
+#include <crypto/k12.h>
 #include <crypto/ripemd160.h>
 #include <crypto/sha1.h>
 #include <crypto/sha256.h>
@@ -801,6 +803,125 @@ BOOST_AUTO_TEST_CASE(sha3_256_tests) {
     TestSHA3_256("119a356f8c0790bbd5e9f3b4c5c4a70e97f462364c88cad04d5435645342b35484e94e12df61908fd95546f74859849b817ee92fbd242435c210b7b9bfbffb3f77f965faa1a9073e8feb5a380f673add8fde32208402fa680c8b3e41d187a15131f1028f9d86feaf3fd4b6e0e094d2ba0839c67267c9535173ec51645343ad74fcfaae389aa17cca3137e2588488531c36ba2b8e2f2238d8415c798a0b9a258f1e3cef605fa18977ad3d6707c3ecc5ea5f86ebdaa4b4b0e5bc023d1bc335138ae0de506cb52f2d9efa0ecc546468310cccc88ec08d28c3602e07257f41bb7e4d8a0956c564f3712761d199a931a39e69c5a69aa7b3257931dd92b91e4ed56fbf64e48bd334945cfa2aaf576df04614eb914899f7df54db4012cc8261b12bedcab69876feedbbf7009dcf8d076af89b797ad71217d75cf07514dc07ae34640055c74c9faf560f491f015ac3e167623cfbc67b8e7163e7c1b92debd06e9d28b049e0298f4c38395a40a0778162af2cfe5abe5b946c4d9a54f2a321660ab521068c4957cd3f5be0324cc04f50f209fdea7caaa0ac705c1fb30abfa550e844f509074afde1ee87adda29aa09b7f93e7d064ad2715ee5571ee6e7c9a01672124cc2a22b4354c3844759c1a6ce3fdf17555cac7df73334073ef3730939410fe6cf37463352ad241958b7fafbc66e0d592df48bf55ab2c33428e494c6995826892572d9ab52747b1085fcbef318cfe9cfacd4cd80c164fba584c1344ae7e321c4f77b44db6b322f2f7831f4d4ede7dc407b065c6754cf4424f9903adb4c6b675ded58700bc36da83fd95e84e76c404f7342921ef23d7d07772f5b8ec2f077601cae13448385b04e074f895574be61a831a87efd68a1f6aa67cf291847fa8f74cbe3b4a78ad780895183bc51c30ad2514255d4e013abc097bc8103c0b1933b0b303341836ae167c1e31dfe5f1b791cb06ef29cae398065343eecf06e4ae2048d1547c4bf69ccec5e86c45867c633c62f7d27dc51234b6debb5b9f80a5810716240c64443d0c098c80220d0520a5f5834369b9eb019325e23e88f237c24440bf27959caf7e7e4f1671fda710630255a2962f7e9b3625dc243a0177aacf6a758a68aa85dc3f56181a4a59a406c7fae5575c9e2c64248f520b5a5f904821661e2e43a5a058f445fd0e55b07476c4122d18033053b45112201e0bfdcc9e7cb9931155018ca431a0564930aca8defbca954b2680753a4060bec2cb668d2c15e77cba29589b5c7c07bc7177a8b1adb3a6968732f9213476fd96901514626fa17243af1d156cd037eea81d773f1f71a018d942b524b851794b300c7591ecd783ec8066ccb261bdf9b7a183dbda42b92593b614297dcb0fabcc23ae69797d0251b8ab57a4da2a544615216b01f4dbe2d8c9b5520c7ed9cd9312e9ec6d05a36e7f693d1821d727518169b03976394b9d1e1d7fa2daa25529d391eb5d0cf0f07a8160be2ee043d9345037c655c4f2023689f14d8d2072dd92c1dba056a5b5d4c4fc4196e25caab05b1701ec666ac9a04d90f7d7575a7ac3970252c18fd3bec0cc448e5ff8f3765d546a4a8ad1d41a9640c79375b80534b7b50989976f238654fefea981c9413130beae943a3e9d8f64ce9256d1259d1b2a6b3c02ca5af1a701db8f25a4e9c255dad8785172f323728c3585a45206ae988c283e30a2f9ea9b47f07a7521b0f36e9c504c14bd96027e8d24161e70f196576d8a74a5e9c26acda7cc452a90e550e625a49e50829db70de808c827c67d00c23ee073d4e72aeed891dd73b86acd6756e753e3975a80cdab1d521052caef6a5380f8b03023ba0326a6928aa127ffb33b51dcb05bbdd592d0ad9e8321e6ef2f95c401be6a37e634425689fe7750e2a0fe05ad89001502b309095ca517b2e2ed0388b9f2c59c45feb61222539d6e1ccd397344d23708aebacec10ada96a7711f173f7ff1e4b94fceec6a0a0ea5d814a4581b412063012ff6ac5527b8314d00326b68c2304a276a217fde9fa4034750a2e47e10f816870d12fc4641a27a1c16c35a953f32685f2b92cae0519848045765591c42ddc402dc7c6914d74dd38d2b5e7f35358cb1d91a9f681fde7fd6c7af5840663525ee1d04bf6d3156fed018c44043d95383d92dada3d1cd84af51d9bee814ec8675073e1c48632c5f59e257682542e1f7dc20b56b5c92a9e2cb2be30cb1512fb55fa1de99a3f5864ed3acc19d79e6ffb0da3b08ba0615157747d75c1f308fa0202a4086f34e9eafa3e071dfbacaca731d228aa0304cf390c0a9e6ad7ce22ade758965cfbfc4c9390d24e41a667447fc7b29821464ad98bc5d65dc7f9c42bd4b23e174015592ff92c905660a2722f9fc7973d3cdad848ef88bf02b1b03dea16699b71dc46b35bc4d96069a0753335ae38685d244918e30c5fb0d45283a1281c1659ea591573999d9c2acd2ca9141d55230d41011b70748b518e1cd2fa58ad8dc05fcbdf0bffaf2c7fd6cb2ac67bb13b8f6d31fad64ac113664223599dca411270955c95aec06518894dabc352d2b70984727437040d944da7b42e0ef560ac532de3e4a4891e8509c275b51ed780f8660b0354e12c21b3e11bcc88198980b5f7ff31ad342182d5a933373164dced3cfb2a081720d7eee676cb7378a3e19326a7ee67fd6c00521f9de37c66bcea814b6feb6a061b8cdcf7b4bd8f45d48602c5", "c26d0b064e409df64819cd7c1a3b8076f19815b9823adac4e3ce0b4d3a29de18");
     TestSHA3_256("72c57c359e10684d0517e46653a02d18d29eff803eb009e4d5eb9e95add9ad1a4ac1f38a70296f3a369a16985ca3c957de2084cdc9bdd8994eb59b8815e0debad4ec1f001feac089820db8becdaf896aaf95721e8674e5d476b43bd2b873a7d135cd685f545b438210f9319e4dcd55986c85303c1ddf18dc746fe63a409df0a998ed376eb683e16c09e6e9018504152b3e7628ef350659fb716e058a5263a18823d2f2f6ee6a8091945a48ae1c5cb1694cf2c1fe76ef9177953afe8899cfa2b7fe0603bfa3180937dadfb66fbbdd119bbf8063338aa4a699075a3bfdbae8db7e5211d0917e9665a702fc9b0a0a901d08bea97654162d82a9f05622b060b634244779c33427eb7a29353a5f48b07cbefa72f3622ac5900bef77b71d6b314296f304c8426f451f32049b1f6af156a9dab702e8907d3cd72bb2c50493f4d593e731b285b70c803b74825b3524cda3205a8897106615260ac93c01c5ec14f5b11127783989d1824527e99e04f6a340e827b559f24db9292fcdd354838f9339a5fa1d7f6b2087f04835828b13463dd40927866f16ae33ed501ec0e6c4e63948768c5aeea3e4f6754985954bea7d61088c44430204ef491b74a64bde1358cecb2cad28ee6a3de5b752ff6a051104d88478653339457ac45ba44cbb65f54d1969d047cda746931d5e6a8b48e211416aefd5729f3d60b56b54e7f85aa2f42de3cb69419240c24e67139a11790a709edef2ac52cf35dd0a08af45926ebe9761f498ff83bfe263d6897ee97943a4b982fe3404ef0b4a45e06113c60340e0664f14799bf59cb4b3934b465fabefd87155905ee5309ba41e9e402973311831ea600b16437f71df39ee77130490c4d0227e5d1757fdc66af3ae6b9953053ed9aafca0160209858a7d4dd38fe10e0cb153672d08633ed6c54977aa0a6e67f9ff2f8c9d22dd7b21de08192960fd0e0da68d77c8d810db11dcaa61c725cd4092cbff76c8e1debd8d0361bb3f2e607911d45716f53067bdc0d89dd4889177765166a424e9fc0cb711201099dda213355e6639ac7eb86eca2ae0ab38b7f674f37ef8a6fcca1a6f52f55d9e1dcd631d2c3c82bba129172feb991d5af51afecd9d61a88b6832e4107480e392aed61a8644f551665ebff6b20953b635737a4f895e429fddcfe801f606fbda74b3bf6f5767d0fac14907fcfd0aa1d4c11b9e91b01d68052399b51a29f1ae6acd965109977c14a555cbcbd21ad8cb9f8853506d4bc21c01e62d61d7b21be1b923be54914e6b0a7ca84dd11f1159193e1184568a6134a6bbadf5b4df986edcf2019390ae841cfaa44435e28ce877d3dae4177992fa5d4e5c005876dbe3d1e63bec7dcc0942762b48b1ecc6c1a918409a8a72812a1e245c0c67be6e729c2b49bc6ee4d24a8f63e78e75db45655c26a9a78aff36fcd67117f26b8f654dca664b9f0e30681874cb749e1a692720078856286c2560b0292cc837933423147569350955c9571bf8941ba128fd339cb4268f46b94bc6ee203eb7026813706ea51c4f24c91866fc23a724bf2501327e6ae89c29f8db315dc28d2c7c719514036367e018f4835f63fdecd71f9bdced7132b6c4f8b13c69a517026fcd3622d67cb632320d5e7308f78f4b7cea11f6291b137851dc6cd6366f2785c71c3f237f81a7658b2a8d512b61e0ad5a4710b7b124151689fcb2116063fbff7e9115fed7b93de834970b838e49f8f8ba5f1f874c354078b5810a55ae289a56da563f1da6cd80a3757d6073fa55e016e45ac6cec1f69d871c92fd0ae9670c74249045e6b464787f9504128736309fed205f8df4d90e332908581298d9c75a3fa36ab0c3c9272e62de53ab290c803d67b696fd615c260a47bffad16746f18ba1a10a061bacbea9369693b3c042eec36bed289d7d12e52bca8aa1c2dff88ca7816498d25626d0f1e106ebb0b4a12138e00f3df5b1c2f49d98b1756e69b641b7c6353d99dbff050f4d76842c6cf1c2a4b062fc8e6336fa689b7c9d5c6b4ab8c15a5c20e514ff070a602d85ae52fa7810c22f8eeffd34a095b93342144f7a98d024216b3d68ed7bea047517bfcd83ec83febd1ba0e5858e2bdc1d8b1f7b0f89e90ccc432a3f930cb8209462e64556c5054c56ca2a85f16b32eb83a10459d13516faa4d23302b7607b9bd38dab2239ac9e9440c314433fdfb3ceadab4b4f87415ed6f240e017221f3b5f7ac196cdf54957bec42fe6893994b46de3d27dc7fb58ca88feb5b9e79cf20053d12530ac524337b22a3629bea52f40b06d3e2128f32060f9105847daed81d35f20e2002817434659baff64494c5b5c7f9216bfda38412a0f70511159dc73bb6bae1f8eaa0ef08d99bcb31f94f6be12c29c83df45926430b366c99fca3270c15fc4056398fdf3135b7779e3066a006961d1ac0ad1c83179ce39e87a96b722ec23aabc065badf3e188347a360772ca6a447abac7e6a44f0d4632d52926332e44a0a86bff5ce699fd063bdda3ffd4c41b53ded49fecec67f40599b934e16e3fd1bc063ad7026f8d71bfd4cbaf56599586774723194b692036f1b6bb242e2ffb9c600b5215b412764599476ce475c9e5b396fbcebd6be323dcf4d0048077400aac7500db41dc95fc7f7edbe7c9c2ec5ea89943fe13b42217eef530bbd023671509e12dfce4e1c1c82955d965e6a68aa66f6967dba48feda572db1f099d9a6dc4bc8edade852b5e824a06890dc48a6a6510ecaf8cf7620d757290e3166d431abecc624fa9ac2234d2eb783308ead45544910c633a94964b2ef5fbc409cb8835ac4147d384e12e0a5e13951f7de0ee13eafcb0ca0c04946d7804040c0a3cd088352424b097adb7aad1ca4495952f3e6c0158c02d2bcec33bfda69301434a84d9027ce02c0b9725dad118", "d894b86261436362e64241e61f6b3e6589daf64dc641f60570c4c0bf3b1f2ca3");
     // clang-format on
+}
+
+BOOST_AUTO_TEST_CASE(blake3_tests) {
+    // BLAKE3 test vectors from official test suite
+    // (https://github.com/BLAKE3-team/BLAKE3/blob/master/test_vectors/test_vectors.json)
+    // Input pattern: input[i] = i % 251
+
+    // Test basic API: Write + Finalize + Reset
+    {
+        CBlake3 hasher;
+        uint8_t hash[CBlake3::OUTPUT_SIZE];
+
+        // Empty input
+        hasher.Finalize(hash);
+        BOOST_CHECK_EQUAL(HexStr(std::vector<uint8_t>(hash, hash + 32)),
+            "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262");
+
+        // Reset and hash 1-byte input (0x00)
+        hasher.Reset();
+        uint8_t b0 = 0x00;
+        hasher.Write(&b0, 1).Finalize(hash);
+        BOOST_CHECK_EQUAL(HexStr(std::vector<uint8_t>(hash, hash + 32)),
+            "2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213");
+    }
+
+    // Test with incrementing-byte pattern (official test vector pattern: i % 251)
+    {
+        // len=2: input = {0x00, 0x01}
+        uint8_t in2[2] = {0x00, 0x01};
+        uint8_t hash[32];
+        CBlake3().Write(in2, 2).Finalize(hash);
+        BOOST_CHECK_EQUAL(HexStr(std::vector<uint8_t>(hash, hash + 32)),
+            "7b7015bb92cf0b318037702a6cdd81dee41224f734684c2c122cd6359cb1ee63");
+
+        // len=3: input = {0x00, 0x01, 0x02}
+        uint8_t in3[3] = {0x00, 0x01, 0x02};
+        CBlake3().Write(in3, 3).Finalize(hash);
+        BOOST_CHECK_EQUAL(HexStr(std::vector<uint8_t>(hash, hash + 32)),
+            "e1be4d7a8ab5560aa4199eea339849ba8e293d55ca0a81006726d184519e647f");
+
+        // len=4: input = {0x00, 0x01, 0x02, 0x03}
+        uint8_t in4[4] = {0x00, 0x01, 0x02, 0x03};
+        CBlake3().Write(in4, 4).Finalize(hash);
+        BOOST_CHECK_EQUAL(HexStr(std::vector<uint8_t>(hash, hash + 32)),
+            "f30f5ab28fe047904037f77b6da4fea1e27241c5d132638d8bedce9d40494f32");
+    }
+
+    // Test chunked writes produce same result as single write
+    {
+        uint8_t input[64];
+        for (int i = 0; i < 64; i++) input[i] = i % 251;
+
+        uint8_t hash_single[32], hash_chunked[32];
+        CBlake3().Write(input, 64).Finalize(hash_single);
+
+        CBlake3 chunked;
+        chunked.Write(input, 17);
+        chunked.Write(input + 17, 23);
+        chunked.Write(input + 40, 24);
+        chunked.Finalize(hash_chunked);
+
+        BOOST_CHECK(memcmp(hash_single, hash_chunked, 32) == 0);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(k12_tests) {
+    // KangarooTwelve test vectors from official specification
+    // (https://keccak.team/kangarootwelve.html)
+    // All tests use empty custom string C=""
+
+    // Test basic API: Write + Finalize + Reset
+    {
+        CK12 hasher;
+        uint8_t hash[CK12::OUTPUT_SIZE];
+
+        // K12("", "") = 1ac2d450fc3b4205d19da7bfca1b37513c0803577ac7167f06fe2ce1f0ef39e5
+        hasher.Finalize(hash);
+        BOOST_CHECK_EQUAL(HexStr(std::vector<uint8_t>(hash, hash + 32)),
+            "1ac2d450fc3b4205d19da7bfca1b37513c0803577ac7167f06fe2ce1f0ef39e5");
+    }
+
+    // Test with pattern from K12 spec: 0x00 repeated N times
+    {
+        uint8_t hash[32];
+
+        // K12(M=17 zero bytes, C="")
+        uint8_t zeros17[17];
+        memset(zeros17, 0, 17);
+        CK12().Write(zeros17, 17).Finalize(hash);
+        BOOST_CHECK_EQUAL(HexStr(std::vector<uint8_t>(hash, hash + 32)),
+            "9b201678f3160105ce0941a58f52a7c0e6898f3d73b7300a9582fed4adb63b22");
+    }
+
+    // Test chunked writes produce same result as single write
+    {
+        uint8_t input[64];
+        for (int i = 0; i < 64; i++) input[i] = i % 251;
+
+        uint8_t hash_single[32], hash_chunked[32];
+        CK12().Write(input, 64).Finalize(hash_single);
+
+        CK12 chunked;
+        chunked.Write(input, 17);
+        chunked.Write(input + 17, 23);
+        chunked.Write(input + 40, 24);
+        chunked.Finalize(hash_chunked);
+
+        BOOST_CHECK(memcmp(hash_single, hash_chunked, 32) == 0);
+    }
+
+    // Test Reset produces same result
+    {
+        uint8_t hash1[32], hash2[32];
+        CK12 hasher;
+        hasher.Finalize(hash1);
+        hasher.Reset();
+        hasher.Finalize(hash2);
+        BOOST_CHECK(memcmp(hash1, hash2, 32) == 0);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

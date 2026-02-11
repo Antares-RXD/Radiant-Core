@@ -8,6 +8,8 @@
 
 #include <script/interpreter.h>
 
+#include <crypto/blake3.h>
+#include <crypto/k12.h>
 #include <crypto/ripemd160.h>
 #include <crypto/sha1.h>
 #include <crypto/sha256.h>
@@ -144,8 +146,10 @@ static bool IsOpcodeDisabled(opcodetype opcode, uint32_t flags) {
         case OP_2DIV:
         case OP_LSHIFT:
         case OP_RSHIFT:
-            // Disabled opcodes.
-            return true;
+        case OP_BLAKE3:
+        case OP_K12:
+            // Enabled with enhanced references (post-fork)
+            return (flags & SCRIPT_ENHANCED_REFERENCES) == 0;
         case OP_REFHASHDATASUMMARY_OUTPUT:
         case OP_REFHASHVALUESUM_OUTPUTS:
         case OP_PUSHINPUTREFSINGLETON: 
@@ -780,9 +784,6 @@ bool EvalScript(std::vector<valtype> &stack, const CScript &script,
                         }
                     } break;
 
-                    /*
-                    // Cannot implement until we have proper Big int support
-
                     case OP_LSHIFT: {
                         // (x n -- out)
                         if (stack.size() < 2) {
@@ -797,13 +798,13 @@ bool EvalScript(std::vector<valtype> &stack, const CScript &script,
 
                         popstack(stack);
                         popstack(stack);
-                        stack.push_back(LShift(vch1, n.getint()));
+                        stack.push_back(LShift(vch1, static_cast<int>(n.getint64())));
                     } break;
 
                     case OP_RSHIFT: {
                         // (x n -- out)
                         if (stack.size() < 2) {
-                            return set_error( serror, ScriptError::INVALID_STACK_OPERATION);
+                            return set_error(serror, ScriptError::INVALID_STACK_OPERATION);
                         }
 
                         const valtype vch1 = stacktop(-2);
@@ -814,8 +815,8 @@ bool EvalScript(std::vector<valtype> &stack, const CScript &script,
 
                         popstack(stack);
                         popstack(stack);
-                        stack.push_back(RShift(vch1, n.getint()));
-                    } break; */
+                        stack.push_back(RShift(vch1, static_cast<int>(n.getint64())));
+                    } break;
 
                     case OP_EQUAL:
                     case OP_EQUALVERIFY:
@@ -853,6 +854,8 @@ bool EvalScript(std::vector<valtype> &stack, const CScript &script,
                     //
                     case OP_1ADD:
                     case OP_1SUB:
+                    case OP_2MUL:
+                    case OP_2DIV:
                     case OP_NEGATE:
                     case OP_ABS:
                     case OP_NOT:
@@ -878,6 +881,18 @@ bool EvalScript(std::vector<valtype> &stack, const CScript &script,
                                     return set_error(serror, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
                                 }
                                 bn = *res;
+                                break;
+                            }
+                            case OP_2MUL: {
+                                auto res = bn.safeMul(2);
+                                if ( ! res) {
+                                    return set_error(serror, ScriptError::INVALID_NUMBER_RANGE_64_BIT);
+                                }
+                                bn = *res;
+                                break;
+                            }
+                            case OP_2DIV: {
+                                bn = CScriptNum::fromIntUnchecked(bn.getint64() / 2);
                                 break;
                             }
                             case OP_NEGATE:
@@ -1045,7 +1060,9 @@ bool EvalScript(std::vector<valtype> &stack, const CScript &script,
                     case OP_HASH160:
                     case OP_HASH256:
                     case OP_SHA512_256:
-                    case OP_HASH512_256: {
+                    case OP_HASH512_256:
+                    case OP_BLAKE3:
+                    case OP_K12: {
                         // (in -- hash)
                         if (stack.size() < 1) {
                             return set_error(serror, ScriptError::INVALID_STACK_OPERATION);
@@ -1078,6 +1095,14 @@ bool EvalScript(std::vector<valtype> &stack, const CScript &script,
                             .Finalize(vchHash.data());
                         } else if (opcode == OP_HASH512_256) {
                             CHash512_256().Write(vch).Finalize(vchHash);
+                        } else if (opcode == OP_BLAKE3) {
+                            CBlake3()
+                                .Write(vch.data(), vch.size())
+                                .Finalize(vchHash.data());
+                        } else if (opcode == OP_K12) {
+                            CK12()
+                                .Write(vch.data(), vch.size())
+                                .Finalize(vchHash.data());
                         }
                         popstack(stack);
                         stack.push_back(vchHash);

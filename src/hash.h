@@ -6,7 +6,9 @@
 
 #pragma once
 
+#include <crypto/blake3.h>
 #include <crypto/common.h>
+#include <crypto/k12.h>
 #include <crypto/ripemd160.h>
 #include <crypto/sha256.h>
 #include <crypto/sha512_256.h>
