@@ -8,7 +8,7 @@ echo "Radiant Core Multi-Platform Release"
 echo "========================================"
 
 # Get current version
-VERSION=$(git describe --tags --always 2>/dev/null || echo "2.0.1")
+VERSION=$(git describe --tags --always 2>/dev/null || echo "2.1.0")
 echo "Building version: $VERSION"
 
 # Create release directory

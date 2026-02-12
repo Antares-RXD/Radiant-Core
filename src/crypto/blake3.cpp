@@ -134,8 +134,12 @@ CBlake3 &CBlake3::Write(const uint8_t *data, size_t len) {
     return *this;
 }
 
-void CBlake3::Finalize(uint8_t *output) {
-    assert(m_bytes_consumed <= CHUNK_LEN);
+bool CBlake3::Finalize(uint8_t *output) {
+    // Single-chunk mode only supports inputs <= 1024 bytes.
+    // Return false instead of crashing if the caller exceeds this.
+    if (m_bytes_consumed > CHUNK_LEN) {
+        return false;
+    }
 
     // Set CHUNK_END and ROOT flags for the final compression
     uint8_t final_flags = m_flags | CHUNK_END | ROOT;
@@ -150,4 +154,5 @@ void CBlake3::Finalize(uint8_t *output) {
         output[4 * i + 2] = (uint8_t)(out[i] >> 16);
         output[4 * i + 3] = (uint8_t)(out[i] >> 24);
     }
+    return true;
 }

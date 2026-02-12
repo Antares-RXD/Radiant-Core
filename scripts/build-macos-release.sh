@@ -77,7 +77,7 @@ cat > ../create-dmg.sh << 'EOF'
 set -e
 
 DMG_NAME="Radiant-Core"
-VERSION=$(git describe --tags --always 2>/dev/null || echo "2.0.1")
+VERSION=$(git describe --tags --always 2>/dev/null || echo "2.1.0")
 SOURCE_DIR="release-macos"
 DMG_FILE="${DMG_NAME}-${VERSION}.dmg"
 

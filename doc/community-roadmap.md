@@ -11,7 +11,7 @@ This roadmap provides a comprehensive overview of the Radiant ecosystem's curren
 ### Core Protocol Status ✅
 
 **Infrastructure Foundation**
-- **Node Software**: Radiant Core Node 2.0.1 stable with C++20 modernization
+- **Node Software**: Radiant Core Node 2.1.0 stable with C++20 modernization, V2 hard fork opcodes (OP_BLAKE3, OP_K12, OP_LSHIFT, OP_RSHIFT, OP_2MUL, OP_2DIV)
 - **Network**: Active mainnet with 5-minute block times, 256MB block size
 - **Security**: OpenSSL 3.0.18, BIP70 removal, enhanced DoS protection
 - **Performance**: ASERT difficulty adjustment, 12MB transaction support

@@ -3,8 +3,14 @@ Radiant Core Releases
 
 Release artifacts for Radiant Core.
 
-Latest Release: v2.0.1
+Latest Release: v2.1.0
 ----------------------
+- V2 Hard Fork release with 6 new/re-enabled opcodes (OP_BLAKE3, OP_K12, OP_LSHIFT, OP_RSHIFT, OP_2MUL, OP_2DIV)
+- Activation height: block 410,000 (mainnet & testnet3)
+- See doc/release-notes/release-notes-2.1.0.md for full details
+
+v2.0.1 Release:
+-----------------
 - v2.0.1/Windows/      - Windows x86_64 binaries + GUI (built from GitHub source)
 
 v2.0.0 Releases:

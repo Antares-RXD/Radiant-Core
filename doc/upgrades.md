@@ -156,5 +156,21 @@ This document tracks the modernization and upgrade efforts for the Radiant Node 
 - **Fuzz Testing**: Added `fuzz-radiant_opcodes` target for Radiant-specific consensus (unique references, introspection opcodes, `SCRIPT_PUSH_TX_STATE`).
 - **Prometheus Metrics**: Integrated native **Prometheus** metrics export (`/metrics` endpoint) for block height, peer count, mempool size, and version info.
 
+### 13. V2 Hard Fork — New Opcodes (Radiant Core 2.1.0)
+- **OP_BLAKE3** (`0xee`): New hash opcode implementing BLAKE3 cryptographic hash (32-byte output). ~500 LOC in `src/crypto/blake3.cpp`. Enables on-chain PoW validation for Blake3 dMint tokens.
+- **OP_K12** (`0xef`): New hash opcode implementing KangarooTwelve (32-byte output). ~300 LOC in `src/crypto/k12.cpp`, leveraging existing `KeccakF` from `sha3.cpp`. Enables on-chain PoW validation for K12 dMint tokens.
+- **OP_LSHIFT** (`0x98`): Re-enabled bitwise left shift. Code existed but was unconditionally disabled. Now fork-gated behind `SCRIPT_ENHANCED_REFERENCES`.
+- **OP_RSHIFT** (`0x99`): Re-enabled bitwise right shift. Same gating mechanism.
+- **OP_2MUL** (`0x8d`): Re-enabled multiply-by-2 with `safeMul(2)` overflow protection. Fork-gated.
+- **OP_2DIV** (`0x8e`): Re-enabled divide-by-2 with truncation toward zero (e.g., `-3 / 2 = -1`). Fork-gated.
+- **Activation**: All opcodes gated behind `SCRIPT_ENHANCED_REFERENCES` flag, activated at `radiantCore2UpgradeHeight`:
+  - Mainnet & Testnet3: block 410,000
+  - Scalenet: block 1,000
+  - Regtest: block 200
+- **Purpose**: Enables fully on-chain Glyph v2 dMint proof-of-work validation using alternative hash algorithms (Blake3, KangarooTwelve). Eliminates indexer trust dependency for PoW verification. Shift opcodes enable on-chain ASERT-lite DAA computation.
+- **Test Coverage**: 15/15 crypto unit tests, 14/14 functional tests (`feature_v2_hash_opcodes.py`), 29 integration tests across 7 scenarios (`feature_v2_phase10_integration.py`).
+- **Ecosystem**: All 9 downstream repositories updated (radiantjs, radiantblockchain-constants, RadiantScript, rxdeb, RXinDexer, Photonic Wallet, Glyph-miner, Glyph Token Standards).
+- **Release Notes**: See `doc/release-notes/release-notes-2.1.0.md`.
+
 ## 🔮 Future Development
 For the active development roadmap and upcoming features, please refer to [roadmap.md](roadmap.md).

@@ -25,8 +25,8 @@ network based on the original Bitcoin design. RXD is the native token of Radiant
 
 | Platform | Download | Description |
 |----------|----------|-------------|
-| **macOS** | [Radiant-Core-GUI-2.0.1.dmg](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/Radiant-Core-GUI-2.0.1.dmg) | Native app with node + wallet |
-| **Linux** | [radiant-core-gui-linux-x64-v2.0.1.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-gui-linux-x64-v2.0.1.tar.gz) | GUI package |
+| **macOS** | [Radiant-Core-GUI-2.1.0.dmg](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0/Radiant-Core-GUI-2.1.0.dmg) | Native app with node + wallet |
+| **Linux** | [radiant-core-gui-linux-x64-v2.1.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0/radiant-core-gui-linux-x64-v2.1.0.tar.gz) | GUI package |
 
 ### Features
 - **One-click node**: Start and stop your node with a single click
@@ -39,6 +39,27 @@ network based on the original Bitcoin design. RXD is the native token of Radiant
 2. Open and drag **Radiant Core** to Applications
 3. If blocked by Gatekeeper: `xattr -rd com.apple.quarantine /Applications/Radiant\ Core.app`
 4. Double-click to launch
+
+---
+
+## Radiant Core 2.1 — V2 Hard Fork
+
+**Activation Height:** Block 410,000 (mainnet & testnet3)
+
+Radiant Core 2.1 introduces 6 new and re-enabled opcodes, gated behind the `SCRIPT_ENHANCED_REFERENCES` flag and activated at the V2 hard fork height:
+
+| Opcode | Hex | Type | Purpose |
+|--------|-----|------|---------|
+| **OP_BLAKE3** | `0xee` | New hash opcode | On-chain Blake3 PoW validation for Glyph v2 dMint tokens |
+| **OP_K12** | `0xef` | New hash opcode | On-chain KangarooTwelve PoW validation |
+| **OP_LSHIFT** | `0x98` | Re-enabled | Bitwise left shift for on-chain ASERT-lite DAA computation |
+| **OP_RSHIFT** | `0x99` | Re-enabled | Bitwise right shift for on-chain DAA computation |
+| **OP_2MUL** | `0x8d` | Re-enabled | Multiply by 2 (numeric) |
+| **OP_2DIV** | `0x8e` | Re-enabled | Divide by 2 with truncation toward zero |
+
+**Why:** These opcodes enable fully on-chain proof-of-work validation for Glyph v2 decentralized minting (dMint) tokens using alternative hash algorithms (Blake3, KangarooTwelve). This eliminates indexer trust dependency and prevents griefing attacks. The shift and arithmetic opcodes enable on-chain difficulty adjustment (ASERT-lite DAA).
+
+**Test Coverage:** 14/14 opcode functional tests + 29 integration tests across 7 scenarios (A-G) on 2-node regtest.
 
 ---
 
@@ -58,14 +79,14 @@ We provide comprehensive release build scripts for all platforms with automated 
 
 Download official releases from [GitHub Releases](https://github.com/Radiant-Core/Radiant-Core/releases) with verified checksums:
 
-#### Latest Release: v2.0.1
+#### Latest Release: v2.1.0
 
 | Platform | Download | Size | Checksum (SHA256) |
 |----------|----------|------|------------------|
 | **Linux x86_64** | [radiant-core-linux-x86_64.tar.gz] | 23 MB | *(Available on release page)* |
 | **macOS Universal** | [radiant-core-macos-universal.tar.gz] | 28 MB | *(Available on release page)* |
 | **Docker Image** | `radiant-core:latest` | 150 MB | *(Verified by Docker Hub)* |
-| **Windows x64** | [radiant-core-windows-x64.zip](releases/v2.0.1/Windows/) | ~25 MB | `04b32a45...8fafc6` |
+| **Windows x64** | [radiant-core-windows-x64.zip](releases/v2.1.0/Windows/) | ~25 MB | `04b32a45...8fafc6` |
 
 **🔐 Security Verification:**
 ```bash
@@ -76,7 +97,7 @@ sha256sum radiant-core-linux-x86_64.tar.gz
 shasum -a 256 radiant-core-macos-universal.tar.gz
 
 # Verify Windows release
-# Compare against releases/v2.0.1/Windows/radiant-core-windows-x64.sha256
+# Compare against releases/v2.1.0/Windows/radiant-core-windows-x64.sha256
 Get-FileHash radiant-core-windows-x64.zip -Algorithm SHA256
 ```
 
@@ -268,8 +289,8 @@ All official releases include SHA256 checksums for security verification:
 
 ```bash
 # Example: Verify Windows release
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-windows-x64.zip
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1/radiant-core-windows-x64.zip.sha256
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0/radiant-core-windows-x64.zip
+curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0/radiant-core-windows-x64.zip.sha256
 
 sha256sum -c radiant-core-windows-x64.zip.sha256
 # Should output: radiant-core-windows-x64.zip: OK

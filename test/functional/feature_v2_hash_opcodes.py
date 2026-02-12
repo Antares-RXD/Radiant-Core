@@ -202,6 +202,9 @@ class V2HashOpcodesTest(BitcoinTestFramework):
             ("OP_2DIV(7) == 3 (truncation)", [CScriptNum(7)], [OP_2DIV, CScriptNum(3), OP_EQUALVERIFY]),
             ("OP_2MUL then OP_2DIV round-trip", [CScriptNum(3)], [OP_2MUL, OP_2DIV, CScriptNum(3), OP_EQUALVERIFY]),
             ("OP_2DIV(-3) == -1 (negative truncation)", [CScriptNum(-3)], [OP_2DIV, CScriptNum(-1), OP_EQUALVERIFY]),
+            ("OP_LSHIFT(1, 0) == 1 (identity)", [CScriptNum(1), OP_0], [OP_LSHIFT, CScriptNum(1), OP_EQUALVERIFY]),
+            ("OP_2DIV(1) == 0", [CScriptNum(1)], [OP_2DIV, OP_0, OP_EQUALVERIFY]),
+            ("OP_2DIV(-1) == 0", [CScriptNum(-1)], [OP_2DIV, OP_0, OP_EQUALVERIFY]),
         ]
 
         for i, (desc, ssextra, rsextra) in enumerate(test_cases, 1):
@@ -248,6 +251,71 @@ class V2HashOpcodesTest(BitcoinTestFramework):
             reject_reason='mandatory-script-verify-flag-failed')
         self.log.info("  OP_2MUL overflow correctly rejected (peer disconnected)")
         self.log.info(f"  Test {overflow_test_num} PASSED")
+
+        # --- S-1 regression: OP_BLAKE3 with >1024 byte input must be rejected ---
+        reject_test_num = overflow_test_num + 1
+        self.log.info(f"Test {reject_test_num}: OP_BLAKE3 with 1025-byte input → rejection (S-1 fix)")
+        large_data = b'\x41' * 1025  # 1025 bytes = exceeds BLAKE3 single-chunk limit
+        ssextra_large = [large_data]
+        rsextra_large = [OP_BLAKE3, OP_DROP]
+        tx0_large, tx_large = create_fund_and_spend_tx(ssextra_large, rsextra_large)
+
+        node.sendrawtransaction(tx0_large.serialize().hex())
+        self.generatetoaddress(node, 1, node.get_deterministic_priv_key().address)
+        assert_equal(node.getrawmempool(), [])
+        self.log.info("  Funding tx mined")
+
+        node.disconnect_p2ps()
+        self.bootstrap_p2p()
+
+        node.p2p.send_txs_and_test(
+            [tx_large], node, success=False, expect_disconnect=True,
+            reject_reason='mandatory-script-verify-flag-failed')
+        self.log.info("  OP_BLAKE3 >1024B correctly rejected (S-1 fix verified)")
+        self.log.info(f"  Test {reject_test_num} PASSED")
+
+        # --- S-2 regression: OP_LSHIFT with shift > input bit-length must be rejected ---
+        shift_test_num = reject_test_num + 1
+        self.log.info(f"Test {shift_test_num}: OP_LSHIFT(1, 100) → rejection (S-2 fix, shift > 8 bits)")
+        # CScriptNum(1) is 1 byte = 8 bits; shifting by 100 exceeds bit-length
+        ssextra_shift = [CScriptNum(1), CScriptNum(100)]
+        rsextra_shift = [OP_LSHIFT, OP_DROP]
+        tx0_shift, tx_shift = create_fund_and_spend_tx(ssextra_shift, rsextra_shift)
+
+        node.sendrawtransaction(tx0_shift.serialize().hex())
+        self.generatetoaddress(node, 1, node.get_deterministic_priv_key().address)
+        assert_equal(node.getrawmempool(), [])
+        self.log.info("  Funding tx mined")
+
+        node.disconnect_p2ps()
+        self.bootstrap_p2p()
+
+        node.p2p.send_txs_and_test(
+            [tx_shift], node, success=False, expect_disconnect=True,
+            reject_reason='mandatory-script-verify-flag-failed')
+        self.log.info("  OP_LSHIFT oversized shift correctly rejected (S-2 fix verified)")
+        self.log.info(f"  Test {shift_test_num} PASSED")
+
+        # --- S-2 regression: OP_RSHIFT with shift > input bit-length must be rejected ---
+        rshift_test_num = shift_test_num + 1
+        self.log.info(f"Test {rshift_test_num}: OP_RSHIFT(1, 9) → rejection (S-2 fix, shift > 8 bits)")
+        ssextra_rshift = [CScriptNum(1), CScriptNum(9)]
+        rsextra_rshift = [OP_RSHIFT, OP_DROP]
+        tx0_rshift, tx_rshift = create_fund_and_spend_tx(ssextra_rshift, rsextra_rshift)
+
+        node.sendrawtransaction(tx0_rshift.serialize().hex())
+        self.generatetoaddress(node, 1, node.get_deterministic_priv_key().address)
+        assert_equal(node.getrawmempool(), [])
+        self.log.info("  Funding tx mined")
+
+        node.disconnect_p2ps()
+        self.bootstrap_p2p()
+
+        node.p2p.send_txs_and_test(
+            [tx_rshift], node, success=False, expect_disconnect=True,
+            reject_reason='mandatory-script-verify-flag-failed')
+        self.log.info("  OP_RSHIFT oversized shift correctly rejected (S-2 fix verified)")
+        self.log.info(f"  Test {rshift_test_num} PASSED")
 
 
 if __name__ == '__main__':

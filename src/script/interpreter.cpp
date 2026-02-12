@@ -792,7 +792,7 @@ bool EvalScript(std::vector<valtype> &stack, const CScript &script,
 
                         const valtype vch1 = stacktop(-2);
                         CScriptNum n(stacktop(-1), fRequireMinimal, maxIntegerSize);
-                        if (n < 0) {
+                        if (n < 0 || n.getint64() > static_cast<int64_t>(8 * vch1.size())) {
                             return set_error(serror, ScriptError::INVALID_NUMBER_RANGE);
                         }
 
@@ -809,7 +809,7 @@ bool EvalScript(std::vector<valtype> &stack, const CScript &script,
 
                         const valtype vch1 = stacktop(-2);
                         CScriptNum n(stacktop(-1), fRequireMinimal, maxIntegerSize);
-                        if (n < 0) {
+                        if (n < 0 || n.getint64() > static_cast<int64_t>(8 * vch1.size())) {
                             return set_error(serror, ScriptError::INVALID_NUMBER_RANGE);
                         }
 
@@ -1096,9 +1096,11 @@ bool EvalScript(std::vector<valtype> &stack, const CScript &script,
                         } else if (opcode == OP_HASH512_256) {
                             CHash512_256().Write(vch).Finalize(vchHash);
                         } else if (opcode == OP_BLAKE3) {
-                            CBlake3()
-                                .Write(vch.data(), vch.size())
-                                .Finalize(vchHash.data());
+                            CBlake3 hasher;
+                            hasher.Write(vch.data(), vch.size());
+                            if (!hasher.Finalize(vchHash.data())) {
+                                return set_error(serror, ScriptError::INVALID_STACK_OPERATION);
+                            }
                         } else if (opcode == OP_K12) {
                             CK12()
                                 .Write(vch.data(), vch.size())

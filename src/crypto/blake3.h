@@ -22,7 +22,7 @@ public:
 
     CBlake3();
     CBlake3 &Write(const uint8_t *data, size_t len);
-    void Finalize(uint8_t *output);
+    bool Finalize(uint8_t *output);
     CBlake3 &Reset();
 
 private:

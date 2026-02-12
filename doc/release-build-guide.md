@@ -10,7 +10,7 @@ Pre-built release artifacts are available in the `releases/` directory:
 |----------|----------|----------|
 | Linux x86_64 | `releases/Linux/` | `radiant-core-linux-x86_64.tar.gz` |
 | macOS ARM64 | `releases/Mac - Apple Silicon/` | `radiant-core-macos-arm64.zip` |
-| Docker | `releases/Docker/` | `radiant-core-docker-v2.0.1.tar.gz` |
+| Docker | `releases/Docker/` | `radiant-core-docker-v2.1.0.tar.gz` |
 
 Each release includes SHA256 checksums for verification.
 

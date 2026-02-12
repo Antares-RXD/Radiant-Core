@@ -4,12 +4,12 @@
 # Creates platform-specific packages containing GUI + pre-built binaries
 #
 # Usage: ./scripts/build-gui-release.sh [version]
-# Example: ./scripts/build-gui-release.sh 2.0.1
+# Example: ./scripts/build-gui-release.sh 2.1.0
 #
 
 set -e
 
-VERSION="${1:-2.0.1}"
+VERSION="${1:-2.1.0}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 BUILD_DIR="$ROOT_DIR/release-builds"

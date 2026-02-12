@@ -44,7 +44,7 @@ except ImportError:
     VALID_WORD_COUNTS = (12, 15, 18, 21, 24)
 
 # GitHub release configuration
-GITHUB_RELEASE_URL = "https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.0.1"
+GITHUB_RELEASE_URL = "https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0"
 RELEASE_ASSETS = {
     "darwin_arm64": {
         "filename": "radiant-core-macos-arm64.zip",
@@ -470,9 +470,9 @@ class NodeManager:
             self.base_path / "build" / "src" / name,
             self.base_path / "src" / name,
             self.base_path / name,
-            # Release binaries (v2.0.1)
-            self.base_path / "releases" / "v2.0.1" / "Windows" / name,
-            self.base_path / "releases" / "v2.0.1" / "Windows" / "radiant-core-windows-x64" / name,
+            # Release binaries (v2.1.0)
+            self.base_path / "releases" / "v2.1.0" / "Windows" / name,
+            self.base_path / "releases" / "v2.1.0" / "Windows" / "radiant-core-windows-x64" / name,
             # Release binaries (legacy paths)
             self.base_path / "releases" / "Mac - Apple Silicon" / "radiant-core-macos-arm64" / name,
             self.base_path / "releases" / "Mac - Intel" / "radiant-core-macos-x64" / name,
@@ -1661,7 +1661,7 @@ HTML_PAGE = '''<!DOCTYPE html>
                 </div>
                 <div class="download-status" id="downloadStatus"></div>
                 <div class="manual-download">
-                    <small>Or download manually from <a href="https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.0.1" target="_blank">GitHub Releases</a></small>
+                    <small>Or download manually from <a href="https://github.com/Radiant-Core/Radiant-Core/releases/tag/v2.1.0" target="_blank">GitHub Releases</a></small>
                 </div>
             </div>
             
