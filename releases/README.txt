@@ -8,6 +8,10 @@ Latest Release: v2.1.0
 - V2 Hard Fork release with 6 new/re-enabled opcodes (OP_BLAKE3, OP_K12, OP_LSHIFT, OP_RSHIFT, OP_2MUL, OP_2DIV)
 - Activation height: block 410,000 (mainnet & testnet3)
 - See doc/release-notes/release-notes-2.1.0.md for full details
+- v2.1.0/RELEASE_NOTES.md                               - Full release notes
+- v2.1.0/radiant-core-macos-arm64-v2.1.0.tar.gz         - macOS ARM64 CLI binaries
+- v2.1.0/radiant-core-gui-macos-arm64-v2.1.0.zip        - macOS ARM64 GUI app bundle
+- v2.1.0/*.sha256                                        - SHA-256 checksums
 
 v2.0.1 Release:
 -----------------
