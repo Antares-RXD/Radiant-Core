@@ -6,7 +6,7 @@
 Test OP_BLAKE3 (0xee) and OP_K12 (0xef) hash opcodes introduced in V2 Hard Fork.
 Also tests re-enabled OP_LSHIFT (0x98) and OP_RSHIFT (0x99).
 
-Test cases:
+Test cases (succeed):
   1. OP_BLAKE3 produces correct 32-byte hash for empty input
   2. OP_BLAKE3 produces correct 32-byte hash for "abc"
   3. OP_K12 produces correct 32-byte hash for empty input
@@ -20,7 +20,21 @@ Test cases:
  11. OP_2DIV truncates toward zero (7 / 2 = 3)
  12. OP_2MUL then OP_2DIV round-trip (3 * 2 / 2 = 3)
  13. OP_2DIV(-3) == -1 (negative truncation toward zero)
- 14. OP_2MUL(INT64_MAX) overflows → script error (expect disconnect)
+ 14. OP_LSHIFT(1, 0) == 1 (shift-zero identity)
+ 15. OP_2DIV(1) == 0
+ 16. OP_2DIV(-1) == 0
+ 17. OP_LSHIFT(3, 5) == 96 (multi-bit shift)
+ 18. OP_LSHIFT(1, 6) == 64 (near max-shift for 1 byte)
+ 19. OP_LSHIFT(1, 8) == 0x00 (boundary: all bits shifted out of 1-byte value)
+ 20. OP_RSHIFT(-4, 1) == 66 (logical shift on raw bytes, not arithmetic)
+ 21. OP_2MUL(-5) == -10 (negative multiplication)
+ 22. OP_2MUL(-(2^62)) succeeds (INT64_MIN boundary, no overflow)
+
+Rejection tests (expect peer disconnect):
+ 23. OP_2MUL(INT64_MAX) overflows → script error
+ 24. OP_BLAKE3 with >1024 byte input → rejection (S-1 fix)
+ 25. OP_LSHIFT(1, 100) oversized shift → rejection (S-2 fix)
+ 26. OP_RSHIFT(1, 9) oversized shift → rejection (S-2 fix)
 
 Note: Pre-activation height rejection cannot be tested here because
 SCRIPT_ENHANCED_REFERENCES is gated on ERHeight (=10 in regtest),
@@ -140,7 +154,7 @@ class V2HashOpcodesTest(BitcoinTestFramework):
         self.log.info("Create some blocks with OP_1 coinbase for spending.")
         tip = self.getbestblock(node)
         blocks = []
-        for _ in range(20):
+        for _ in range(30):
             tip = self.build_block(tip)
             blocks.append(tip)
         node.p2p.send_blocks_and_test(blocks, node, success=True)
@@ -205,6 +219,12 @@ class V2HashOpcodesTest(BitcoinTestFramework):
             ("OP_LSHIFT(1, 0) == 1 (identity)", [CScriptNum(1), OP_0], [OP_LSHIFT, CScriptNum(1), OP_EQUALVERIFY]),
             ("OP_2DIV(1) == 0", [CScriptNum(1)], [OP_2DIV, OP_0, OP_EQUALVERIFY]),
             ("OP_2DIV(-1) == 0", [CScriptNum(-1)], [OP_2DIV, OP_0, OP_EQUALVERIFY]),
+            ("OP_LSHIFT(3, 5) == 96 (multi-bit shift)", [CScriptNum(3), CScriptNum(5)], [OP_LSHIFT, CScriptNum(96), OP_EQUALVERIFY]),
+            ("OP_LSHIFT(1, 6) == 64 (near max-shift)", [CScriptNum(1), CScriptNum(6)], [OP_LSHIFT, CScriptNum(64), OP_EQUALVERIFY]),
+            ("OP_LSHIFT(1, 8) == 0x00 (boundary: all bits out)", [CScriptNum(1), CScriptNum(8)], [OP_LSHIFT, b'\x00', OP_EQUALVERIFY]),
+            ("OP_RSHIFT(-4, 1) == 66 (logical, not arithmetic)", [CScriptNum(-4), OP_1], [OP_RSHIFT, CScriptNum(66), OP_EQUALVERIFY]),
+            ("OP_2MUL(-5) == -10 (negative)", [CScriptNum(-5)], [OP_2MUL, CScriptNum(-10), OP_EQUALVERIFY]),
+            ("OP_2MUL(-(2^62)) succeeds (INT64_MIN boundary)", [CScriptNum(-4611686018427387904)], [OP_2MUL, OP_DROP]),
         ]
 
         for i, (desc, ssextra, rsextra) in enumerate(test_cases, 1):
