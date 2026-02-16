@@ -23,7 +23,9 @@ All node operators, miners, exchanges, and wallet providers **must upgrade befor
 | Linux x86_64 | radiant-core-linux-x64-v2.1.0.tar.gz | ~4.0 MB |
 | macOS ARM64 | radiant-core-macos-arm64-v2.1.0.tar.gz | ~3.0 MB |
 | macOS GUI App | Radiant-Core-GUI-2.1.0.dmg | ~19 MB |
-| Windows x64 | radiant-core-windows-x64-v2.1.0.zip | ~12.5 MB |
+| Windows x64 (all-in-one) | radiant-core-windows-x64.zip | ~65 MB |
+| Windows GUI (standalone) | RadiantCoreNode+Wallet-v.2.1.0.exe | ~9.2 MB |
+| Windows GUI (Qt classic) | RadiantCore.exe | ~30 MB |
 
 ### Verify Checksums
 Each download includes a `.sha256` file for verification:
@@ -191,15 +193,20 @@ xattr -rd com.apple.quarantine .
 # Stop current node (if running)
 .\radiant-cli.exe stop
 
-# Extract the zip file
-Expand-Archive radiant-core-windows-x64-v2.1.0.zip -DestinationPath C:\RadiantCore
+# Extract the zip file (contains all exes + DLLs)
+Expand-Archive radiant-core-windows-x64.zip -DestinationPath C:\RadiantCore
 
 # Start the node
 cd C:\RadiantCore
 .\radiantd.exe -server -txindex=1
 ```
 
-**Windows GUI**: Download `RadiantCore.exe` and double-click to launch.
+**Windows GUI — Two Options:**
+
+| Application | Description |
+|-------------|-------------|
+| **RadiantCoreNode+Wallet-v.2.1.0.exe** | **Recommended.** Standalone single-file GUI. No DLLs needed. Launches a browser-based interface at `http://127.0.0.1:8765` with one-click node control, built-in wallet, and BIP39 seed phrase backup. |
+| **RadiantCore.exe** | Classic Qt desktop wallet and node manager. Requires Qt5/ICU/MinGW DLLs in the same folder (all included in the zip). |
 
 #### Docker
 

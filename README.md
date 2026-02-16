@@ -26,6 +26,9 @@ network based on the original Bitcoin design. RXD is the native token of Radiant
 | Platform | Download | Description |
 |----------|----------|-------------|
 | **macOS** | [Radiant-Core-GUI-2.1.0.dmg](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0/Radiant-Core-GUI-2.1.0.dmg) | Native app with node + wallet |
+| **Windows** | [RadiantCoreNode+Wallet-v.2.1.0.exe](releases/v2.1.0/Windows/RadiantCoreNode+Wallet-v.2.1.0.exe) | Standalone GUI — no install or DLLs needed |
+| **Windows (Qt)** | [RadiantCore.exe](releases/v2.1.0/Windows/RadiantCore.exe) | Classic Qt desktop wallet (requires DLLs from zip) |
+| **Windows (all-in-one)** | [radiant-core-windows-x64.zip](releases/v2.1.0/Windows/radiant-core-windows-x64.zip) | All exes + all DLLs in one archive |
 | **Linux** | [radiant-core-gui-linux-x64-v2.1.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0/radiant-core-gui-linux-x64-v2.1.0.tar.gz) | GUI package |
 
 ### Features
@@ -254,119 +257,6 @@ ninja
 
 **macOS:**
 ```bash
-# Install dependencies
-brew install cmake ninja boost libevent openssl berkeley-db miniupnpc zeromq qt5
-
-# Build
-mkdir build && cd build
-cmake -GNinja .. -DBUILD_RADIANT_QT=OFF
-ninja
-```
-
-**Windows (WSL2):**
-```powershell
-# Install WSL2 with Ubuntu
-wsl --install -d Ubuntu-22.04
-
-# Inside WSL2, follow Linux/Ubuntu build instructions above
-```
-
-### 📖 Detailed Documentation
-
-- **[release-build-guide.md](doc/release-build-guide.md)** - Comprehensive build instructions
-- **[build-windows-portable.md](doc/build-windows-portable.md)** - Windows-specific guide  
-- **[release-system-complete.md](doc/release-system-complete.md)** - Complete system overview
-- **[doc/build-unix.md](doc/build-unix.md)** - Unix build details
-- **[doc/build-windows.md](doc/build-windows.md)** - Windows build details
-
----
-
-## 🔒 Security & Verification
-
-### Checksum Verification
-
-All official releases include SHA256 checksums for security verification:
-
-```bash
-# Example: Verify Windows release
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0/radiant-core-windows-x64.zip
-curl -LO https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0/radiant-core-windows-x64.zip.sha256
-
-sha256sum -c radiant-core-windows-x64.zip.sha256
-# Should output: radiant-core-windows-x64.zip: OK
-```
-
-### Code Signing
-
-Production releases are signed:
-- **macOS**: Apple Developer ID signatures  
-- **Linux**: GPG signatures from maintainers
-
-### Reproducible Builds
-
-Our build system supports reproducible builds with:
-- Deterministic compilation flags
-- Fixed dependency versions
-- Source verification via Git tags
-
----
-
-Quick Start: Docker Build (Development)
----------------------
-
-For development and testing, we provide a standardized build environment using Docker to ensure consistency across all platforms.
-
-### Where You Can Run the CI
-
-| Host OS | Run CI via Docker | Notes |
-|---------|-------------------|-------|
-| Linux | ✅ | Native Docker |
-| macOS | ✅ | Docker Desktop or OrbStack |
-| Windows | ✅ | Docker Desktop (WSL2) |
-
-### Binaries Produced by CI
-
-The CI builds and tests Linux binaries natively, and cross-compiles for other platforms:
-
-| Target Binary | Build | Tests | Notes |
-|---------------|-------|-------|-------|
-| Linux x86_64 | ✅ | ✅ | Native build inside container, full test suite |
-| Linux AArch64 | ✅ | ✅ | Cross-compiled, tested via QEMU |
-| Linux ARM | ✅ | ❌ | Cross-compiled, build only |
-| macOS | ❌ | ❌ | Not cross-compiled; use native build below |
-
-**Note**: The CI produces working binaries for Linux. macOS binaries must be built natively on a Mac. For Windows, use WSL2 with the Linux build.
-
-Native Build: Ubuntu/Debian
----------------------
-
-See [Ubuntu/Debian Builds](doc/build-unix.md) for detailed instructions.
-
-**Requirements**: Ubuntu 20.04/22.04/24.04, CMake 3.16+, Ninja, GCC 10+ or Clang 11+
-
-```bash
-# Install dependencies
-sudo apt-get install build-essential cmake ninja-build libboost-all-dev \
-    libevent-dev libssl-dev libdb++-dev libminiupnpc-dev libzmq3-dev
-
-# Build without Qt GUI
-mkdir build && cd build
-cmake -GNinja .. -DBUILD_RADIANT_QT=OFF
-ninja
-
-# Build with Qt GUI
-mkdir build && cd build
-cmake -GNinja .. -DBUILD_RADIANT_QT=ON
-ninja
-
-# Optional: Install system-wide
-sudo ninja install
-```
-
-Native Build: macOS
----------------------
-
-```bash
 # Install dependencies via Homebrew
 brew install cmake ninja boost libevent openssl berkeley-db miniupnpc zeromq qt5
 
@@ -382,26 +272,37 @@ cmake -GNinja .. -DBUILD_RADIANT_QT=ON
 ninja
 ```
 
+**Windows (WSL2):**
+```powershell
+# Install WSL2 with Ubuntu
+wsl --install -d Ubuntu-22.04
+
+# Inside WSL2, follow Linux/Ubuntu build instructions above
+```
+
 Native Build: Windows
 ---------------------
 
-### Option 1: Windows GUI Application (Recommended for End Users)
+### Option 1: RadiantCoreNode+Wallet (Recommended for End Users)
 
-We provide a native Windows GUI application that bundles the node binaries:
+A standalone single-file GUI with built-in node management and wallet:
 
-**Download from `gui/dist/`:**
-- `RadiantCore.exe` - The GUI application
-- `radiant-core-windows-x64.zip` - Node binaries (radiantd.exe, radiant-cli.exe + DLLs)
+- **Download:** [`RadiantCoreNode+Wallet-v.2.1.0.exe`](releases/v2.1.0/Windows/RadiantCoreNode+Wallet-v.2.1.0.exe) (~9.2 MB)
+- **No DLLs or installation required** — just double-click to run
+- Opens a browser-based interface at `http://127.0.0.1:8765`
+- One-click node start/stop, built-in wallet, BIP39 seed phrase backup
 
-**Installation:**
-1. Keep both files in the same folder
+### Option 2: RadiantCore Qt GUI (Classic Desktop Wallet)
+
+The traditional Qt-based desktop wallet and node manager:
+
+1. Download and extract [`radiant-core-windows-x64.zip`](releases/v2.1.0/Windows/radiant-core-windows-x64.zip) (~65 MB)
 2. Double-click `RadiantCore.exe`
-3. The GUI will automatically detect and install the node binaries
-4. Your browser will open to `http://127.0.0.1:8765`
+3. All required DLLs (Qt5, ICU, MinGW runtime, etc.) are included in the zip
 
 See [gui/README.md](gui/README.md) for detailed instructions.
 
-### Option 2: WSL2 (Recommended for Developers)
+### Option 3: WSL2 (Recommended for Developers)
 
 For development and building from source, we recommend WSL2:
 

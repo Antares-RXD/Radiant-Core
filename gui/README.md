@@ -11,7 +11,9 @@ Download the standalone macOS application - no dependencies required:
 | Platform | Download | Size |
 |----------|----------|------|
 | **macOS (Apple Silicon/Intel)** | [Radiant-Core-GUI-2.1.0.dmg](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0/Radiant-Core-GUI-2.1.0.dmg) | ~19 MB |
-| **Windows (x64)** | [releases/Windows/](../releases/Windows/) | ~46 MB |
+| **Windows (standalone)** | [RadiantCoreNode+Wallet-v.2.1.0.exe](../releases/v2.1.0/Windows/RadiantCoreNode+Wallet-v.2.1.0.exe) | ~9.2 MB |
+| **Windows (Qt classic)** | [RadiantCore.exe](../releases/v2.1.0/Windows/RadiantCore.exe) | ~30 MB |
+| **Windows (all-in-one)** | [radiant-core-windows-x64.zip](../releases/v2.1.0/Windows/radiant-core-windows-x64.zip) | ~65 MB |
 | **Linux (x86_64)** | [radiant-core-gui-linux-x64-v2.1.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0/radiant-core-gui-linux-x64-v2.1.0.tar.gz) | ~15 MB |
 
 **Quick Install (macOS DMG):**
@@ -26,11 +28,19 @@ Download the standalone macOS application - no dependencies required:
 xattr -rd com.apple.quarantine /Applications/Radiant\ Core.app
 ```
 
-**Windows (Recommended for most users):**
+**Windows — Two GUI Options:**
 
-1. Go to `releases/Windows/` folder (all binaries and DLLs are pre-extracted)
+**Option A: RadiantCoreNode+Wallet (Recommended)**
+1. Download `RadiantCoreNode+Wallet-v.2.1.0.exe` (~9.2 MB)
+2. Double-click to run — no DLLs or installation needed
+3. A browser-based GUI opens at `http://127.0.0.1:8765`
+4. Includes one-click node control, built-in wallet, and BIP39 seed phrase backup
+
+**Option B: RadiantCore Qt GUI (Classic desktop wallet)**
+1. Download and extract `radiant-core-windows-x64.zip` (~65 MB)
 2. Double-click `RadiantCore.exe`
-3. The GUI will launch in your default web browser at `http://127.0.0.1:8765`
+3. Native Qt desktop wallet and node manager
+4. All required DLLs (Qt5, ICU, MinGW runtime, etc.) are included in the zip
 
 ### Portable Packages (All Platforms)
 
@@ -222,16 +232,25 @@ sudo apt install python3
 
 ## Quick Start
 
-### Windows (Native GUI - Recommended)
-1. Go to `releases/Windows/` folder
-2. Double-click `RadiantCore.exe`
-3. The GUI opens automatically in your browser at `http://127.0.0.1:8765`
+### Windows (Recommended)
 
-**Files included in releases/Windows/:**
-- `RadiantCore.exe` - GUI application
+**Option A: RadiantCoreNode+Wallet (standalone, no DLLs needed)**
+1. Double-click `RadiantCoreNode+Wallet-v.2.1.0.exe`
+2. The GUI opens automatically in your browser at `http://127.0.0.1:8765`
+3. One-click node control, built-in wallet, BIP39 seed phrase backup
+
+**Option B: RadiantCore Qt GUI (classic desktop wallet)**
+1. Extract `radiant-core-windows-x64.zip` to a folder
+2. Double-click `RadiantCore.exe`
+3. Requires all DLLs in the same folder (included in the zip)
+
+**Files included in radiant-core-windows-x64.zip:**
+- `RadiantCoreNode+Wallet-v.2.1.0.exe` - Standalone Node+Wallet GUI (no DLLs needed)
+- `RadiantCore.exe` - Classic Qt GUI wallet (requires DLLs)
 - `radiantd.exe` - The Radiant node daemon
 - `radiant-cli.exe` - Command-line interface
-- Required DLLs (OpenSSL, libevent, BerkeleyDB, ZeroMQ, etc.)
+- `radiant-tx.exe` - Transaction utility
+- All required DLLs (Qt5, ICU, MinGW runtime, BerkeleyDB, etc.)
 
 ### macOS
 1. Double-click `run_node_gui.command`

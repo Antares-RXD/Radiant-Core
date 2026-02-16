@@ -215,7 +215,7 @@ class DownloadManager:
             
             try:
                 # Download with progress
-                req = Request(url, headers={"User-Agent": "RadiantCoreGUI/2.0"})
+                req = Request(url, headers={"User-Agent": "RadiantCoreGUI/2.1.0"})
                 with urlopen(req, timeout=60) as response:
                     total_size = int(response.headers.get("Content-Length", 0))
                     downloaded = 0
@@ -380,6 +380,14 @@ class NodeManager:
                     default.update(json.load(f))
         except Exception:
             pass
+        # Validate datadir is sane for current platform (e.g. don't use
+        # macOS paths on Windows or vice versa)
+        datadir = default.get("datadir", "")
+        if platform.system() == "Windows":
+            if datadir.startswith("/") or "/Library/" in datadir:
+                default["datadir"] = self._get_default_datadir()
+        elif not datadir or (datadir[1:3] == ":\\" or datadir[1:3] == ":/"):
+            default["datadir"] = self._get_default_datadir()
         return default
     
     def _save_settings(self):
@@ -641,8 +649,11 @@ class NodeManager:
                 existing_path = env.get("PATH", "")
                 env["PATH"] = f"{binary_dir};{existing_path}"
             
-            self.process = subprocess.Popen(
-                cmd,
+            # On Windows, use CREATE_NEW_PROCESS_GROUP to isolate the child
+            # process from the parent's console signals. Without this, a
+            # windowless PyInstaller exe can cause radiantd to receive
+            # CTRL_CLOSE_EVENT and shut down immediately.
+            popen_kwargs = dict(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -650,6 +661,12 @@ class NodeManager:
                 env=env,
                 cwd=binary_dir,
             )
+            if platform.system() == "Windows":
+                CREATE_NEW_PROCESS_GROUP = 0x00000200
+                CREATE_NO_WINDOW = 0x08000000
+                popen_kwargs["creationflags"] = CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW
+            
+            self.process = subprocess.Popen(cmd, **popen_kwargs)
             self.is_running = True
             self._log("Node started successfully")
             
@@ -2730,8 +2747,14 @@ def run_browser_mode(port):
         server.shutdown()
         sys.exit(0)
     
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    try:
+        signal.signal(signal.SIGINT, signal_handler)
+    except (OSError, ValueError):
+        pass  # SIGINT may not be available in windowless Windows apps
+    try:
+        signal.signal(signal.SIGTERM, signal_handler)
+    except (OSError, ValueError):
+        pass  # SIGTERM not supported on Windows
     
     try:
         server.serve_forever()

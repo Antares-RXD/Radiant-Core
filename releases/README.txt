@@ -13,6 +13,10 @@ Latest Release: v2.1.0
 - v2.1.0/radiant-core-macos-arm64-v2.1.0.tar.gz         - macOS ARM64 CLI binaries
 - v2.1.0/radiant-core-gui-macos-arm64-v2.1.0.zip        - macOS ARM64 GUI app bundle
 - v2.1.0/radiant-core-docker-v2.1.0.tar.gz              - Docker runtime image (amd64, Ubuntu 22.04)
+- v2.1.0/Windows/RadiantCore.exe                         - Classic Qt GUI wallet (requires DLLs)
+- v2.1.0/Windows/RadiantCoreNode+Wallet-v.2.1.0.exe     - Standalone Node+Wallet GUI (no DLLs needed)
+- v2.1.0/Windows/radiant-core-windows-x64.zip            - All-in-one archive (all exes + all DLLs)
+- v2.1.0/Windows/radiant-core-windows-x64.sha256         - Windows SHA-256 checksums
 - v2.1.0/*.sha256                                        - SHA-256 checksums
 
 v2.0.1 Release:
@@ -28,9 +32,9 @@ v2.0.0 Releases:
 - Radiant-Core-GUI-2.0.0.dmg - macOS GUI Application (node + wallet)
 
 All releases include:
-- radiantd      - Node daemon
-- radiant-cli   - Command-line interface
-- radiant-tx    - Transaction utility
+- radiantd      - Node daemon (full blockchain node, validates and relays transactions)
+- radiant-cli   - CLI client (command-line interface to interact with a running node)
+- radiant-tx    - Transaction utility (create, sign, and inspect raw transactions offline)
 - Wallet support enabled
 
 Build Configuration:
@@ -120,6 +124,41 @@ Docker:
   # View wallet commands
   docker exec radiant-node radiant-cli help | grep -A50 "== Wallet =="
 
+Windows v2.1.0 (x86_64):
+------------------------
+  cd v2.1.0/Windows
+  .\radiantd.exe --version
+  .\radiantd.exe -server -txindex=1
+
+  CLI Executables:
+  - radiantd.exe          - Node daemon (full blockchain node, validates and relays transactions)
+  - radiant-cli.exe       - CLI client (command-line interface to interact with a running node)
+  - radiant-tx.exe        - Transaction utility (create, sign, and inspect raw transactions offline)
+
+  GUI Applications (two options):
+  - RadiantCore.exe                    - Classic Qt GUI wallet and node manager.
+                                         Compiled from C++ source (radiant-qt).
+                                         Requires Qt5 + ICU + MinGW DLLs in the same folder.
+  - RadiantCoreNode+Wallet-v.2.1.0.exe - Standalone Node+Wallet GUI (Python/web-based).
+                                         Single-file executable — no DLLs required.
+                                         Launches a browser-based interface at http://127.0.0.1:8765
+                                         with one-click node control, built-in wallet, and BIP39 seed
+                                         phrase backup.
+
+  radiant-core-windows-x64.zip:
+    All-in-one archive for developers and end users. Contains all five
+    executables above plus every required DLL (Qt5, ICU, MinGW runtime,
+    BerkeleyDB, HarfBuzz, FreeType, zlib, etc.) and the Qt5 platforms
+    plugin (platforms/qwindows.dll). Extract and run — no additional
+    dependencies needed.
+
+  radiant-core-windows-x64.sha256:
+    SHA-256 checksums for the executables, key DLLs, and the zip archive.
+
+  Build: MSYS2 MinGW64, GCC 15.2.0, CMake, Make (CLI + Qt GUI)
+         PyInstaller 6.18.0, Python 3.14 (Node+Wallet GUI)
+  Source: https://github.com/Radiant-Core/Radiant-Core (main branch)
+
 Windows v2.0.1 (x86_64):
 ------------------------
   cd v2.0.1/Windows
@@ -144,17 +183,26 @@ Windows v2.0.0 (x86_64):
   cd Windows
   (See v2.0.0 files - 14 DLLs, dynamically linked)
 
-Windows (Native GUI):
----------------------
-  For end users, we provide a native Windows GUI application:
-  
-  1. Double-click RadiantCore.exe (in the v2.0.1/Windows/ folder)
-  
-  2. The GUI will automatically launch in your browser at http://127.0.0.1:8765
-  
-  3. All required DLLs and node binaries are included in the same folder
-  
-  Or use radiant-core-windows-x64.zip for distribution
+Windows GUI Options:
+--------------------
+  OPTION 1: RadiantCoreNode+Wallet (Recommended for most users)
+  -------------------------------------------------------------
+  1. Double-click RadiantCoreNode+Wallet-v.2.1.0.exe
+  2. A browser-based GUI opens at http://127.0.0.1:8765
+  3. One-click node start/stop, built-in wallet, BIP39 seed phrase backup
+  4. Single file — no DLLs or installation required
+
+  OPTION 2: RadiantCore Qt GUI (Classic desktop wallet)
+  -----------------------------------------------------
+  1. Extract radiant-core-windows-x64.zip to a folder
+  2. Double-click RadiantCore.exe
+  3. Native Qt desktop wallet and node manager
+  4. Requires all DLLs in the same folder (included in the zip)
+
+  OPTION 3: CLI only (for developers/servers)
+  -------------------------------------------
+  1. Extract radiant-core-windows-x64.zip to a folder
+  2. Run radiantd.exe and radiant-cli.exe from the command line
 
 Windows (via WSL2 - for developers):
 ------------------------------------
