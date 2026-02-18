@@ -21,7 +21,7 @@ may be used to test bugs locally.
 ## Reporting a Bug or Vulnerability
 
 When reporting a bug or vulnerability, please provide the following to
-security@radiantblockchain.org:
+info@radiantfoundation.org:
 
 * A short summary of the potential impact of the issue (if known).
 * Details explaining how to reproduce the issue or how an exploit may be formed.
@@ -49,7 +49,7 @@ After this succeeded you can encrypt your prepared disclosure document with the
 following line:
 
 ```
-gpg --armor --encrypt --recipient security@radiantblockchain.org yourDisclosureDocument
+gpg --armor --encrypt --recipient info@radiantfoundation.org yourDisclosureDocument
 ```
 
 This will create a copy of your document with the file extension `.asc`, you can
