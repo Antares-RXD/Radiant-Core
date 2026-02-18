@@ -47,8 +47,8 @@ const std::string CLIENT_NAME("Radiant Core");
 //! 
 #define GIT_ARCHIVE 1
 #ifdef GIT_ARCHIVE
-#define GIT_COMMIT_ID "3bfd3ed2ed"
-#define GIT_COMMIT_DATE "Thu, 25 Jul 2024 09:38:16 -0400"
+#define GIT_COMMIT_ID "108ae141"
+#define GIT_COMMIT_DATE "Tue, 17 Feb 2026 23:30:16 -0600"
 #endif
 
 #define BUILD_DESC_WITH_SUFFIX(maj, min, rev, suffix)                          \
