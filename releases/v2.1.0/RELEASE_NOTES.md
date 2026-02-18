@@ -19,19 +19,23 @@ All node operators, miners, exchanges, and wallet providers **must upgrade befor
 
 | Platform | File | Size |
 |----------|------|------|
-| Docker (x86_64) | radiant-core-docker-v2.1.0.tar.gz | ~35 MB |
-| Linux x86_64 | radiant-core-linux-x64-v2.1.0.tar.gz | ~4.0 MB |
-| macOS ARM64 | radiant-core-macos-arm64-v2.1.0.tar.gz | ~3.0 MB |
-| macOS GUI App | Radiant-Core-GUI-2.1.0.dmg | ~19 MB |
-| Windows x64 (all-in-one) | radiant-core-windows-x64.zip | ~65 MB |
-| Windows GUI (standalone) | RadiantCoreNode+Wallet-v.2.1.0.exe | ~9.2 MB |
-| Windows GUI (Qt classic) | RadiantCore.exe | ~30 MB |
+| **macOS GUI App (DMG)** | Radiant-Core-GUI-2.1.0.dmg | 24 MB |
+| macOS GUI (portable zip) | radiant-core-gui-macos-arm64-v2.1.0.zip | 5.9 MB |
+| macOS ARM64 (binaries only) | radiant-core-macos-arm64-v2.1.0.tar.gz | 3.3 MB |
+| Linux x86_64 | radiant-core-linux-x64-v2.1.0.tar.gz | 4.1 MB |
+| Docker (x86_64) | radiant-core-docker-v2.1.0.tar.gz | 40 MB |
+| Windows x64 (all-in-one) | radiant-core-windows-x64.zip | 65 MB |
+| Windows GUI (standalone) | RadiantCoreNode+Wallet-v.2.1.0.exe | 9.2 MB |
 
 ### Verify Checksums
 Each download includes a `.sha256` file for verification:
 ```bash
+# Verify any download
 shasum -a 256 -c radiant-core-linux-x64-v2.1.0.tar.gz.sha256
+shasum -a 256 -c Radiant-Core-GUI-2.1.0.dmg.sha256
 ```
+
+**DMG SHA256**: `2d9a009f303ce4a8e54c4ff77f26c248a1534e936582669b79aef31c23c54096`
 
 ### Build Configuration
 All releases built with:
@@ -164,7 +168,7 @@ Radiant maintains **strong replay protection** via `SIGHASH_FORKID`:
 radiant-cli stop
 
 # Download and extract
-wget https://github.com/RadiantBlockchain/Radiant-Core/releases/download/v2.1.0/radiant-core-linux-x64-v2.1.0.tar.gz
+wget https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0/radiant-core-linux-x64-v2.1.0.tar.gz
 tar xzf radiant-core-linux-x64-v2.1.0.tar.gz
 
 # Install runtime dependencies (Ubuntu 22.04+)
@@ -177,7 +181,16 @@ cd radiant-core-linux-x64
 ./radiantd -server -txindex=1
 ```
 
-#### macOS (Apple Silicon)
+#### macOS (Apple Silicon) — DMG (Recommended)
+
+1. Download `Radiant-Core-GUI-2.1.0.dmg`
+2. Open the DMG and drag **Radiant Core** to Applications
+3. First launch: Right-click the app → Open (to bypass Gatekeeper)
+4. If macOS blocks it: `xattr -rd com.apple.quarantine /Applications/Radiant\ Core.app`
+
+The DMG includes `radiantd`, `radiant-cli`, `radiant-tx` with all libraries bundled — no Homebrew required.
+
+#### macOS (Apple Silicon) — CLI
 
 ```bash
 radiant-cli stop
@@ -201,12 +214,11 @@ cd C:\RadiantCore
 .\radiantd.exe -server -txindex=1
 ```
 
-**Windows GUI — Two Options:**
+**Windows GUI:**
 
 | Application | Description |
 |-------------|-------------|
 | **RadiantCoreNode+Wallet-v.2.1.0.exe** | **Recommended.** Standalone single-file GUI. No DLLs needed. Launches a browser-based interface at `http://127.0.0.1:8765` with one-click node control, built-in wallet, and BIP39 seed phrase backup. |
-| **RadiantCore.exe** | Classic Qt desktop wallet and node manager. Requires Qt5/ICU/MinGW DLLs in the same folder (all included in the zip). |
 
 #### Docker
 
@@ -248,7 +260,7 @@ docker exec radiant-node radiant-cli getblockchaininfo
 
 ### Testnet
 
-Testnet activates at block 1,000:
+Testnet activates at block 410,000 (same as mainnet):
 ```bash
 ./radiantd -testnet
 ```
