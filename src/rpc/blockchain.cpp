@@ -1491,7 +1491,7 @@ static UniValue getchaintips(const Config &config,
 
 UniValue::Object MempoolInfoToJSON(const Config &config, const CTxMemPool &pool) {
     UniValue::Object ret;
-    ret.reserve(7);
+    ret.reserve(8);
     ret.emplace_back("loaded", pool.IsLoaded());
     ret.emplace_back("size", pool.size());
     ret.emplace_back("bytes", pool.GetTotalTxSize());
@@ -1500,6 +1500,13 @@ UniValue::Object MempoolInfoToJSON(const Config &config, const CTxMemPool &pool)
     ret.emplace_back("maxmempool", maxmempool);
     ret.emplace_back("mempoolminfee", ValueFromAmount(std::max(pool.GetMinFee(maxmempool), ::minRelayTxFee).GetFeePerK()));
     ret.emplace_back("minrelaytxfee", ValueFromAmount(::minRelayTxFee.GetFeePerK()));
+    
+    // Effective minimum relay fee (accounts for V2 hard fork fee floor after grace period)
+    int tipHeight = ::ChainActive().Height();
+    const auto &consensus = config.GetChainParams().GetConsensus();
+    CFeeRate effectiveMinRelay = GetEffectiveMinRelayFee(tipHeight, consensus);
+    ret.emplace_back("effective_minrelaytxfee", ValueFromAmount(effectiveMinRelay.GetFeePerK()));
+    
     return ret;
 }
 
@@ -1525,7 +1532,10 @@ static UniValue getmempoolinfo(const Config &config,
             "/kB for tx to be accepted. Is the maximum of minrelaytxfee and "
             "minimum mempool fee\n"
             "  \"minrelaytxfee\": xxxxx       (numeric) Current minimum relay "
-            "fee for transactions\n"
+            "fee for transactions (configured value)\n"
+            "  \"effective_minrelaytxfee\": xxxxx (numeric) Protocol-enforced "
+            "minimum relay fee. After V2 hard fork activation + 5000 block grace "
+            "period, this will be 10 sat/kB instead of 1 sat/kB\n"
             "}\n"
             "\nExamples:\n" +
             HelpExampleCli("getmempoolinfo", "") +
