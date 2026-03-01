@@ -2739,13 +2739,19 @@ static UniValue settxfee(const Config &config, const JSONRPCRequest &request) {
 
     Amount nAmount = AmountFromValue(request.params[0]);
     CFeeRate tx_fee_rate(nAmount, 1000);
+    
+    // Get effective minimum relay fee (accounts for V2 hard fork after grace period)
+    int tipHeight = locked_chain->getHeight().value_or(0);
+    const auto &consensus = config.GetChainParams().GetConsensus();
+    CFeeRate effectiveMinRelay = GetEffectiveMinRelayFee(tipHeight, consensus);
+    
     if (tx_fee_rate == CFeeRate()) {
         // automatic selection
-    } else if (tx_fee_rate < ::minRelayTxFee) {
+    } else if (tx_fee_rate < effectiveMinRelay) {
         throw JSONRPCError(
             RPC_INVALID_PARAMETER,
             strprintf("txfee cannot be less than min relay tx fee (%s)",
-                      ::minRelayTxFee.ToString()));
+                      effectiveMinRelay.ToString()));
     } else if (tx_fee_rate < pwallet->m_min_fee) {
         throw JSONRPCError(
             RPC_INVALID_PARAMETER,
