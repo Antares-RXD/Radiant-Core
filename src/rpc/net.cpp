@@ -562,7 +562,12 @@ static UniValue getnetworkinfo(const Config &config,
         obj.emplace_back("connections", g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL));
     }
     obj.emplace_back("networks", GetNetworksInfo());
-    obj.emplace_back("relayfee", ValueFromAmount(::minRelayTxFee.GetFeePerK()));
+    
+    // Get effective minimum relay fee (accounts for V2 hard fork after grace period)
+    int tipHeight = ::ChainActive().Height();
+    const auto &consensus = config.GetChainParams().GetConsensus();
+    CFeeRate effectiveMinRelay = GetEffectiveMinRelayFee(tipHeight, consensus);
+    obj.emplace_back("relayfee", ValueFromAmount(effectiveMinRelay.GetFeePerK()));
     obj.emplace_back("excessutxocharge", ValueFromAmount(config.GetExcessUTXOCharge()));
     UniValue::Array localAddresses;
     {
