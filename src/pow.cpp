@@ -122,28 +122,47 @@ static uint32_t GetNextASERTWorkRequired(const CBlockIndex *pindexPrev,
 
     const arith_uint256 powLimit = UintToArith256(params.powLimit);
 
+    // CRITICAL FIX: Reset anchor block at half-life upgrade height
+    // When the half-life changes, we must reset the anchor to prevent exponential difficulty spike
+    // caused by accumulated time since the old anchor combined with the new (smaller) half-life.
+    Consensus::Params::ASERTAnchor effectiveAnchor = anchorParams;
+    int64_t halfLife = params.nASERTHalfLife;
+    
+    if (params.asertHalfLifeUpgradeHeight > 0 &&
+        pindexPrev->nHeight + 1 >= params.asertHalfLifeUpgradeHeight) {
+        // Use new half-life (12 hours)
+        halfLife = 12 * 60 * 60;
+        
+        // Reset anchor to the block immediately before the upgrade height
+        // This prevents the massive exponent from (current_height - old_anchor_height) / new_halflife
+        if (pindexPrev->nHeight >= params.asertHalfLifeUpgradeHeight) {
+            // We're at or past the upgrade - use the upgrade block as new anchor
+            // Walk back to find the block at upgrade height - 1
+            const CBlockIndex *pindexAnchor = pindexPrev;
+            while (pindexAnchor != nullptr && pindexAnchor->nHeight > params.asertHalfLifeUpgradeHeight - 1) {
+                pindexAnchor = pindexAnchor->pprev;
+            }
+            
+            if (pindexAnchor != nullptr && pindexAnchor->nHeight == params.asertHalfLifeUpgradeHeight - 1) {
+                effectiveAnchor.nHeight = pindexAnchor->nHeight;
+                effectiveAnchor.nBits = pindexAnchor->nBits;
+                effectiveAnchor.nPrevBlockTime = pindexAnchor->pprev ? pindexAnchor->pprev->GetBlockTime() : pindexAnchor->GetBlockTime();
+            }
+        }
+    }
+
     // For nTimeDiff calculation, the timestamp of the parent to the anchor block is used,
     // as per the absolute formulation of ASERT.
     // This is somewhat counterintuitive since it is referred to as the anchor timestamp, but
     // as per the formula the timestamp of block M-1 must be used if the anchor is M.
     assert(pindexPrev->pprev != nullptr);
 
-    const arith_uint256 refBlockTarget = arith_uint256().SetCompact(anchorParams.nBits);
+    const arith_uint256 refBlockTarget = arith_uint256().SetCompact(effectiveAnchor.nBits);
 
     // Time difference is from anchor block's parent block's timestamp
-    const int64_t nTimeDiff = pindexPrev->GetBlockTime() - anchorParams.nPrevBlockTime;
+    const int64_t nTimeDiff = pindexPrev->GetBlockTime() - effectiveAnchor.nPrevBlockTime;
     // Height difference is from current block to anchor block
-    const int nHeightDiff = pindexPrev->nHeight - anchorParams.nHeight;
-
-    // Select the half life to use. Before the configured upgrade height (if any)
-    // we use the chain's original nASERTHalfLife. After the upgrade height, a
-    // tuned half life (12 hours) is used on networks that define
-    // asertHalfLifeUpgradeHeight.
-    int64_t halfLife = params.nASERTHalfLife;
-    if (params.asertHalfLifeUpgradeHeight > 0 &&
-        pindexPrev->nHeight + 1 >= params.asertHalfLifeUpgradeHeight) {
-        halfLife = 12 * 60 * 60;
-    }
+    const int nHeightDiff = pindexPrev->nHeight - effectiveAnchor.nHeight;
 
     // Do the actual target adaptation calculation in separate
     // CalculateASERT() function

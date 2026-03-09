@@ -44,7 +44,7 @@ except ImportError:
     VALID_WORD_COUNTS = (12, 15, 18, 21, 24)
 
 # GitHub release configuration
-GITHUB_RELEASE_URL = "https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0"
+GITHUB_RELEASE_URL = "https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.1"
 RELEASE_ASSETS = {
     "darwin_arm64": {
         "filename": "radiant-core-macos-arm64.zip",
@@ -215,7 +215,7 @@ class DownloadManager:
             
             try:
                 # Download with progress
-                req = Request(url, headers={"User-Agent": "RadiantCoreGUI/2.1.0"})
+                req = Request(url, headers={"User-Agent": "RadiantCoreGUI/2.1.1"})
                 with urlopen(req, timeout=60) as response:
                     total_size = int(response.headers.get("Content-Length", 0))
                     downloaded = 0
@@ -478,8 +478,8 @@ class NodeManager:
             self.base_path / "build" / "src" / name,
             self.base_path / "src" / name,
             self.base_path / name,
-            # Release binaries (v2.1.0)
-            self.base_path / "releases" / "v2.1.0" / "Windows" / name,
+            # Release binaries (v2.1.1)
+            self.base_path / "releases" / "v2.1.1" / "Windows" / name,
             self.base_path / "releases" / "v2.1.0" / "Windows" / "radiant-core-windows-x64" / name,
             # Release binaries (legacy paths)
             self.base_path / "releases" / "Mac - Apple Silicon" / "radiant-core-macos-arm64" / name,

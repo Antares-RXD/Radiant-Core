@@ -1,0 +1,3 @@
+c1ed734b5274ef87a4e79c4a53341399155bca9c31e6c4b9192c3f8cfab889d2  radiant-core-docker-v2.1.1.tar.gz
+0bdedb3185910bac020b4d171041d2c4cb182aa2168a07cce70dd66e697697f0  radiant-core-linux-x64-v2.1.1.tar.gz
+c8c8cc67ed55da3ed924e0c4681b4fd026b4650269e76055ddfb27b067f07db3  radiant-core-macos-arm64-v2.1.1.tar.gz
