@@ -1,0 +1,53 @@
+# Radiant Core - Linux Qt Wallet Build
+FROM ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libtool \
+    autotools-dev \
+    automake \
+    pkg-config \
+    libssl-dev \
+    libevent-dev \
+    bsdmainutils \
+    libboost-all-dev \
+    libdb++-dev \
+    libminiupnpc-dev \
+    libzmq3-dev \
+    cmake \
+    ninja-build \
+    qtbase5-dev \
+    qttools5-dev \
+    qttools5-dev-tools \
+    libqt5svg5-dev \
+    libprotobuf-dev \
+    protobuf-compiler \
+    libqrencode-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build/radiant
+COPY . .
+
+RUN cmake -B build -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_RADIANT_WALLET=ON \
+    -DBUILD_RADIANT_QT=ON \
+    -DBUILD_RADIANT_DAEMON=ON \
+    -DBUILD_RADIANT_CLI=ON \
+    -DBUILD_RADIANT_TX=ON \
+    -DBUILD_RADIANT_ZMQ=ON \
+    -DENABLE_HARDENING=ON \
+    -DENABLE_QRCODE=ON
+
+RUN cmake --build build --target radiant-qt -j$(nproc)
+
+RUN mkdir -p /release/radiant-qt-linux-x64 && \
+    cp build/src/qt/radiant-qt /release/radiant-qt-linux-x64/ && \
+    strip /release/radiant-qt-linux-x64/radiant-qt
+
+WORKDIR /release
+RUN tar -czf radiant-qt-linux-x64-v2.1.0.tar.gz radiant-qt-linux-x64
+
+CMD ["/bin/bash"]
