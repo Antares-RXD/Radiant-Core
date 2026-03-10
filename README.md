@@ -21,16 +21,6 @@ network based on the original Bitcoin design. RXD is the native token of Radiant
 
 **For most users**, the easiest way to run a Radiant node is the **Radiant Core GUI** - a simple desktop application for self-custody and helping distribute the network.
 
-### Download
-
-| Platform | Download | Description |
-|----------|----------|-------------|
-| **macOS** | [Radiant-Core-GUI-2.1.0.dmg](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0/Radiant-Core-GUI-2.1.0.dmg) | Native app with node + wallet |
-| **Windows** | [RadiantCoreNode+Wallet-v.2.1.0.exe](releases/v2.1.0/Windows/RadiantCoreNode+Wallet-v.2.1.0.exe) | Standalone GUI — no install or DLLs needed |
-| **Windows (Qt)** | [RadiantCore.exe](releases/v2.1.0/Windows/RadiantCore.exe) | Classic Qt desktop wallet (requires DLLs from zip) |
-| **Windows (all-in-one)** | [radiant-core-windows-x64.zip](releases/v2.1.0/Windows/radiant-core-windows-x64.zip) | All exes + all DLLs in one archive |
-| **Linux** | [radiant-core-gui-linux-x64-v2.1.0.tar.gz](https://github.com/Radiant-Core/Radiant-Core/releases/download/v2.1.0/radiant-core-gui-linux-x64-v2.1.0.tar.gz) | GUI package |
-
 ### Features
 - **One-click node**: Start and stop your node with a single click
 - **Built-in wallet**: Send and receive RXD with self-custody
@@ -45,7 +35,7 @@ network based on the original Bitcoin design. RXD is the native token of Radiant
 
 ---
 
-## Radiant Core 2.1 — V2 Hard Fork
+## Radiant Core 2.1.2 — V2 Hard Fork
 
 **Activation Height:** Block 410,000 (mainnet & testnet3)
 
