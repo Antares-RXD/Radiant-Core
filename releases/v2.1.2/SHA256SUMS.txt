@@ -3,3 +3,4 @@ cdcca3676c0deb63602bb832639146528eaef9a50fa4cc4431129848d9c1a608  releases/v2.1.
 bb77aad68990d4db4dd0558c4fd0a0e398972bc8fb1f4a2a3921103c2396f9c1  releases/v2.1.2/radiant-core-macos-arm64-v2.1.2.tar.gz
 5c2a41d24ff22dde3d82c0fa285cc7dc9809fd197597d2947fa664aaf71e3138  releases/v2.1.2/radiant-qt-linux-x64-v2.1.2.tar.gz
 73dd5abd5d97caad5cd372c8405afd53020e0f5504c05e5614c01c191e025471  releases/v2.1.2/Radiant-Core-Qt-Wallet-2.1.2.dmg
+c44d31ea23beed267c717ff8de9ce69eb274972b04bac20d1fcd84582302e3af  Radiant-Node-Web-GUI-2.1.2.dmg
