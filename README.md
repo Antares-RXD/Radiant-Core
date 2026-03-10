@@ -72,27 +72,7 @@ We provide comprehensive release build scripts for all platforms with automated 
 
 Download official releases from [GitHub Releases](https://github.com/Radiant-Core/Radiant-Core/releases) with verified checksums:
 
-#### Latest Release: v2.1.0
-
-| Platform | Download | Size | Checksum (SHA256) |
-|----------|----------|------|------------------|
-| **Linux x86_64** | [radiant-core-linux-x86_64.tar.gz] | 23 MB | *(Available on release page)* |
-| **macOS Universal** | [radiant-core-macos-universal.tar.gz] | 28 MB | *(Available on release page)* |
-| **Docker Image** | `radiant-core:latest` | 150 MB | *(Verified by Docker Hub)* |
-| **Windows x64** | [radiant-core-windows-x64.zip](releases/v2.1.0/Windows/) | ~25 MB | `04b32a45...8fafc6` |
-
 **🔐 Security Verification:**
-```bash
-# Verify Linux release
-sha256sum radiant-core-linux-x86_64.tar.gz
-
-# Verify macOS release
-shasum -a 256 radiant-core-macos-universal.tar.gz
-
-# Verify Windows release
-# Compare against releases/v2.1.0/Windows/radiant-core-windows-x64.sha256
-Get-FileHash radiant-core-windows-x64.zip -Algorithm SHA256
-```
 
 ### 🛠️ Build from Source
 
@@ -277,7 +257,7 @@ Native Build: Windows
 
 A standalone single-file GUI with built-in node management and wallet:
 
-- **Download:** [`RadiantCoreNode+Wallet-v.2.1.0.exe`](releases/v2.1.0/Windows/RadiantCoreNode+Wallet-v.2.1.0.exe) (~9.2 MB)
+- **Download:** 
 - **No DLLs or installation required** — just double-click to run
 - Opens a browser-based interface at `http://127.0.0.1:8765`
 - One-click node start/stop, built-in wallet, BIP39 seed phrase backup
@@ -286,7 +266,7 @@ A standalone single-file GUI with built-in node management and wallet:
 
 The traditional Qt-based desktop wallet and node manager:
 
-1. Download and extract [`radiant-core-windows-x64.zip`](releases/v2.1.0/Windows/radiant-core-windows-x64.zip) (~65 MB)
+1. Download and extract 
 2. Double-click `RadiantCore.exe`
 3. All required DLLs (Qt5, ICU, MinGW runtime, etc.) are included in the zip
 
