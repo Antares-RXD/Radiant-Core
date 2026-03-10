@@ -524,7 +524,23 @@ static UniValue getblocktemplatecommon(bool fLight, const Config &config, const 
     static std::unique_ptr<LightResult> plightresult; // fLight mode only, cached result associated with pblocktemplate
     static bool fIgnoreCache = false;
     bool fNewTip = (pindexPrev && pindexPrev != ::ChainActive().Tip());
-    if (pindexPrev != ::ChainActive().Tip() || fIgnoreCache || ignoreCacheOverride ||
+    
+    // CRITICAL FIX: Invalidate cache at ASERT half-life upgrade height to ensure miners
+    // get the correct difficulty target after the dynamic anchor reset
+    const Consensus::Params &consensusParams = config.GetChainParams().GetConsensus();
+    bool fCrossingASERTUpgrade = false;
+    if (pindexPrev && consensusParams.asertHalfLifeUpgradeHeight > 0) {
+        const int prevHeight = pindexPrev->nHeight;
+        const int currentHeight = ::ChainActive().Tip()->nHeight;
+        // Invalidate cache if we're crossing the upgrade height boundary
+        if ((prevHeight < consensusParams.asertHalfLifeUpgradeHeight && 
+             currentHeight >= consensusParams.asertHalfLifeUpgradeHeight) ||
+            (prevHeight == consensusParams.asertHalfLifeUpgradeHeight - 1)) {
+            fCrossingASERTUpgrade = true;
+        }
+    }
+    
+    if (pindexPrev != ::ChainActive().Tip() || fIgnoreCache || ignoreCacheOverride || fCrossingASERTUpgrade ||
         (g_mempool.GetTransactionsUpdated() != nTransactionsUpdatedLast &&
          GetTime() - nStart > 5)) {
         // Clear pindexPrev so future calls make a new block, despite any

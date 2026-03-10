@@ -123,31 +123,30 @@ static uint32_t GetNextASERTWorkRequired(const CBlockIndex *pindexPrev,
     const arith_uint256 powLimit = UintToArith256(params.powLimit);
 
     // CRITICAL FIX: Reset anchor block at half-life upgrade height
-    // When the half-life changes, we must reset the anchor to prevent exponential difficulty spike
-    // caused by accumulated time since the old anchor combined with the new (smaller) half-life.
+    //
+    // When the half-life changes, an instantaneous switch can cause a huge discontinuity in computed targets
+    // because the exponent is effectively scaled by 1/halfLife. If the chain is far ahead or behind schedule
+    // relative to a long-lived anchor, switching from 2 days -> 12 hours can create an unmineable difficulty
+    // cliff (or a massive drop). To avoid stalling at the activation boundary, re-anchor ASERT at the last
+    // pre-upgrade block, starting with the first post-upgrade block.
     Consensus::Params::ASERTAnchor effectiveAnchor = anchorParams;
     int64_t halfLife = params.nASERTHalfLife;
-    
-    if (params.asertHalfLifeUpgradeHeight > 0 &&
-        pindexPrev->nHeight + 1 >= params.asertHalfLifeUpgradeHeight) {
+    const int nextHeight = pindexPrev->nHeight + 1;
+
+    if (params.asertHalfLifeUpgradeHeight > 0 && nextHeight >= params.asertHalfLifeUpgradeHeight) {
         // Use new half-life (12 hours)
         halfLife = 12 * 60 * 60;
-        
-        // Reset anchor to the block immediately before the upgrade height
-        // This prevents the massive exponent from (current_height - old_anchor_height) / new_halflife
-        if (pindexPrev->nHeight >= params.asertHalfLifeUpgradeHeight) {
-            // We're at or past the upgrade - use the upgrade block as new anchor
-            // Walk back to find the block at upgrade height - 1
-            const CBlockIndex *pindexAnchor = pindexPrev;
-            while (pindexAnchor != nullptr && pindexAnchor->nHeight > params.asertHalfLifeUpgradeHeight - 1) {
-                pindexAnchor = pindexAnchor->pprev;
-            }
-            
-            if (pindexAnchor != nullptr && pindexAnchor->nHeight == params.asertHalfLifeUpgradeHeight - 1) {
-                effectiveAnchor.nHeight = pindexAnchor->nHeight;
-                effectiveAnchor.nBits = pindexAnchor->nBits;
-                effectiveAnchor.nPrevBlockTime = pindexAnchor->pprev ? pindexAnchor->pprev->GetBlockTime() : pindexAnchor->GetBlockTime();
-            }
+
+        // Re-anchor to the last block mined under the pre-upgrade rule.
+        const int anchorHeight = params.asertHalfLifeUpgradeHeight - 1;
+        const CBlockIndex *pindexAnchor = pindexPrev->GetAncestor(anchorHeight);
+        if (pindexAnchor != nullptr && pindexAnchor->nHeight == anchorHeight) {
+            effectiveAnchor.nHeight = pindexAnchor->nHeight;
+            effectiveAnchor.nBits = pindexAnchor->nBits;
+            effectiveAnchor.nPrevBlockTime = pindexAnchor->pprev ? pindexAnchor->pprev->GetBlockTime() : pindexAnchor->GetBlockTime();
+        } else {
+            // CRITICAL: If we can't find the anchor block, log and fall back to original anchor
+            LogPrintf("WARNING: Could not find ASERT anchor at height %d, using original anchor\n", anchorHeight);
         }
     }
 

@@ -1,8 +1,19 @@
-# Radiant Core v2.1.1 - Emergency ASERT DAA Fix
+# Radiant Core v2.1.1 - Emergency ASERT DAA Fix (HOTFIX BUILD)
 
 **Release Date**: March 9, 2026  
-**Type**: CRITICAL EMERGENCY FIX  
-**Status**: MANDATORY UPGRADE
+**Type**: CRITICAL EMERGENCY FIX + HOTFIX  
+**Status**: MANDATORY UPGRADE  
+**Build**: Includes getblocktemplate cache fix
+
+---
+
+## 🔥 HOTFIX APPLIED (Critical for Miners)
+
+**Issue Found**: The initial v2.1.1 release fixed the ASERT difficulty calculation in `getblockchaininfo`, but `getblocktemplate` (used by miners) was returning **cached templates with the old broken difficulty** (148.9 trillion instead of 30.4 million).
+
+**Hotfix Applied**: Added cache invalidation at ASERT half-life upgrade height in `src/rpc/mining.cpp` to force regeneration of block templates with correct difficulty.
+
+**Impact**: Without this hotfix, miners would continue receiving incorrect difficulty targets even after upgrading nodes.
 
 ---
 
@@ -33,7 +44,11 @@ v2.1.1 implements a **dynamic anchor block reset** at the half-life upgrade heig
 - Block 410,000's bad difficulty is effectively ignored for future calculations
 - **No reorg required** - the fix works with the already-halted chain
 
-**Technical Details**: `src/pow.cpp` lines 125-152
+**Implementation Details**:
+- `src/pow.cpp` lines 125-151: Dynamic anchor reset using efficient `GetAncestor()` lookup
+- `src/rpc/mining.cpp` lines 528-541: Cache invalidation to ensure miners receive correct templates
+- Fallback logging if anchor block lookup fails (defensive programming)
+- O(log n) performance using skip list instead of linear block traversal
 
 ---
 

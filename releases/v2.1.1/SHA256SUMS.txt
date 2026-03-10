@@ -1,3 +1,6 @@
-c1ed734b5274ef87a4e79c4a53341399155bca9c31e6c4b9192c3f8cfab889d2  radiant-core-docker-v2.1.1.tar.gz
-0bdedb3185910bac020b4d171041d2c4cb182aa2168a07cce70dd66e697697f0  radiant-core-linux-x64-v2.1.1.tar.gz
-c8c8cc67ed55da3ed924e0c4681b4fd026b4650269e76055ddfb27b067f07db3  radiant-core-macos-arm64-v2.1.1.tar.gz
+385486496d0a7323bdf9f7bc6989cb0c99afa12ddb8accf46cc008efb7b6cfba  radiant-core-docker-v2.1.1.tar.gz
+7f79bb52f7d65cceefdfca8db3a1df6b1ddfd0744cd14e4d33b4727e3c4f794e  radiant-core-gui-linux-x64-v2.1.1.tar.gz
+a617ffe12ebf5b80e697a6aa6dc5432b8981a4f313ccf5467a8947e9e5a36c30  radiant-core-linux-x64-v2.1.1.tar.gz
+204b8251cf0feff89bdf26cc7ffa09b01683c4a31d3d2dd9cf690a0520874974  radiant-core-macos-arm64-v2.1.1.tar.gz
+9c4c9c9faf1a6d8aef4eb5b5a258b9104b6705d1a7e9ee822ff31b594c8498cc  Radiant-Core-GUI-2.1.1.dmg
+1403828e4a6ee791e2bc41d926bc9b556d2704eca416410ea6b097e631885fd5  radiant-core-gui-macos-arm64-v2.1.1.zip
