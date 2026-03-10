@@ -1,0 +1,79 @@
+# Radiant Core - Docker Release Build (Local Source)
+FROM ubuntu:24.04 AS builder
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG BUILD_TYPE=Release
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    ninja-build \
+    pkg-config \
+    git \
+    libboost-all-dev \
+    libevent-dev \
+    libssl-dev \
+    libdb++-dev \
+    libminiupnpc-dev \
+    libzmq3-dev \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build/radiant
+COPY . .
+
+RUN cmake -B build -G Ninja \
+    -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+    -DBUILD_RADIANT_WALLET=ON \
+    -DBUILD_RADIANT_DAEMON=ON \
+    -DBUILD_RADIANT_CLI=ON \
+    -DBUILD_RADIANT_TX=ON \
+    -DBUILD_RADIANT_ZMQ=ON \
+    -DBUILD_RADIANT_QT=OFF \
+    -DENABLE_HARDENING=ON
+
+RUN cmake --build build --target radiantd radiant-cli radiant-tx -j$(nproc)
+
+# Runtime image
+FROM ubuntu:24.04 AS runtime
+
+LABEL maintainer="info@radiantfoundation.org"
+LABEL version="2.1.2"
+LABEL description="Radiant Core Node - Runtime"
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y \
+    libboost-chrono1.83.0 \
+    libboost-filesystem1.83.0 \
+    libboost-thread1.83.0 \
+    libboost-atomic1.83.0 \
+    libevent-2.1-7 \
+    libevent-pthreads-2.1-7 \
+    libssl3t64 \
+    libdb5.3++ \
+    libminiupnpc17 \
+    libzmq5 \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -s /bin/bash radiant
+
+COPY --from=builder /build/radiant/build/src/radiantd /usr/local/bin/
+COPY --from=builder /build/radiant/build/src/radiant-cli /usr/local/bin/
+COPY --from=builder /build/radiant/build/src/radiant-tx /usr/local/bin/
+
+RUN mkdir -p /home/radiant/.radiant && \
+    chown -R radiant:radiant /home/radiant/.radiant
+
+USER radiant
+WORKDIR /home/radiant
+
+EXPOSE 7332 7333 29000
+
+ENTRYPOINT ["radiantd"]
+CMD ["-server", "-rest", "-txindex=1", "-disablewallet=0"]
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD radiant-cli getblockchaininfo > /dev/null || exit 1
