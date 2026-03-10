@@ -142,12 +142,21 @@ BlockAssembler::CreateNewBlock(const CScript &scriptPubKeyIn, double timeLimitSe
     const Consensus::Params &consensusParams = chainparams.GetConsensus();
 
     // Enforce minimum fee rate based on Radiant Core 2.0 activation
-    // Post-upgrade: 10,000,000 sat/kB (0.1 RXD/kB)
-    // Pre-upgrade:   1,000,000 sat/kB (0.01 RXD/kB)
+    // Post-upgrade + grace period: 10,000,000 sat/kB (0.1 RXD/kB)
+    // Pre-upgrade / during grace:   1,000,000 sat/kB (0.01 RXD/kB)
+    // Grace period aligns with relay policy in validation.cpp
     if (!chainparams.MineBlocksOnDemand()) {
         if (IsRadiantCore2Enabled(consensusParams, pindexPrev)) {
-            if (blockMinFeeRate < CFeeRate(RADIANT_CORE_2_BLOCK_MIN_TX_FEE_PER_KB)) {
-                blockMinFeeRate = CFeeRate(RADIANT_CORE_2_BLOCK_MIN_TX_FEE_PER_KB);
+            // Only enforce higher fee after grace period (5000 blocks)
+            if (nHeight >= consensusParams.radiantCore2UpgradeHeight + RADIANT_CORE_2_GRACE_BLOCKS) {
+                if (blockMinFeeRate < CFeeRate(RADIANT_CORE_2_BLOCK_MIN_TX_FEE_PER_KB)) {
+                    blockMinFeeRate = CFeeRate(RADIANT_CORE_2_BLOCK_MIN_TX_FEE_PER_KB);
+                }
+            } else {
+                // During grace period: cap at legacy fee so txs paying 0.01 RXD/kB are included
+                if (blockMinFeeRate > CFeeRate(LEGACY_BLOCK_MIN_TX_FEE_PER_KB)) {
+                    blockMinFeeRate = CFeeRate(LEGACY_BLOCK_MIN_TX_FEE_PER_KB);
+                }
             }
         } else {
             // Pre-upgrade: use legacy fee, but still cap at legacy maximum
