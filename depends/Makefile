@@ -1,0 +1,215 @@
+.NOTPARALLEL :
+
+# Pattern rule to print variables, e.g. make print-build_arch
+print-%:
+	@echo '$*'='$($*)'
+
+# $(MAKE) A=1 blah blah
+MAKEOVERRIDES := $(filter V=%,$(MAKEOVERRIDES))
+SOURCES_PATH ?= $(BASEDIR)/sources
+WORK_PATH = $(BASEDIR)/work
+BASE_CACHE ?= $(BASEDIR)/built
+SDK_PATH ?= $(BASEDIR)/SDKs
+NO_QT ?=
+NO_PROTOBUF ?=
+NO_OPENSSL ?=
+NO_QR ?=
+NO_WALLET ?=
+NO_ZMQ ?=
+NO_UPNP ?=
+NO_NATPMP ?=
+NO_JEMALLOC ?=
+BUILD_CPYTHON ?=
+FALLBACK_DOWNLOAD_PATH ?= https://download.bitcoinabc.org/depends-sources
+
+# OpenSSL bn implementation uses inline asm so we have to use gnu extensions
+C_STANDARD ?= gnu11
+CXX_STANDARD ?= c++20
+
+BUILD = $(shell ./config.guess)
+HOST ?= $(BUILD)
+PATCHES_PATH = $(BASEDIR)/patches
+BASEDIR = $(CURDIR)
+HASH_LENGTH:=11
+DOWNLOAD_CONNECT_TIMEOUT:=30
+DOWNLOAD_RETRIES:=3
+HOST_ID_SALT ?= salt
+BUILD_ID_SALT ?= salt
+JOBS ?= $(shell echo $$(($(shell nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 0) + 1)))
+
+host:=$(BUILD)
+ifneq ($(HOST),)
+host:=$(HOST)
+host_toolchain:=$(HOST)-
+endif
+
+ifneq ($(DEBUG),)
+release_type=debug
+else
+release_type=release
+endif
+
+base_build_dir=$(WORK_PATH)/build
+base_staging_dir=$(WORK_PATH)/staging
+base_download_dir=$(WORK_PATH)/download
+canonical_host:=$(shell ./config.sub $(HOST))
+build:=$(shell ./config.sub $(BUILD))
+
+build_arch =$(firstword $(subst -, ,$(build)))
+build_vendor=$(word 2,$(subst -, ,$(build)))
+full_build_os:=$(subst $(build_arch)-$(build_vendor)-,,$(build))
+build_os:=$(findstring linux,$(full_build_os))
+build_os+=$(findstring darwin,$(full_build_os))
+build_os:=$(strip $(build_os))
+ifeq ($(build_os),)
+build_os=$(full_build_os)
+endif
+
+host_arch=$(firstword $(subst -, ,$(canonical_host)))
+host_vendor=$(word 2,$(subst -, ,$(canonical_host)))
+full_host_os:=$(subst $(host_arch)-$(host_vendor)-,,$(canonical_host))
+host_os:=$(findstring linux,$(full_host_os))
+host_os+=$(findstring darwin,$(full_host_os))
+host_os+=$(findstring mingw32,$(full_host_os))
+host_os:=$(strip $(host_os))
+ifeq ($(host_os),)
+host_os=$(full_host_os)
+endif
+
+$(host_arch)_$(host_os)_prefix=$(BASEDIR)/$(host)
+$(host_arch)_$(host_os)_host=$(host)
+host_prefix=$($(host_arch)_$(host_os)_prefix)
+build_prefix=$(host_prefix)/native
+build_host=$(build)
+
+all: install
+
+include hosts/$(host_os).mk
+include hosts/default.mk
+include builders/$(build_os).mk
+include builders/default.mk
+include packages/packages.mk
+
+build_id:=$(shell env CC='$(build_CC)' CXX='$(build_CXX)' AR='$(build_AR)' RANLIB='$(build_RANLIB)' STRIP='$(build_STRIP)' SHA256SUM='$(build_SHA256SUM)' DEBUG='$(DEBUG)' ./gen_id '$(BUILD_ID_SALT)' 'GUIX_ENVIRONMENT=$(realpath $(GUIX_ENVIRONMENT))')
+$(host_arch)_$(host_os)_id:=$(shell env CC='$(host_CC)' CXX='$(host_CXX)' AR='$(host_AR)' RANLIB='$(host_RANLIB)' STRIP='$(host_STRIP)' SHA256SUM='$(build_SHA256SUM)' DEBUG='$(DEBUG)' ./gen_id '$(HOST_ID_SALT)' 'GUIX_ENVIRONMENT=$(realpath $(GUIX_ENVIRONMENT))')
+
+qrencode_packages_$(NO_QR) = $(qrencode_packages)
+
+qt_packages_$(NO_QT) = $(qt_packages) $(qt_$(host_os)_packages) $(qt_$(host_arch)_$(host_os)_packages) $(qrencode_packages_)
+
+bdb_packages_$(NO_BDB) = $(bdb_packages)
+sqlite_packages_$(NO_SQLITE) = $(sqlite_packages)
+wallet_packages_$(NO_WALLET) = $(bdb_packages_) $(sqlite_packages_)
+
+upnp_packages_$(NO_UPNP) = $(upnp_packages)
+natpmp_packages_$(NO_NATPMP) = $(natpmp_packages)
+
+zmq_packages_$(NO_ZMQ) = $(zmq_packages)
+
+protobuf_packages_$(NO_PROTOBUF) = $(protobuf_packages)
+
+openssl_packages_$(NO_OPENSSL) = $(openssl_packages)
+
+jemalloc_packages_$(NO_JEMALLOC) = $(jemalloc_packages)
+
+cpython_packages_$(BUILD_CPYTHON) = $(cpython_packages)
+
+packages += $($(host_arch)_$(host_os)_packages) $($(host_os)_packages) $(qt_packages_) $(wallet_packages_) $(upnp_packages_) $(natpmp_packages_)
+native_packages += $($(host_arch)_$(host_os)_native_packages) $($(host_os)_native_packages)
+
+ifneq ($(protobuf_packages_),)
+native_packages += $(protobuf_native_packages)
+packages += $(protobuf_packages)
+endif
+
+ifneq ($(openssl_packages_),)
+packages += $(openssl_packages)
+endif
+
+ifneq ($(zmq_packages_),)
+packages += $(zmq_packages)
+endif
+
+ifneq ($(jemalloc_packages_),)
+packages += $(jemalloc_packages)
+endif
+
+ifeq ($(cpython_packages_),)
+native_packages += $(cpython_native_packages)
+packages += $(cpython_packages)
+endif
+
+all_packages = $(packages) $(native_packages)
+
+meta_depends = Makefile funcs.mk builders/default.mk hosts/default.mk hosts/$(host_os).mk builders/$(build_os).mk
+
+include funcs.mk
+
+final_build_id_long+=$(shell $(build_SHA256SUM) config.sub)
+final_build_id+=$(shell echo -n "$(final_build_id_long)" | $(build_SHA256SUM) | cut -c-$(HASH_LENGTH))
+$(host_prefix)/.stamp_$(final_build_id): $(native_packages) $(packages)
+	rm -rf $(@D)
+	mkdir -p $(@D)
+	echo copying packages: $^
+	echo to: $(@D)
+	cd $(@D); $(foreach package,$^, tar xf $($(package)_cached); )
+	touch $@
+
+define check_or_remove_cached
+  mkdir -p $(BASE_CACHE)/$(host)/$(package) && cd $(BASE_CACHE)/$(host)/$(package); \
+  $(build_SHA256SUM) -c $($(package)_cached_checksum) >/dev/null 2>/dev/null || \
+  ( rm -f $($(package)_cached_checksum); \
+    if test -f "$($(package)_cached)"; then echo "Checksum mismatch for $(package). Forcing rebuild.."; rm -f $($(package)_cached_checksum) $($(package)_cached); fi )
+endef
+
+define check_or_remove_sources
+  mkdir -p $($(package)_source_dir); cd $($(package)_source_dir); \
+  test -f $($(package)_fetched) && ( $(build_SHA256SUM) -c $($(package)_fetched) >/dev/null 2>/dev/null || \
+    ( echo "Checksum missing or mismatched for $(package) source. Forcing re-download."; \
+      rm -f $($(package)_all_sources) $($(1)_fetched))) || true
+endef
+
+check-packages:
+	@$(foreach package,$(all_packages),$(call check_or_remove_cached,$(package));)
+check-sources:
+	@$(foreach package,$(all_packages),$(call check_or_remove_sources,$(package));)
+
+check-packages: check-sources
+
+clean-all: clean
+	@rm -rf $(SOURCES_PATH) x86_64* i686* arm* aarch64*
+
+clean:
+	@rm -rf $(WORK_PATH) $(BASE_CACHE) $(BUILD) *.log
+
+install: check-packages $(host_prefix)/.stamp_$(final_build_id)
+
+download-one: check-sources $(all_sources)
+
+download-osx:
+	@$(MAKE) -s HOST=x86_64-apple-darwin download-one
+download-linux:
+	@$(MAKE) -s HOST=x86_64-unknown-linux-gnu download-one
+download-win:
+	@$(MAKE) -s HOST=x86_64-w64-mingw32 download-one
+download: download-osx download-linux download-win
+
+build-linux64: download-linux
+	@$(MAKE) -s HOST=x86_64-linux-gnu install
+build-linux32: download-linux
+	@$(MAKE) -s HOST=i686-pc-linux-gnu install
+build-linux-arm: download-linux
+	@$(MAKE) -s HOST=arm-linux-gnueabihf install
+build-linux-aarch64: download-linux
+	@$(MAKE) -s HOST=aarch64-linux-gnu install
+build-osx: download-osx
+	@$(MAKE) -s HOST=x86_64-apple-darwin install
+build-win64: download-win
+	@$(MAKE) -s HOST=x86_64-w64-mingw32 install
+
+build-all: build-linux64 build-linux32 build-linux-arm build-linux-aarch64 build-osx build-win64
+
+$(foreach package,$(all_packages),$(eval $(call ext_add_stages,$(package))))
+
+.PHONY: install cached clean clean-all download-one download-osx download-linux download-win download check-packages check-sources
+$(V).SILENT:
